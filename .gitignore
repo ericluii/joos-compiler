@@ -1,5 +1,7 @@
-ajc
 joosc
+test_joosc
+
+.DS_Store
 
 # Compiled Object files
 *.slo
