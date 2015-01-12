@@ -1,11 +1,12 @@
 #include "dfa.h"
+#include "states.h"
 #include <assert.h>
 
 Dfa::Dfa()
 {
     this->dfa = std::map<int, std::pair<int, TransitionFunction> >();
     // TODO: Change to error state macro
-    this->start_state = -1;
+    this->start_state = DS_START;
 }
 
 void Dfa::initialize()
