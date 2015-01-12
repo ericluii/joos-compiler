@@ -6,11 +6,8 @@
 typedef int (*TransitionFunction)(char);
 
 class Dfa {
-    private:
-        bool is_initialized;
     protected:
         std::map<int, std::pair<int, TransitionFunction> > dfa;
-        int start_state;
         int current_state;
 
         Dfa();
