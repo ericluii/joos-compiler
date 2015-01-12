@@ -13,13 +13,13 @@ enum TOKEN_TYPE {
 
 class Token {
     private:
-       TOKEN_TYPE type;
-       std::string string;
-       std::pair <unsigned int, unsigned int> location;
+        TOKEN_TYPE type;
+        std::string string;
+        std::pair <unsigned int, unsigned int> location;
     public:
-       TOKEN_TYPE getType();
-       std::string getString();
-       std::pair <unsigned int, unsigned int> getLocation();
+        TOKEN_TYPE getType();
+        std::string getString();
+        std::pair <unsigned int, unsigned int> getLocation();
 };
 
 #endif
