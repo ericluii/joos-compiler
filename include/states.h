@@ -15,10 +15,10 @@ enum COMPILER_PHASE {
 };
 
 enum DFA_STATES {
-	DS_ERROR = 0,
-	DS_START,
-	DS_RUNNING,
-	DS_ACCEPT,
+    DS_ERROR = 0,
+    DS_START,
+    DS_RUNNING,
+    DS_ACCEPT,
 };
 
 #endif
