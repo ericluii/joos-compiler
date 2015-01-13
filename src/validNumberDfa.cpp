@@ -1,11 +1,7 @@
 #include "states.h"
 #include "validNumberDfa.h"
 
-int error(char c) {
-    return DS_ERROR;
-}
-
-int isNonZeroDigit(char c) {
+int isNonZeroDigit(char c, int current_state) {
     if('1' <= c && c <= '9') {
         return DS_ACCEPT;
     }
@@ -13,7 +9,7 @@ int isNonZeroDigit(char c) {
     return DS_ERROR;
 }
 
-int isDigit(char c) {
+int isDigit(char c, int current_state) {
     if('0' <= c && c <= '9') {
         return DS_ACCEPT;
     }

@@ -2,6 +2,11 @@
 #include "states.h"
 #include <assert.h>
 
+int error(char c, int current_state) {
+    return DS_ERROR;
+}
+
+
 Dfa::Dfa()
 {
     current_state = DS_START;
@@ -11,7 +16,7 @@ int Dfa::transition(char c)
 {
     assert(dfa.find(current_state) != dfa.end());
 
-    current_state = dfa[current_state].second(c);
+    current_state = dfa[current_state].second(c, current_state);
 
     return 0;
 }
