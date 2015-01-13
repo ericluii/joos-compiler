@@ -3,6 +3,7 @@
 
 #include "test_base.h"
 #include "validNumberDfa.h"
+#include "keywordDfa.h"
 #include <iostream>
 
 class Test_Dfa: public Test_Base {
@@ -19,6 +20,13 @@ class Test_Dfa: public Test_Base {
             std::cout << test_name << ": " << test_description << std::endl;
             std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
+            test_vn_dfa();
+            test_kw_dfa();
+
+            std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        }
+    private:
+        void test_vn_dfa() {
             ValidNumberDfa vn_dfa;
             checkTrue("ValidNumberDfa", !vn_dfa.onAcceptingState(),
                       "Empty String", "");
@@ -48,7 +56,55 @@ class Test_Dfa: public Test_Base {
             checkTrue("ValidNumberDfa", !vn_dfa.onAcceptingState(),
                       "Invalid Number", "15a");
 
-            std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        }
+
+        void test_kw_dfa() {
+            KeywordDfa kw_dfa;
+            checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                      "Empty String", "");
+
+            std::string str = "0123456789";
+            for(char& c : str) {
+                kw_dfa.transition(c);
+                checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                          "Number Test 0-9", std::to_string(c));
+                kw_dfa.resetDfa();
+            }
+
+            str = "abstrac";
+            for(char& c : str) {
+                kw_dfa.transition(c);
+                checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                          "word abstrac", std::to_string(c));
+            }
+
+            kw_dfa.transition('t');
+            checkTrue("KeywordDfa", kw_dfa.onAcceptingState(),
+                      "Keyword abstract", "abstract");
+
+            kw_dfa.transition('a');
+            checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                      "Keyword plus more", "abstracta");
+
+            kw_dfa.resetDfa();
+            str = "fina";
+            for(char& c : str) {
+                kw_dfa.transition(c);
+                checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                          "word fina", std::to_string(c));
+            }
+
+            kw_dfa.transition('l');
+            checkTrue("KeywordDfa", kw_dfa.onAcceptingState(),
+                      "Keyword final - substring of finally", "final");
+
+            kw_dfa.transition('l');
+            checkTrue("KeywordDfa", !kw_dfa.onAcceptingState(),
+                      "Keyword final + l - substring of finally", "finall");
+
+            kw_dfa.transition('y');
+            checkTrue("KeywordDfa", kw_dfa.onAcceptingState(),
+                      "Keyword finally - contains final", "finally");
         }
 };
 

@@ -3,7 +3,9 @@
 
 #include <map>
 
-typedef int (*TransitionFunction)(char);
+typedef int (*TransitionFunction)(char, int);
+
+int error(char c, int current_state);
 
 class Dfa {
     protected:

@@ -4,10 +4,10 @@
 #include "dfa.h"
 
 class ValidNumberDfa : public Dfa {
-  private:
-    void initDfa();
-  public:
-    ValidNumberDfa();
+    private:
+        void initDfa();
+    public:
+        ValidNumberDfa();
 };
 
 #endif
