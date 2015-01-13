@@ -255,6 +255,10 @@ enum DFA_STATES {
     DS_SYNCHRONIZ,
     DS_SYNCHRONIZE,
     DS_SYNCHRONIZED,
+
+    // Valid number DFA states
+    DS_ZERO,
+    DS_UNDERSCORE,
 };
 
 #endif

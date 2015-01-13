@@ -39,7 +39,7 @@ class Test_Base {
             if (tb.test_fails.size() > 0) {
                 os << "FAILED TEST SUMMARY:\n";
                 os << "---------------------------------------------------------------------------------------\n";
-                for (int i = 0; i < tb.test_fails.size(); i++) {
+                for (unsigned int i = 0; i < tb.test_fails.size(); i++) {
                     os << (i + 1) << ") " << tb.test_fails[i] << "\n";
                 }
                 os << "---------------------------------------------------------------------------------------\n";
