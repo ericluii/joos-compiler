@@ -6,7 +6,6 @@ int error(char c, int current_state) {
     return DS_ERROR;
 }
 
-
 Dfa::Dfa()
 {
     current_state = DS_START;
