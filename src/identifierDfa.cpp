@@ -24,6 +24,14 @@ void IdentifierDfa::initDfa() {
     dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &isJavaLetterOrDigit);
 }
 
+TOKEN_TYPE IdentifierDfa::getTokenType() {
+    if(dfa[current_state].first != DS_ACCEPT) {
+        return TT_INVALID;
+    }
+
+    return TT_ID;
+}
+
 IdentifierDfa::IdentifierDfa() : Dfa() {
     initDfa();
 }

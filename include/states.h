@@ -268,16 +268,17 @@ enum DFA_STATES {
     DS_ESCAPEDOUBLE,
     DS_OCTALSINGLE,
     DS_OCTALDOUBLE,
+    DS_ACCEPTCHAR,
+    DS_ACCEPTSTRING,
 
     // Separator DFA states
+    DS_DOTFIRST,
     DS_DOTSECOND,
-    DS_DOTTHIRD,
     DS_COLON,
 
     // Operator DFA states
     DS_CHECKEQUAL,
-    DS_CHECKAMPERSAND,
-    DS_CHECKOR,
+    DS_CHECKLAZYOP,
 };
 
 #endif

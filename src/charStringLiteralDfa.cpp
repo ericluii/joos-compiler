@@ -22,7 +22,7 @@ int genericCharCheck(char c, int current_state) {
     //      * a \ is seen indicating escape sequence -> go to DS_ESCAPESINGLE
     //      * everything else -> go to DS_ENCLOSESINGLE
     // - Current state is DS_DOUBLEQUOTE:
-    //      * double quote signals end of string literal -> go to DS_ACCEPT
+    //      * double quote signals end of string literal -> go to DS_ACCEPTSTRING
     //      * a \ is seen indicating escape sequence -> go to DS_ESCAPEDOUBLE
     //      * everything else -> loop around DS_DOUBLEQUOTE
     if(c == '\\') {
@@ -41,7 +41,7 @@ int genericCharCheck(char c, int current_state) {
         }
     } else {
         if(c == '"') {
-            return DS_ACCEPT;
+            return DS_ACCEPTSTRING;
         } else {
             return DS_DOUBLEQUOTE;
         }
@@ -51,7 +51,7 @@ int genericCharCheck(char c, int current_state) {
 int isSingleQuoteClosing(char c, int current_state) {
     // the next character should be a single quote to close the char literal
     if(c == '\'') {
-        return DS_ACCEPT;
+        return DS_ACCEPTCHAR;
     }
 
     return DS_ERROR;
@@ -94,13 +94,13 @@ int genericOctalCheck(char c, int current_state) {
     //      * the character is a part of an octal escape -> loop back to DS_OCTALSINGLE
     //      * the character is a part of an octal escape and has reached the maximum number of
     //      characters allowed in an octal escape, which is 3 -> go to DS_ENCLOSESINGLE
-    //      * the character is a single quote -> go to DS_ACCEPT
+    //      * the character is a single quote -> go to DS_ACCEPTCHAR
     //      * all other cases -> go to DS_ERROR
     // - String literal:
     //      * the character is a part of an octal escape -> loop back to DS_OCTALDOUBLE
     //      * the character is a part of an octal escape and has reached the maximum number of
     //      characters allowed in an octal escape, which is 3 -> go to DS_DOUBLEQUOTE
-    //      * the character is a double quote -> go to DS_ACCEPT
+    //      * the character is a double quote -> go to DS_ACCEPTSTRING
     //      * all other cases -> go to DS_DOUBLEQUOTE
 
     if('0' <= c && c <= '7') {
@@ -119,10 +119,12 @@ int genericOctalCheck(char c, int current_state) {
         } else {
             return DS_OCTALDOUBLE;
         }
-    } else if((c == '\'' && current_state == DS_OCTALSINGLE)
-             || (c == '"' && current_state == DS_OCTALDOUBLE)) {
+    } else if(c == '\'' && current_state == DS_OCTALSINGLE) {
         CharStringLiteralDfa::octalCounter = 0;
-        return DS_ACCEPT;
+        return DS_ACCEPTCHAR;
+    } else if(c == '"' && current_state == DS_OCTALDOUBLE) {
+        CharStringLiteralDfa::octalCounter = 0;
+        return DS_ACCEPTSTRING;
     }
 
     CharStringLiteralDfa::octalCounter = 0;
@@ -143,8 +145,20 @@ void CharStringLiteralDfa::initDfa() {
     dfa[DS_ESCAPEDOUBLE] = std::make_pair(DS_RUNNING, &genericEscapeCheck);
     dfa[DS_OCTALSINGLE] = std::make_pair(DS_RUNNING, &genericOctalCheck);
     dfa[DS_OCTALDOUBLE] = std::make_pair(DS_RUNNING, &genericOctalCheck);
-    dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ACCEPTCHAR] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ACCEPTSTRING] = std::make_pair(DS_ACCEPT, &error);
 }
+
+TOKEN_TYPE CharStringLiteralDfa::getTokenType() {
+    if(dfa[current_state].first == DS_ACCEPTCHAR) {
+        return TT_CHAR;
+    } else if(dfa[current_state].first != DS_ACCEPTSTRING) {
+        return TT_STRING;
+    }
+
+    return TT_INVALID;
+}
+
 
 CharStringLiteralDfa::CharStringLiteralDfa() : Dfa() {
     initDfa();

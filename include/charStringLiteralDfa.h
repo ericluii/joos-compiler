@@ -1,3 +1,6 @@
+#ifndef __CHARSTRINGLITERALDFA_H__
+#define __CHARSTRINGLITERALDFA_H__
+
 #include "dfa.h"
 #include <string>
 
@@ -6,6 +9,7 @@
 class CharStringLiteralDfa final : public Dfa {
     private:
         void initDfa();
+        TOKEN_TYPE getTokenType();
     public:
         CharStringLiteralDfa();
         
@@ -13,3 +17,5 @@ class CharStringLiteralDfa final : public Dfa {
         // limit and counter pertaining to octal sequences
         static unsigned int octalCounter;
 };
+
+#endif

@@ -11,6 +11,11 @@ Dfa::Dfa()
     current_state = DS_START;
 }
 
+TOKEN_TYPE Dfa::getTokenType()
+{
+    throw "Inheriting Dfa did not Implement.";
+}
+
 int Dfa::transition(char c)
 {
     assert(dfa.find(current_state) != dfa.end());
