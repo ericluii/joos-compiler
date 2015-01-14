@@ -25,11 +25,11 @@ int Dfa::transition(char c)
     return 0;
 }
 
-int Dfa::onAcceptingState()
+std::pair<int, int> Dfa::getStatus()
 {
     assert(dfa.find(current_state) != dfa.end());
 
-    return dfa[current_state].first == DS_ACCEPT;
+    return std::make_pair(dfa[current_state].first, getTokenType());
 }
 
 void Dfa::resetDfa()

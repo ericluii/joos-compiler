@@ -21,7 +21,7 @@ class Dfa {
     public:
         void initialize();
         int transition(char c);
-        int onAcceptingState();
+        std::pair<int, int> getStatus();
         void resetDfa();
 };
 

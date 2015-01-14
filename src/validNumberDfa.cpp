@@ -21,6 +21,15 @@ int isDigitOrUnderscore(char c, int current_state) {
     return DS_ERROR;
 }
 
+TOKEN_TYPE ValidNumberDfa::getTokenType()
+{
+    if (dfa[current_state].first != DS_ACCEPT) {
+        return TT_INVALID;
+    }
+
+    return TT_NUM;
+}
+
 void ValidNumberDfa::initDfa() {
     dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &isNonZeroDigit);
