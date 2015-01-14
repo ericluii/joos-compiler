@@ -14,7 +14,7 @@ enum TOKEN_TYPE {
     TT_ID,
 
     // Char literal token type
-    TT_CHAR,
+    TT_CHARACTER,
     // String literal token type
     TT_STRING,
 

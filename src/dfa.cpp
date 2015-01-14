@@ -16,13 +16,12 @@ TOKEN_TYPE Dfa::getTokenType()
     throw "Inheriting Dfa did not Implement.";
 }
 
-int Dfa::transition(char c)
+std::pair<int, int> Dfa::transition(char c)
 {
     assert(dfa.find(current_state) != dfa.end());
-
     current_state = dfa[current_state].second(c, current_state);
 
-    return 0;
+    return getStatus();
 }
 
 std::pair<int, int> Dfa::getStatus()

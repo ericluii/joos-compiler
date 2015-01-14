@@ -8,7 +8,8 @@
 #include "keywordDfa.h"
 #include <iostream>
 
-std::pair<int, int> e_pair(DFA_STATES ds, TOKEN_TYPE tt) {
+std::pair<int, int> e_pair(DFA_STATES ds, TOKEN_TYPE tt)
+{
     return std::make_pair((int)ds, (int)tt);
 }
 
@@ -32,13 +33,14 @@ class Test_Dfa final: public Test_Base {
             std::cout << "---------------------------------------------------------------------------------------" << std::endl;
         }
     private:
-        void test_vn_dfa() {
+        void test_vn_dfa()
+        {
             ValidNumberDfa vn_dfa;
             checkTrue("ValidNumberDfa", vn_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
                       "Empty String", "");
 
             vn_dfa.transition('0');
-            checkTrue("ValidNumberDfa", vn_dfa.getStatus() == e_pair(DS_ERROR, TT_INVALID),
+            checkTrue("ValidNumberDfa", vn_dfa.getStatus() == e_pair(DS_ACCEPT, TT_NUM),
                       "Starts with 0", "0");
 
             vn_dfa.transition('a');
@@ -61,10 +63,10 @@ class Test_Dfa final: public Test_Base {
             vn_dfa.transition('a');
             checkTrue("ValidNumberDfa", vn_dfa.getStatus() == e_pair(DS_ERROR, TT_INVALID),
                       "Invalid Number", "15a");
-
         }
 
-        void test_kw_dfa() {
+        void test_kw_dfa()
+        {
             KeywordDfa kw_dfa;
             checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
                       "Empty String", "");

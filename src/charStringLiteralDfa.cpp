@@ -151,7 +151,7 @@ void CharStringLiteralDfa::initDfa() {
 
 TOKEN_TYPE CharStringLiteralDfa::getTokenType() {
     if(dfa[current_state].first == DS_ACCEPTCHAR) {
-        return TT_CHAR;
+        return TT_CHARACTER;
     } else if(dfa[current_state].first != DS_ACCEPTSTRING) {
         return TT_STRING;
     }

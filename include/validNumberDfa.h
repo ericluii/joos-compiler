@@ -4,11 +4,11 @@
 #include "dfa.h"
 
 class ValidNumberDfa final : public Dfa {
-  private:
-    void initDfa();
-    TOKEN_TYPE getTokenType();
-  public:
-    ValidNumberDfa();
+    private:
+        void initDfa();
+        TOKEN_TYPE getTokenType();
+    public:
+        ValidNumberDfa();
 };
 
 #endif
