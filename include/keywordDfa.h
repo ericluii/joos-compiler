@@ -6,6 +6,7 @@
 class KeywordDfa : public Dfa {
     private:
         void initDfa();
+        TOKEN_TYPE getTokenType();
     public:
         KeywordDfa();
 };
