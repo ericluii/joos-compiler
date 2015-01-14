@@ -11,7 +11,7 @@ class Scanner
 {
 	std::vector<Dfa*> dfas;
 public:
-	std::vector<Token> *Scan(std::ifstream& file);
+	std::vector<Token*> *Scan(std::ifstream& file);
 	Scanner(std::vector<Dfa*> pdfas);
 };
 

@@ -20,6 +20,8 @@ class Token {
         TOKEN_TYPE getType();
         std::string getString();
         std::pair <unsigned int, unsigned int> getLocation();
+		
+		Token(TOKEN_TYPE ptype, std::string pstring, std::pair <unsigned int, unsigned int> plocation);
 };
 
 #endif
