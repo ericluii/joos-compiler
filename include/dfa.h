@@ -1,6 +1,7 @@
 #ifndef __DFA_H__
 #define __DFA_H__
 
+#include "token.h"
 #include <map>
 
 typedef int (*TransitionFunction)(char, int);
@@ -16,6 +17,7 @@ class Dfa {
         // Method is responsible for setting the start state
         // and the dfa representation
         virtual void initDfa() = 0;
+        virtual TOKEN_TYPE getTokenType();
     public:
         void initialize();
         int transition(char c);

@@ -255,6 +255,30 @@ enum DFA_STATES {
     DS_SYNCHRONIZ,
     DS_SYNCHRONIZE,
     DS_SYNCHRONIZED,
+
+    // Valid number DFA states
+    DS_ZERO,
+    DS_UNDERSCORE,
+
+    // Char or string literal DFA states
+    DS_SINGLEQUOTE,
+    DS_DOUBLEQUOTE,
+    DS_ENCLOSESINGLE,
+    DS_ESCAPESINGLE,
+    DS_ESCAPEDOUBLE,
+    DS_OCTALSINGLE,
+    DS_OCTALDOUBLE,
+    DS_ACCEPTCHAR,
+    DS_ACCEPTSTRING,
+
+    // Separator DFA states
+    DS_DOTFIRST,
+    DS_DOTSECOND,
+    DS_COLON,
+
+    // Operator DFA states
+    DS_CHECKEQUAL,
+    DS_CHECKLAZYOP,
 };
 
 #endif

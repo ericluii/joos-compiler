@@ -1,6 +1,7 @@
 #include "test_dfa_impl.h"
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 void run_test(Test_Base* test)
 {
