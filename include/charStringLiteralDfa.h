@@ -1,13 +1,15 @@
 #include "dfa.h"
 #include <string>
 
-class CharStringLiteralDfa : public Dfa {
-  private:
-    void initDfa();
-    // the characters that can be used in an escape sequence
-    string escapeSequence = "btnfr\"'\\";
-    unsigned int octalCounter = 0;
-    unsigned int octalLimit = 3;
-  public:
-    CharStringLiteralDfa();
-}
+#define OCTAL_LIMIT 3
+
+class CharStringLiteralDfa final : public Dfa {
+    private:
+        void initDfa();
+    public:
+        CharStringLiteralDfa();
+        
+        static std::string escapeSequence;
+        // limit and counter pertaining to octal sequences
+        static unsigned int octalCounter;
+};

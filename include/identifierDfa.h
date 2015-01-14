@@ -3,11 +3,11 @@
 
 #include "dfa.h"
 
-class IdentifierDfa : public Dfa {
-  private:
-    void initDfa();
-  public:
-    IdentifierDfa();
+class IdentifierDfa final : public Dfa {
+    private:
+        void initDfa();
+    public:
+        IdentifierDfa();
 };
 
 #endif

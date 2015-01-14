@@ -259,6 +259,25 @@ enum DFA_STATES {
     // Valid number DFA states
     DS_ZERO,
     DS_UNDERSCORE,
+
+    // Char or string literal DFA states
+    DS_SINGLEQUOTE,
+    DS_DOUBLEQUOTE,
+    DS_ENCLOSESINGLE,
+    DS_ESCAPESINGLE,
+    DS_ESCAPEDOUBLE,
+    DS_OCTALSINGLE,
+    DS_OCTALDOUBLE,
+
+    // Separator DFA states
+    DS_DOTSECOND,
+    DS_DOTTHIRD,
+    DS_COLON,
+
+    // Operator DFA states
+    DS_CHECKEQUAL,
+    DS_CHECKAMPERSAND,
+    DS_CHECKOR,
 };
 
 #endif
