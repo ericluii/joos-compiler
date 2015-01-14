@@ -14,3 +14,10 @@ std::pair <unsigned int, unsigned int> Token::getLocation()
 {
     return this->location;
 }
+
+Token::Token(TOKEN_TYPE ptype, std::string pstring, std::pair <unsigned int, unsigned int> plocation)
+{
+	this->type = ptype;
+	this->string = pstring;
+	this->location = plocation;
+}
