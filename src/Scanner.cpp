@@ -36,10 +36,12 @@ std::vector<Token*> *Scanner::Scan(std::ifstream& file)
 			//TODO? check additional input. Not needed for Simplified MM
 			c = file.get();
 			currentColumn++;
+	
 			if(c < -1 || c > 127) //EOF is represented as -1. ASCII is in the range 0-127
 			{
 				std::cerr << "Invalid character with code: " << c << "\n Input files must contain only ASCII characters";
 			}
+
 			if(c == 10) //line feed character LF. This will work for Unix and Windows newlines. Will not work for certain obscure opperating systems
 			{
 				currentLine++;
