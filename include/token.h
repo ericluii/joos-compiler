@@ -12,6 +12,7 @@ enum TOKEN_TYPE {
     TT_EOF,
     TT_INVALID,
     TT_ID,
+	TT_COMMENT,
 
     // Char literal token type
     TT_CHARACTER,

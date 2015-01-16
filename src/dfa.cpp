@@ -1,5 +1,4 @@
 #include "dfa.h"
-#include "states.h"
 #include <assert.h>
 
 int error(char c, int current_state) {
@@ -16,7 +15,7 @@ TOKEN_TYPE Dfa::getTokenType()
     throw "Inheriting Dfa did not Implement.";
 }
 
-std::pair<int, int> Dfa::transition(char c)
+std::pair<DFA_STATES, TOKEN_TYPE> Dfa::transition(char c)
 {
     assert(dfa.find(current_state) != dfa.end());
     current_state = dfa[current_state].second(c, current_state);
@@ -24,7 +23,7 @@ std::pair<int, int> Dfa::transition(char c)
     return getStatus();
 }
 
-std::pair<int, int> Dfa::getStatus()
+std::pair<DFA_STATES, TOKEN_TYPE> Dfa::getStatus()
 {
     assert(dfa.find(current_state) != dfa.end());
 
