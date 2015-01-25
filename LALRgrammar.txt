@@ -39,6 +39,7 @@ IdentifierChars -> JavaLetter | IdentifierChars JavaLetterOrDigit
 JavaLetter -> ASCII A-Z, a-z, _ or $
 JavaLetterOrDigit -> ASCII A-Z, a-z, _, $ or 0-9
 ClassDeclaration -> Modifiers class Identifier Super* Interfaces* ClassBody
+Modifiers -> Modifier | Modifiers Modifier
 Modifier -> public | abstract | final | static | native
 Super* -> Super | epsilon
 Super -> extends ClassType
@@ -52,12 +53,14 @@ ClassBody -> { ClassBodyDeclarations* }
 ClassBodyDeclarations -> ClassBodyDeclaration | ClassBodyDeclarations ClassBodyDeclaration
 ClassBodyDeclaration -> ClassMemberDeclaration | ConstructorDeclaration
 ClassMemberDeclaration -> FieldDeclaration | MethodDeclaration
-FieldDeclaration -> Modifiers Type VariableDeclarator ;
+FieldDeclaration -> ModifiersNotFinals Type VariableDeclarator ;
+ModifiersNotFinals -> ModifiersNotFinal | ModifiersNotFinals ModifiersNotFinal
+ModifiersNotFinal -> public | abstract | static | native
 Type -> PrimitiveType | ReferenceType
 PrimitiveType -> byte | short | int | long | char | boolean
 ReferenceType -> ClassOrInterfaceType | ArrayType
 ArrayType -> PrimitiveType [ ] | Name [ ]
-VariableDeclarator -> VariableDeclaratorId | Identifier = Expression
+VariableDeclarator -> Identifer | Identifier = Expression
 Expression -> ConditionalExpression | Assignment
 Assignment -> LeftHandSide = AssignmentExpression
 LeftHandSide -> Name | FieldAccess | ArrayAcces
@@ -94,10 +97,10 @@ UnaryExpressionNotPlusMinus -> ! UnaryExpression | CastExpression | Primary | Na
 CastExpression -> ( PrimitiveType Dims* ) UnaryExpression | ( Expression ) UnaryExpressionNotPlusMinus |
 		  ( Name Dims* ) UnaryExpressionNotPlusMinus
 MethodDeclaration -> MethodHeader MethodBody
-MethodHeader -> Modifiers* Type MethodDeclarator | Modifiers* void MethodDeclarator
+MethodHeader -> Modifiers Type MethodDeclarator | Modifiers void MethodDeclarator
 MethodDeclarator -> Identifier ( FormalParameterList* )
 FormalParameterList* -> FormalParameter | FormalParameterList , FormalParameter
-FormalParameter -> Type VariableDeclaratorId
+FormalParameter -> Type Identifier
 MethodBody -> Block | ;
 Block -> { BlockStatements* }
 BlockStatements* -> BlockStatements | epsilon
@@ -116,20 +119,22 @@ StatementNoShortIf -> StatementWithoutTrailingSubstatement | IfThenElseStatement
 IfThenElseStatementNoShortIf -> if ( Expression ) StatementNoShortIf else StatementNoShortIf
 WhileStatementNoShortIf -> while ( Expression ) StatementNoShortIf
 ForStatementNoShortIf -> for ( ForInit* ; Expression* ; ForUpdate* ) StatementNoShortIf
+Expression* -> Expression | epsilon
 WhileStatement -> while ( Expression ) Statement
 ForStatement -> for ( ForInit* ; Expression* ; ForUpdate* ) Statement
 ForInit* -> ForInit | epsilon
 ForInit -> StatementExpression | LocalVariableDeclaration
 ForUpdate* -> ForUpdate | epsilon
 ForUpdate -> StatementExpression
-ConstructorDeclaration -> Modifiers* ConstructorDeclarator ConstructorBody
+ReturnStatement -> return Expression* ;
+ConstructorDeclaration -> Modifiers ConstructorDeclarator ConstructorBody
 ConstructorDeclarator -> SimpleName ( FormalParameterList* )
 ConstructorBody -> { BlockStatements* }
-InterfaceDeclaration -> Modifiers interface Identifier ExtendsInterfaces InterfaceBody
+InterfaceDeclaration -> ModifierRestricted interface Identifier ExtendsInterfaces InterfaceBody
+ModifierRestricted -> public | abstract
 ExtendsInterfaces -> extends InterfaceType | ExtendsInterfaces , InterfaceType
 InterfaceBody -> { InterfaceMemberDeclarations* }
 InterfaceMemberDeclarations* -> InterfaceMemberDeclarations | epsilon
 InterfaceMemberDeclarations -> InterfaceMemberDeclaration | InterfaceMemberDeclarations InterfaceMemberDeclaration
-InterfaceMemberDeclaration -> ConstantDeclaration | AbstractMethodDeclaration
-ConstantDeclaration -> FieldDeclaration
-FieldDeclarationExceptConstant -> Modifiers Type VariableDeclarators ; 
+InterfaceMemberDeclaration -> AbstractMethodDeclaration
+AbstractMethodDeclaration -> MethodHeader ; 
