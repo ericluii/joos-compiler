@@ -13,6 +13,7 @@ enum TOKEN_TYPE {
     TT_INVALID,
     TT_ID,
     TT_COMMENT,
+    TT_WHITESPACE,
 
     // Char literal token type
     TT_CHARACTER,

@@ -12,7 +12,7 @@ class Scanner final
     private:
         std::vector<Dfa*> dfas;
     public:
-        std::vector<Token*> *Scan(std::ifstream& file);
+        int Scan(std::ifstream& file, std::vector<Token*> *tokens);
         Scanner();
 };
 
