@@ -2,6 +2,7 @@
 #define __DFA_H__
 
 #include "token.h"
+#include "states.h"
 #include <map>
 
 typedef int (*TransitionFunction)(char, int);
@@ -10,7 +11,7 @@ int error(char c, int current_state);
 
 class Dfa {
     protected:
-        std::map<int, std::pair<int, TransitionFunction> > dfa;
+        std::map<int, std::pair<DFA_STATES, TransitionFunction> > dfa;
         int current_state;
 
         Dfa();
@@ -20,8 +21,8 @@ class Dfa {
         virtual TOKEN_TYPE getTokenType();
     public:
         void initialize();
-        std::pair<int, int> transition(char c);
-        std::pair<int, int> getStatus();
+        std::pair<DFA_STATES, TOKEN_TYPE> transition(char c);
+        std::pair<DFA_STATES, TOKEN_TYPE> getStatus();
         void resetDfa();
 };
 
