@@ -279,11 +279,11 @@ enum DFA_STATES {
     // Operator DFA states
     DS_CHECKEQUAL,
     DS_CHECKLAZYOP,
-	
-	//Comment DFA states
-	DS_SLASHFIRST,
-	DS_STARSECOND,
-	DS_MIDCOMMENT,
+
+    //Comment DFA states
+    DS_SLASHFIRST,
+    DS_STARSECOND,
+    DS_MIDCOMMENT,
 };
 
 #endif

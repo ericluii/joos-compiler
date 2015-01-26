@@ -6,7 +6,6 @@
 
 class SingleCommentDfa final : public Dfa {
     private:
-        
         void initDfa();
         TOKEN_TYPE getTokenType();
     public:

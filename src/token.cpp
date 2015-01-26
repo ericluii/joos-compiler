@@ -17,7 +17,7 @@ std::pair <unsigned int, unsigned int> Token::getLocation()
 
 Token::Token(TOKEN_TYPE ptype, std::string pstring, std::pair <unsigned int, unsigned int> plocation)
 {
-	this->type = ptype;
-	this->string = pstring;
-	this->location = plocation;
+    this->type = ptype;
+    this->string = pstring;
+    this->location = plocation;
 }

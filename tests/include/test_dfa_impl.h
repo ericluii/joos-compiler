@@ -8,9 +8,9 @@
 #include "keywordDfa.h"
 #include <iostream>
 
-std::pair<int, int> e_pair(DFA_STATES ds, TOKEN_TYPE tt)
+std::pair<DFA_STATES, TOKEN_TYPE> e_pair(DFA_STATES ds, TOKEN_TYPE tt)
 {
-    return std::make_pair((int)ds, (int)tt);
+    return std::make_pair(ds, tt);
 }
 
 class Test_Dfa final: public Test_Base {
