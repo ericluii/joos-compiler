@@ -1,0 +1,96 @@
+List of restrictions. Each indicates where it can be checked for as of Assignment 1:
+
+From Assignment 1 specifications:
+- The program is written in ASCII 0-127 (scanner)
+- A class cannot be both abstract and final (weeder)
+- A method has a body if and only if it is neither abstract nor native i.e an abstract/native method cannot have a
+  body while all other methods MUST have a body (weeder)
+- An abstract method cannot be  static or final (weeder)
+- A static method cannot be final (weeder)
+- A native method must be static (weeder)
+- The type void may only be used as the return type of a method (parser)
+- A formal parameter of a method must not have an initializer (parser)
+- A class/interface must be declared in a .java file with the same base name as the class/interface 
+  (weeder to check name matching, parser for the constraint of one class/interface per file)
+- An interface cannot contain fields or constructors (parser)
+- An interface method cannot be static, final, or native (weeder)
+- An interface method cannot have a body (parser)
+- Every class must contain at least one explicit constructor (weeder)
+- No field can be final (weeder)
+- No multidimensional array types or array creation expressions are allowed (parser)
+- A method or constructor must not contain explicit this() or super() calls (parser)
+- Integer values are within range of an integer in Java (weeder)
+- Escape sequences are expanded for char/string literals (not sure about this)
+- Interface cannot be final (weeder)
+
+From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
+
+Miscellaneus
+============
+- No repeating modifiers (unsure whether this holds in Joos 1W)
+
+Class Structure
+===============
+- No package private interfaces/classes i.e public needs to be present at all times for interfaces/classes (weeder)
+- No package private fields i.e protected/public needs to be present at all times for fields (weeder)
+- Can't have multiple fields declaration e.g int a,b,c (parser)
+- No nested types (parser)
+- A constructor presumably can't be native, static, final or abstract (weeder)
+
+Method and field access
+=======================
+- No closest match method overloading (some other stage)
+- No implicit this class for static fields/methods (weeder)
+- No array method call (some later stage)
+- No super method call (parser)
+- No super field access (parser)
+- No non-static access of field/method (weeder)
+
+Modifiers
+=========
+- Final field declaration (parser)
+- No synchronized/transient/strictfp/volatile (scanner) -> further functionality needed
+- No package private methods and constructors (weeder)
+- No package private fields (weeder)
+- No private fields/methods/constructors (scanner) -> further functionality needed
+- No final formals/locals (parser)
+- Only allow restricted static native methods of the form static/native native/static int MethodName(int) (weeder)
+
+Constructors
+============
+- No omitted constructor (weeder)
+- No explicit super call (parser)
+- No closest match constructor overloading (some later stage)
+- No this call (parser)
+- No instance initializer (parser)
+- No static initializer (parser) 
+
+Method Structure
+================
+- No omitted local initializer (weeder)
+- No local variable in own initializer (weeder)
+- No multiple variables per declaration (parser)
+
+Control flow
+============
+- No general for (parser)
+- No do-while, switch, break, continue, labeled statement, synchronized statement (scanner)
+
+Exceptions
+==========
+- No throws, throw, try/catch, finally (scanner) -> further functionality needd
+
+Types
+=====
+- No unicode escapes (parser)
+- No class literals (weeder)
+- No octal and hex literals (parser)
+- No long literals (parser)
+- No floating point literals (parser)
+- No array data (parser)
+
+Operations
+==========
+- No bitwise operations (context-sensitive analysis)
+- No increment and decrement, assignment operations, unary plus, choice, bit shift (parser)
+- No implicit integer constant casts (weeder)

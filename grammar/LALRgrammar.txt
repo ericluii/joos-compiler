@@ -1,0 +1,132 @@
+Poduction rules. Epsilon denotes empty word. Words that start capitalized are terminals, the rest are non-terminals. Lastly
+"|" denotes logical OR in choosing the grammar except for line 64:
+
+InclusiveOrExpression -> ExclusiveOrExpression | InclusiveOrExpression | ExclusiveOrExpression
+where InclusiveOrExpression | ExclusiveOrExpression is a single RHS
+
+Please note that this language doesn't fully specify the requirements for Joos 1W and some things have to be checked
+on a later stage in the parsing process. For example:
+
+	class A {}
+
+Is illegal in Joos 1W as it would be private to the package and Joos 1W doesn't have private package classes. However
+	
+	public class A {}
+
+Is legal in Joos 1W
+
+In reviewing this grammar please go over the specifications here:
+https://www.student.cs.uwaterloo.ca/~cs444/joos.html
+
+This grammar is derived from:
+http://www.cs.cornell.edu/andru/javaspec/19.doc.html
+
+Goal -> CompilationUnit
+CompilationUnit -> PackageDeclaration* ImportDeclarations* ClassDeclaration | PackageDeclaration* ImportDeclarations* InterfaceDeclaration
+PackageDeclaration* -> package Name ; | epsilon
+ImportDeclarations* -> ImportDeclarations | epsilon
+ImportDeclarations -> ImportDeclaration | ImportDeclarations ImportDeclaration
+ImportDeclaration -> SingleTypeImportDeclaration | TypeImportOnDemandDeclaration
+SingleTypeImportDeclaration -> import Name ;
+TypeImportOnDemandDeclaration -> import Name . * ;
+Name -> SimpleName | QualifiedName
+SimpleName -> Identifier
+QualifiedName -> Name . Identifier
+Identifier -> IdentifierChars but not a Keyword or BooleanLiteral or NullLiteral
+IdentifierChars -> JavaLetter | IdentifierChars JavaLetterOrDigit
+JavaLetter -> ASCII A-Z, a-z, _ or $
+JavaLetterOrDigit -> ASCII A-Z, a-z, _, $ or 0-9
+ClassDeclaration -> Modifiers class Identifier Super Interfaces ClassBody
+Modifiers -> Modifier | Modifiers Modifier
+Modifier -> public | abstract | final
+Super -> extends ClassType | epsilon
+ClassType -> ClassOrInterfaceType
+ClassOrInterfaceType -> Name
+Interfaces -> implements InterfaceTypeList | epsilon
+InterfaceTypeList -> InterfaceType | InterfaceTypeList , InterfaceType
+InterfaceType -> ClassOrInterfaceType
+ClassBody -> { ClassBodyDeclarations* }
+ClassBodyDeclarations* -> ClassBodyDeclarations | epsilon
+ClassBodyDeclarations -> ClassBodyDeclaration | ClassBodyDeclarations ClassBodyDeclaration
+ClassBodyDeclaration -> ClassMemberDeclaration | ConstructorDeclaration
+ClassMemberDeclaration -> FieldDeclaration | MethodDeclaration
+FieldDeclaration -> MemberModifiers Type VariableDeclarator ;
+MemberModifiers -> MemberModifiers | MemberModifiers MemberModifier
+MemberModifier -> public | abstract | static | native | protected | final
+Type -> PrimitiveType | ReferenceType
+PrimitiveType -> byte | short | int | long | char | boolean
+ReferenceType -> ClassOrInterfaceType | ArrayType
+ArrayType -> PrimitiveType [ ] | Name [ ]
+VariableDeclarator -> Identifer | Identifier = Expression
+Expression -> ConditionalExpression | Assignment
+Assignment -> LeftHandSide = AssignmentExpression
+LeftHandSide -> Name | FieldAccess | ArrayAcces
+FieldAccess -> Primary . Identifier
+Primary -> PrimaryNoNewArray | ArrayCreationExpression
+PrimaryNoNewArray -> Literal | this | ( Expression ) | ClassInstanceCreationExpression | FieldAccess | MethodInvocation | ArrayAccess
+Literal -> A Number i.e 1234 | true | false | a char literal i.e 'a' | a string literal i.e "a" | null
+ClassInstanceCreationExpression -> new ClassType ( ArgumentList* )
+ArgumentList* -> ArgumentList | epsilon
+ArgumentList -> Expression | ArgumentList , Expression
+MethodInvocation -> Name ( ArgumentList* ) | Primary . Identifier ( ArgumentList* )
+ArrayAccess -> Name [ Expression ] | PrimaryNoNewArray [ Expression ]
+ArrayCreationExpression -> new PrimitiveType DimExpr | new ClassOrInterfaceType DimExpr
+DimExpr -> [ Expression ]
+AssignmentExpression -> ConditionalExpression | Assignment
+ConditionalExpression -> ConditionalOrExpression
+ConditionalOrExpression -> ConditionalAndExpression | ConditionalOrExpression || ConditionalAndExpression
+ConditionalAndExpression -> InclusiveOrExpression | ConditionalAndExpression && InclusiveOrExpression
+InclusiveOrExpression -> AndExpression | InclusiveOrExpression | AndExpression
+AndExpression -> EqualityExpression | AndExpression & EqualityExpression
+EqualityExpression -> RelationalExpression | EqualityExpression == RelationalExpression | EqualityExpression != RelationalExpression
+RelationalExpression -> RelationalExpression < AdditiveExpression | RelationalExpression > AdditiveExpression |
+			RelationalExpression <= AdditiveExpression | RelationalExpression >= AdditiveExpression |
+			RelationalExpression instanceof ReferenceType
+AdditiveExpression -> MultiplicativeExpression | AdditiveExpression + MultiplicativeExpression |
+		      AdditiveExpression - MultiplicativeExpression
+MultiplicativeExpression -> UnaryExpression | MultiplicativeExpression * UnaryExpression | MultiplicativeExpression / UnaryExpression |
+			    MultiplicativeExpression % UnaryExpression
+UnaryExpression -> - UnaryExpression | UnaryExpressionNotMinus
+UnaryExpressionNotMinus -> ! UnaryExpression | CastExpression | Primary | Name
+CastExpression -> ( PrimitiveType Dims ) UnaryExpression | ( Name Dims ) UnaryExpressionNotMinus
+Dims* -> [ ] | epsilon
+MethodDeclaration -> MethodHeader MethodBody
+MethodHeader -> MemberModifiers Type MethodDeclarator | MemberModifiers void MethodDeclarator
+MethodDeclarator -> Identifier ( FormalParameterList* )
+FormalParameterList* -> FormalParameterList | epsilon
+FormalParameterList -> FormalParameter | FormalParameterList , FormalParameter
+FormalParameter -> Type Identifier
+MethodBody -> Block | ;
+Block -> { BlockStatements* }
+BlockStatements* -> BlockStatements | epsilon
+BlockStatements -> BlockStatement | BlockStatements BlockStatement
+BlockStatement -> LocalVariableDeclarationStatement | Statement
+LocalVariableDeclarationStatement -> LocalVariableDeclaration ;
+LocalVariableDeclaration -> Type VariableDeclarator
+Statement -> StatementWithoutTrailingSubstatement | IfThenStatement | IfThenElseStatement | WhileStatement | ForStatement
+StatementWithoutTrailingSubstatement -> Block | EmptyStatement | ExpressionStatement | ReturnStatement
+EmptyStatement -> ;
+ExpressionStatement -> StatementExpression ;
+StatementExpression -> Assignment | MethodInvocation | ClassInstanceCreationExpression
+IfThenStatement -> if ( Expression ) Statement
+IfThenElseStatement -> if ( Expression ) StatementNoShortIf else Statement
+StatementNoShortIf -> StatementWithoutTrailingSubstatement | IfThenElseStatementNoShortIf | WhileStatementNoShortIf | ForStatementNoShortIf
+IfThenElseStatementNoShortIf -> if ( Expression ) StatementNoShortIf else StatementNoShortIf
+WhileStatementNoShortIf -> while ( Expression ) StatementNoShortIf
+ForStatementNoShortIf -> for ( ForInit* ; Expression* ; ForUpdate* ) StatementNoShortIf
+Expression* -> Expression | epsilon
+WhileStatement -> while ( Expression ) Statement
+ForStatement -> for ( ForInit* ; Expression* ; ForUpdate* ) Statement
+ForInit -> StatementExpression | LocalVariableDeclaration | epsilon
+ForUpdate -> StatementExpression | epsilon
+ReturnStatement -> return Expression* ;
+ConstructorDeclaration -> MemberModifiers ConstructorDeclarator ConstructorBody
+ConstructorDeclarator -> SimpleName ( FormalParameterList* )
+ConstructorBody -> { BlockStatements* }
+InterfaceDeclaration -> Modifiers interface Identifier ExtendsInterfaces InterfaceBody
+ExtendsInterfaces -> extends InterfaceType | ExtendsInterfaces , InterfaceType
+InterfaceBody -> { InterfaceMemberDeclarations* }
+InterfaceMemberDeclarations* -> InterfaceMemberDeclarations | epsilon
+InterfaceMemberDeclarations -> InterfaceMemberDeclaration | InterfaceMemberDeclarations InterfaceMemberDeclaration
+InterfaceMemberDeclaration -> AbstractMethodDeclaration
+AbstractMethodDeclaration -> MethodHeader ; 

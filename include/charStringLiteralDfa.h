@@ -4,8 +4,6 @@
 #include "dfa.h"
 #include <string>
 
-#define OCTAL_LIMIT 3
-
 class CharStringLiteralDfa final : public Dfa {
     private:
         void initDfa();
@@ -16,6 +14,7 @@ class CharStringLiteralDfa final : public Dfa {
         static std::string escapeSequence;
         // limit and counter pertaining to octal sequences
         static unsigned int octalCounter;
+        static unsigned int octalLimit;
 };
 
 #endif

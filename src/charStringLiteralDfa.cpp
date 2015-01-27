@@ -3,6 +3,7 @@
 
 std::string CharStringLiteralDfa::escapeSequence = "btnfr\"\'\\";
 unsigned int CharStringLiteralDfa::octalCounter = 0;
+unsigned int CharStringLiteralDfa::octalLimit = 0;
 
 int isSingleOrDoubleQuotes(char c, int current_state) {
     // identifies whether it's a character or string literal
@@ -74,8 +75,13 @@ int genericEscapeCheck(char c, int current_state) {
         } else {
             return DS_DOUBLEQUOTE;
         }
-    } else if(c == '0' || c == '1') {
+    } else if('0' <= c && c <= '7') {
         CharStringLiteralDfa::octalCounter+= 1;
+        CharStringLiteralDfa::octalLimit = 2;
+        if('0' <= c && c <= '3') {
+            CharStringLiteralDfa::octalLimit+= 1;
+        }
+
         if(current_state == DS_ESCAPESINGLE) {
             return DS_OCTALSINGLE;
         } else {
@@ -105,8 +111,9 @@ int genericOctalCheck(char c, int current_state) {
 
     if('0' <= c && c <= '7') {
         CharStringLiteralDfa::octalCounter+= 1;
-        if(CharStringLiteralDfa::octalCounter == OCTAL_LIMIT) {
+        if(CharStringLiteralDfa::octalCounter == CharStringLiteralDfa::octalLimit) {
             CharStringLiteralDfa::octalCounter = 0;
+            CharStringLiteralDfa::octalLimit = 0;
             if(current_state == DS_OCTALSINGLE) {
                 return DS_ENCLOSESINGLE;
             } else {
@@ -121,13 +128,16 @@ int genericOctalCheck(char c, int current_state) {
         }
     } else if(c == '\'' && current_state == DS_OCTALSINGLE) {
         CharStringLiteralDfa::octalCounter = 0;
+        CharStringLiteralDfa::octalLimit = 0;
         return DS_ACCEPTCHAR;
     } else if(c == '"' && current_state == DS_OCTALDOUBLE) {
         CharStringLiteralDfa::octalCounter = 0;
+        CharStringLiteralDfa::octalLimit = 0;
         return DS_ACCEPTSTRING;
     }
 
     CharStringLiteralDfa::octalCounter = 0;
+    CharStringLiteralDfa::octalLimit = 0;
     if(current_state == DS_OCTALSINGLE) {
         return DS_ERROR;
     } else {

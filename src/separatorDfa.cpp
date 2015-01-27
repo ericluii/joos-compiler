@@ -1,7 +1,7 @@
 #include "separatorDfa.h"
 #include "states.h"
 
-std::string SeparatorDfa::separators = "(){}[];,.@:";
+std::string SeparatorDfa::separators = "(){}[];,.:";
 TOKEN_TYPE SeparatorDfa::endTokenType = TT_INVALID;
 
 int checkSeparator(char c, int current_state) {
