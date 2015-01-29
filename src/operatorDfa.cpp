@@ -1,7 +1,7 @@
 #include "operatorDfa.h"
 #include "states.h"
 
-std::string OperatorDfa::operators = "=><!&|+-*/%&^";
+std::string OperatorDfa::operators = "=><!&|+-*/%&";
 TOKEN_TYPE OperatorDfa::endTokenType = TT_INVALID;
 char OperatorDfa::previousChar = '\0';
 
@@ -16,7 +16,7 @@ int isFirstCharOperator(char c, int current_state) {
                 OperatorDfa::endTokenType = TT_COMPARISONOP;
             }
             return DS_CHECKEQUAL;
-        } else if(c == '&' || c == '|' || c == '^') {
+        } else if(c == '&' || c == '|') {
             OperatorDfa::endTokenType = TT_BINBOOLOPEAGER;
             if(c == '&' || c == '|') {
                 OperatorDfa::previousChar = c;

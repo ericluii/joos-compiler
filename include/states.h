@@ -258,7 +258,6 @@ enum DFA_STATES {
 
     // Valid number DFA states
     DS_ZERO,
-    DS_UNDERSCORE,
 
     // Char or string literal DFA states
     DS_SINGLEQUOTE,
