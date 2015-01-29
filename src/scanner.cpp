@@ -16,7 +16,6 @@ Scanner::Scanner()
 {
     // Dfas must be ordered in reverse priority.
     // Dfas that are later in the list will have priority over earlier Dfas
-    std::vector<Dfa*> dfas;
     dfas.push_back(new SingleCommentDfa());
     dfas.push_back(new MultiCommentDfa());
     dfas.push_back(new IdentifierDfa());

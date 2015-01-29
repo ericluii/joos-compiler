@@ -3,7 +3,6 @@
 
 #include "dfa.h"
 #include "token.h"
-#include "states.h"
 #include <vector>
 #include <fstream>
 
@@ -14,6 +13,13 @@ class Scanner final
     public:
         std::vector<Token*> *Scan(std::ifstream& file);
         Scanner();
+
+        ~Scanner()
+        {
+            for (int i = 0; i < dfas.size(); i++) {
+                delete dfas[i];
+            }
+        }
 };
 
 #endif

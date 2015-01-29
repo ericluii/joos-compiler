@@ -24,6 +24,8 @@ class Dfa {
         std::pair<DFA_STATES, TOKEN_TYPE> transition(char c);
         std::pair<DFA_STATES, TOKEN_TYPE> getStatus();
         void resetDfa();
+
+        virtual ~Dfa() {};
 };
 
 #endif
