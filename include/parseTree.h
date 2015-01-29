@@ -2,6 +2,7 @@
 #define __PARSETREE_H__
 
 #include "token.h"
+#include <map>
 #include <vector>
 
 class ParseTree final
@@ -18,6 +19,6 @@ class ParseTree final
         }
 };
 
-ParseTree* buildParseTree(std::vector<std::vector<Token*> *> &tokens);
+ParseTree* buildParseTree(std::map<std::string, std::vector<Token*> *> &tokens);
 
 #endif

@@ -1,6 +1,6 @@
 #include "parseTree.h"
 
-ParseTree* buildParseTree(std::vector<std::vector<Token*> *> &tokens)
+ParseTree* buildParseTree(std::map<std::string, std::vector<Token*> *> &tokens)
 {
     // Do Stuff
     return new ParseTree();
