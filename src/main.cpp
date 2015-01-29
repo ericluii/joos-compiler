@@ -8,10 +8,9 @@ int main(int argc, char *argv[])
 {
     std::ifstream file;
     std::vector<std::vector<Token*> *> tokens;
-    std::map<std::string, std::string> symbol_table;
 
     Scanner scanner;
-    Weeder weeder = Weeder(symbol_table);
+    Weeder weeder = Weeder();
 
     for (int i = 1; i <= argc; i++) {
         file.open(argv[i], std::ifstream::in);
@@ -31,6 +30,5 @@ int main(int argc, char *argv[])
     //       Haven't really discussed how we want
     //       to do this yet.
     ParseTree* tree = buildParseTree(tokens);
-    weeder.buildSymbolTable(tree);
     weeder.weedParseTree(tree);
 }

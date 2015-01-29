@@ -7,7 +7,7 @@
 class ParseTree final
 {
     public:
-        std::string rule;
+        int rule;
         std::vector<Token *> tokens;
         std::vector<ParseTree *> children;
         ~ParseTree()

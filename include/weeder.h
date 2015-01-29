@@ -8,12 +8,9 @@
 class Weeder final
 {
     private:
-        bool didGenSymbolTable;
-        std::map<std::string, std::string> &symbolTable;
         std::vector<Weed *> weeds;
     public:
-        Weeder(std::map<std::string, std::string> &st);
-        int buildSymbolTable(ParseTree* node);
+        Weeder();
         int weedParseTree(ParseTree* node);
 
         ~Weeder()

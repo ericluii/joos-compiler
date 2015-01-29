@@ -4,7 +4,7 @@
 class Weed
 {
     public:
-        std::string rule;
+        int rule;
         virtual int check(ParseTree* node) = 0;
 
         virtual ~Weed() {}
@@ -16,7 +16,7 @@ class DemoWeed final : public Weed
     public:
         DemoWeed()
         {
-            rule = "banana republic";
+            rule = 1;
         }
 
         int check(ParseTree* node)
@@ -32,7 +32,7 @@ class DemoWeed2 final : public Weed
     public:
         DemoWeed2()
         {
-            rule = "banana republic eh";
+            rule = 2;
         }
 
         int check(ParseTree* node)

@@ -1,19 +1,13 @@
 #include "weeder.h"
 #include <cassert>
 
-Weeder::Weeder(std::map<std::string, std::string> &st) : symbolTable(st)
+Weeder::Weeder()
 {
-    didGenSymbolTable = false;
-
     // Add 'weeds' that need to be veried to this vector
     weeds.push_back(new DemoWeed());    
     weeds.push_back(new DemoWeed2());    
 }
 
-int Weeder::buildSymbolTable(ParseTree* node)
-{
-    return 0;
-}
 
 int Weeder::weedParseTree(ParseTree* node)
 {
