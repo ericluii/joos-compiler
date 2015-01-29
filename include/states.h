@@ -19,6 +19,7 @@ enum DFA_STATES {
     DS_ERROR = 0,
     DS_START,
     DS_RUNNING,
+    DS_ABORT,
     DS_ACCEPT,
 
     // Keyword DFA States

@@ -8,6 +8,7 @@
 #include "singleCommentDfa.h"
 #include "multiCommentDfa.h"
 #include "whitespaceAndControlDfa.h"
+#include "bannedKeywordDfa.h"
 
 #include <iostream>
 #include <cassert>
@@ -26,6 +27,7 @@ Scanner::Scanner()
     dfas.push_back(new SeparatorDfa());
     dfas.push_back(new CharStringLiteralDfa());
     dfas.push_back(new KeywordDfa());
+    dfas.push_back(new BannedKeywordDfa());
 }
 
 int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
@@ -79,6 +81,10 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                     case DS_ERROR:
                         errorFlags[i] = 1;
                         errorCount++;
+                        break;
+                    case DS_ABORT:
+                        // TODO: DECIDE WHAT TO DO WITH THIS
+                        assert(false);
                         break;
                     default:
                         break;
