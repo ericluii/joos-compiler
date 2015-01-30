@@ -9,16 +9,17 @@ class ParseTree final
 {
     public:
         int rule;
-        std::vector<Token *> tokens;
-        std::vector<ParseTree *> children;
+        Token* token;
+        std::vector<ParseTree*> children;
+        ParseTree(Token* token, int ruleNum);
         ~ParseTree()
         {
-            for (int i = 0; i < children.size(); i++) {
+            for (unsigned int i = 0; i < children.size(); i++) {
                 delete children[i];
             }
         }
-};
 
-ParseTree* buildParseTree(std::map<std::string, std::vector<Token*> *> &tokens);
+        void addChild(ParseTree* child);
+};
 
 #endif

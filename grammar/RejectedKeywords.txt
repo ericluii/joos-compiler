@@ -18,3 +18,4 @@ throws
 throw
 strictfp
 goto
+const

@@ -16,7 +16,7 @@ class Scanner final
 
         ~Scanner()
         {
-            for (int i = 0; i < dfas.size(); i++) {
+            for (unsigned int i = 0; i < dfas.size(); i++) {
                 delete dfas[i];
             }
         }

@@ -4,14 +4,23 @@
 #include <vector>
 #include "scanner.h"
 #include "weeder.h"
+#include "parser.h"
 
-void cleanUp(std::vector<std::vector<Token*> *> tokens)
+void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
-    for (unsigned int i = 0; i < tokens.size(); i++) {
-        for(unsigned int j = 0; j < tokens[i]->size(); j++) {
-            delete [] tokens[i]->at(j);
+    std::map<std::string, std::vector<Token*> *>::iterator it;
+    for (it = tokens.begin(); it != tokens.end(); it++) {
+        for(unsigned int i = 0; i < (it->second)->size(); i++) {
+            delete (it->second)->at(i);
         }
-        delete [] tokens[i];
+        delete it->second;
+    }
+}
+
+void cleanUpParseTrees(std::map<std::string, ParseTree*>& parseTrees) {
+    std::map<std::string, ParseTree*>::iterator it;
+    for(it = parseTrees.begin(); it != parseTrees.end(); it++) {
+        delete it->second;
     }
 }
 
@@ -27,7 +36,7 @@ int main(int argc, char *argv[])
     
     int result;
 
-    for (int i = 1; i <= argc; i++) {
+    for (int i = 1; i < argc; i++) {
         file.open(argv[i], std::ifstream::in);
         tokenList = new std::vector<Token*>();
         result = scanner.Scan(file, tokenList);
@@ -36,8 +45,8 @@ int main(int argc, char *argv[])
         
         //Error out
         if(result != 0){
-            cleanUp(tokens);
-            return 42;
+            cleanUpTokens(tokens);
+            exit(42);
         }
     }
 
@@ -52,9 +61,18 @@ int main(int argc, char *argv[])
     // TODO: Some kind of error checking..
     //       Haven't really discussed how we want
     //       to do this yet.
-    ParseTree* tree = buildParseTree(tokens);
-    weeder.weedParseTree(tree);
     
-    cleanUp(tokens);
-    return 0;
+    Parser parser(tokens);
+    std::map<std::string, ParseTree*> completeParseTrees;
+    for(int i = 1; i < argc; i++) {
+        std::string parseFile(argv[i]);
+        ParseTree* newParseTrees = parser.Parse(parseFile);
+        completeParseTrees[argv[i]] = newParseTrees;
+        weeder.weedParseTree(newParseTrees);
+    }
+    
+    cleanUpTokens(tokens);
+    cleanUpParseTrees(completeParseTrees);
+
+    exit(0);
 }
