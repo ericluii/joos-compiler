@@ -1,7 +1,7 @@
 #include "states.h"
 #include "keywordDfa.h"
 
-int pyGen2(char c, int current_state)
+int pyGen(char c, int current_state)
 {
     switch (current_state) {
         case DS_START:
@@ -10,7 +10,6 @@ int pyGen2(char c, int current_state)
             if (c == 'c') { return DS_C; }
             if (c == 'e') { return DS_E; }
             if (c == 'f') { return DS_F; }
-            if (c == 'g') { return DS_G; }
             if (c == 'i') { return DS_I; }
             if (c == 'n') { return DS_N; }
             if (c == 'p') { return DS_P; }
@@ -30,10 +29,8 @@ int pyGen2(char c, int current_state)
             if (c == 'y') { return DS_BY; }
             return DS_ERROR;
         case DS_C:
-            if (c == 'a') { return DS_CA; }
             if (c == 'h') { return DS_CH; }
             if (c == 'l') { return DS_CL; }
-            if (c == 'o') { return DS_CO; }
             return DS_ERROR;
         case DS_E:
             if (c == 'l') { return DS_EL; }
@@ -48,9 +45,6 @@ int pyGen2(char c, int current_state)
             if (c == 'f') { return DS_IF; }
             if (c == 'm') { return DS_IM; }
             if (c == 'n') { return DS_IN; }
-            return DS_ERROR;
-        case DS_G:
-            if (c == 'o') { return DS_GO; }
             return DS_ERROR;
         case DS_N:
             if (c == 'a') { return DS_NA; }
@@ -92,17 +86,11 @@ int pyGen2(char c, int current_state)
         case DS_BY:
             if (c == 't') { return DS_BYT; }
             return DS_ERROR;
-        case DS_CA:
-            if (c == 's') { return DS_CAS; }
-            return DS_ERROR;
         case DS_CH:
             if (c == 'a') { return DS_CHA; }
             return DS_ERROR;
         case DS_CL:
             if (c == 'a') { return DS_CLA; }
-            return DS_ERROR;
-        case DS_CO:
-            if (c == 'n') { return DS_CON; }
             return DS_ERROR;
         case DS_EL:
             if (c == 's') { return DS_ELS; }
@@ -120,9 +108,6 @@ int pyGen2(char c, int current_state)
             if (c == 'r') { return DS_FOR; }
             return DS_ERROR;
         case DS_IF:
-            return DS_ERROR;
-        case DS_GO:
-            if (c == 't') { return DS_GOT; }
             return DS_ERROR;
         case DS_IM:
             if (c == 'p') { return DS_IMP; }
@@ -179,17 +164,11 @@ int pyGen2(char c, int current_state)
         case DS_BYT:
             if (c == 'e') { return DS_BYTE; }
             return DS_ERROR;
-        case DS_CAS:
-            if (c == 'e') { return DS_CASE; }
-            return DS_ERROR;
         case DS_CHA:
             if (c == 'r') { return DS_CHAR; }
             return DS_ERROR;
         case DS_CLA:
             if (c == 's') { return DS_CLAS; }
-            return DS_ERROR;
-        case DS_CON:
-            if (c == 's') { return DS_CONS; }
             return DS_ERROR;
         case DS_ELS:
             if (c == 'e') { return DS_ELSE; }
@@ -204,9 +183,6 @@ int pyGen2(char c, int current_state)
             if (c == 'a') { return DS_FINA; }
             return DS_ERROR;
         case DS_FOR:
-            return DS_ERROR;
-        case DS_GOT:
-            if (c == 'o') { return DS_GOTO; }
             return DS_ERROR;
         case DS_IMP:
             if (c == 'l') { return DS_IMPL; }
@@ -264,15 +240,10 @@ int pyGen2(char c, int current_state)
             return DS_ERROR;
         case DS_BYTE:
             return DS_ERROR;
-        case DS_CASE:
-            return DS_ERROR;
         case DS_CHAR:
             return DS_ERROR;
         case DS_CLAS:
             if (c == 's') { return DS_CLASS; }
-            return DS_ERROR;
-        case DS_CONS:
-            if (c == 't') { return DS_CONST; }
             return DS_ERROR;
         case DS_ELSE:
             return DS_ERROR;
@@ -283,8 +254,6 @@ int pyGen2(char c, int current_state)
             return DS_ERROR;
         case DS_FINA:
             if (c == 'l') { return DS_FINAL; }
-            return DS_ERROR;
-        case DS_GOTO:
             return DS_ERROR;
         case DS_IMPL:
             if (c == 'e') { return DS_IMPLE; }
@@ -338,8 +307,6 @@ int pyGen2(char c, int current_state)
         case DS_BREAK:
             return DS_ERROR;
         case DS_CLASS:
-            return DS_ERROR;
-        case DS_CONST:
             return DS_ERROR;
         case DS_EXTEN:
             if (c == 'd') { return DS_EXTEND; }
@@ -481,16 +448,13 @@ TOKEN_TYPE KeywordDfa::getTokenType()
     if (current_state == DS_INT) { return TT_INT; }
     if (current_state == DS_NEW) { return TT_NEW; }
     if (current_state == DS_BYTE) { return TT_BYTE; }
-    if (current_state == DS_CASE) { return TT_CASE; }
     if (current_state == DS_CHAR) { return TT_CHAR; }
     if (current_state == DS_ELSE) { return TT_ELSE; }
     if (current_state == DS_ENUM) { return TT_ENUM; }
-    if (current_state == DS_GOTO) { return TT_GOTO; }
     if (current_state == DS_THIS) { return TT_THIS; }
     if (current_state == DS_VOID) { return TT_VOID; }
     if (current_state == DS_BREAK) { return TT_BREAK; }
     if (current_state == DS_CLASS) { return TT_CLASS; }
-    if (current_state == DS_CONST) { return TT_CONST; }
     if (current_state == DS_FINAL) { return TT_FINAL; }
     if (current_state == DS_SHORT) { return TT_SHORT; }
     if (current_state == DS_WHILE) { return TT_WHILE; }
@@ -514,160 +478,149 @@ TOKEN_TYPE KeywordDfa::getTokenType()
 void KeywordDfa::initDfa()
 {
     dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
-    dfa[DS_START] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_A] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_B] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_C] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_E] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_F] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_I] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_G] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_N] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_P] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_R] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_S] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_T] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_V] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_W] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_AB] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_AS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BY] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CH] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_EL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_EN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_EX] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IF] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_GO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IM] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PU] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_RE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SH] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ST] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_TH] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_VO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_WH] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ABS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ASS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BOO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BRE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BYT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CAS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CHA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CLA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CON] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ELS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ENU] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_EXT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FIN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FOR] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_GOT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMP] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_NAT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NEW] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_PAC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PRO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PUB] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_RET] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SHO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_STA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_THI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_VOI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_WHI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ABST] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ASSE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BOOL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BREA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BYTE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CASE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CHAR] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CLAS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CONS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ELSE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_ENUM] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_EXTE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FINA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_GOTO] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_IMPL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMPO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INST] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NATI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PACK] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PROT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PUBL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_RETU] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SHOR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_STAT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_THIS] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_VOID] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_WHIL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ABSTR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ASSER] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BOOLE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BREAK] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CLASS] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CONST] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_EXTEN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FINAL] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_IMPLE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMPOR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INSTA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTER] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NATIV] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PACKA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PROTE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PUBLI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_RETUR] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SHORT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_STATI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_WHILE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_ABSTRA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ASSERT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_BOOLEA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_EXTEND] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMPLEM] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMPORT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_INSTAN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTERF] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_NATIVE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_PACKAG] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PROTEC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PUBLIC] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_RETURN] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_STATIC] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_ABSTRAC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_BOOLEAN] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_EXTENDS] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_IMPLEME] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INSTANC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTERFA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PACKAGE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_PROTECT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_ABSTRACT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_IMPLEMEN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INSTANCE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTERFAC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PROTECTE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_IMPLEMENT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INSTANCEO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_INTERFACE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_PROTECTED] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_IMPLEMENTS] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_INSTANCEOF] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_START] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_A] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_B] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_C] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_E] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_F] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_I] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_N] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_P] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_R] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_S] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_T] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_V] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_W] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_AB] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_AS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BY] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_CH] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_CL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_EL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_EN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_EX] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IF] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IM] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PU] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_RE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_SH] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ST] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_TH] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_VO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_WH] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ABS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ASS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BOO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BRE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BYT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_CHA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_CLA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ELS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ENU] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_EXT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FIN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FOR] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IMP] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INT] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_NAT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NEW] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_PAC] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PRO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PUB] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_RET] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_SHO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_STA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_THI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_VOI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_WHI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ABST] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ASSE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BOOL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BREA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BYTE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_CHAR] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_CLAS] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ELSE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_ENUM] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_EXTE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FINA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INST] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NATI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PACK] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PROT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PUBL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_RETU] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_SHOR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_STAT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_THIS] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_VOID] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_WHIL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ABSTR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ASSER] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BOOLE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BREAK] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_CLASS] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_EXTEN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_FINAL] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IMPLE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPOR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INSTA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTER] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NATIV] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PACKA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PROTE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PUBLI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_RETUR] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_SHORT] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_STATI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_WHILE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_ABSTRA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ASSERT] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_BOOLEA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_EXTEND] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPLEM] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPORT] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_INSTAN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTERF] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NATIVE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_PACKAG] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PROTEC] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PUBLIC] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_RETURN] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_STATIC] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_ABSTRAC] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_BOOLEAN] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_EXTENDS] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IMPLEME] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INSTANC] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTERFA] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PACKAGE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_PROTECT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_ABSTRACT] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IMPLEMEN] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INSTANCE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTERFAC] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_PROTECTE] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_IMPLEMENT] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INSTANCEO] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_INTERFACE] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_PROTECTED] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_IMPLEMENTS] = std::make_pair(DS_ACCEPT, &pyGen);
+    dfa[DS_INSTANCEOF] = std::make_pair(DS_ACCEPT, &pyGen);
 }
 
 KeywordDfa::KeywordDfa() : Dfa()

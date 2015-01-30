@@ -3,17 +3,14 @@ assert
 boolean
 break
 byte
-case
 char
 class
-const
 else
 enum
 extends
 final
 for
 if
-goto
 implements
 import
 instanceof
