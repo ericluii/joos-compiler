@@ -4,6 +4,16 @@
 #include "scanner.h"
 #include "weeder.h"
 
+void cleanUp(std::vector<std::vector<Token*> *> tokens)
+{
+    for (unsigned int i = 0; i < tokens.size(); i++) {
+        for(unsigned int j = 0; j < tokens[i]->size(); j++) {
+            delete [] tokens[i]->at(j);
+        }
+        delete [] tokens[i];
+    }
+}
+
 int main(int argc, char *argv[])
 {
     std::ifstream file;
@@ -11,11 +21,23 @@ int main(int argc, char *argv[])
 
     Scanner scanner;
     Weeder weeder = Weeder();
+    std::vector<Token*> *tokenList;
+    std::map<std::string, std::string> symbol_table;
+    
+    int result;
 
     for (int i = 1; i <= argc; i++) {
         file.open(argv[i], std::ifstream::in);
-        tokens.push_back(scanner.Scan(file));
+        tokenList = new std::vector<Token*>();
+        result = scanner.Scan(file, tokenList);
+        tokens.push_back(tokenList);
         file.close();
+        
+        //Error out
+        if(result != 0){
+            cleanUp(tokens);
+            return 42;
+        }
     }
 
     // TODO: Remove Later (:
@@ -31,4 +53,7 @@ int main(int argc, char *argv[])
     //       to do this yet.
     ParseTree* tree = buildParseTree(tokens);
     weeder.weedParseTree(tree);
+    
+    cleanUp(tokens);
+    return 0;
 }

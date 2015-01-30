@@ -7,6 +7,7 @@
 #include "keywordDfa.h"
 #include "singleCommentDfa.h"
 #include "multiCommentDfa.h"
+#include "whitespaceAndControlDfa.h"
 
 #include <iostream>
 #include <cassert>
@@ -16,6 +17,7 @@ Scanner::Scanner()
 {
     // Dfas must be ordered in reverse priority.
     // Dfas that are later in the list will have priority over earlier Dfas
+    dfas.push_back(new WhitespaceAndControlDfa());
     dfas.push_back(new SingleCommentDfa());
     dfas.push_back(new MultiCommentDfa());
     dfas.push_back(new IdentifierDfa());
@@ -26,9 +28,8 @@ Scanner::Scanner()
     dfas.push_back(new KeywordDfa());
 }
 
-std::vector<Token*> *Scanner::Scan(std::ifstream& file)
+int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
 {
-    std::vector<Token*> *tokens =  new std::vector<Token*>();
     int c = -2;
     
     int numDfas = this->dfas.size();
@@ -56,6 +57,7 @@ std::vector<Token*> *Scanner::Scan(std::ifstream& file)
                 std::cerr << "Invalid character with code: " 
                           << c 
                           << "\n Input files must contain only ASCII characters";
+                return -1;
             }
 
             // Line feed character LF
@@ -88,7 +90,13 @@ std::vector<Token*> *Scanner::Scan(std::ifstream& file)
         assert(errorCount <= numDfas); 
 
         if (errorCount == numDfas) {
-            if(type != TT_INVALID && type != TT_COMMENT) {
+        
+            if(type == TT_INVALID){
+                std::cerr << "Invalid token with lexime: " << lexime << (char)c << "\n";
+                return -2;
+            }
+        
+            if(type != TT_COMMENT && type != TT_WHITESPACE) {
                 tokens->push_back(new Token(type, lexime, std::pair <unsigned int, unsigned int>(tokenLine, tokenCollumn)));
             }
 
@@ -98,12 +106,6 @@ std::vector<Token*> *Scanner::Scan(std::ifstream& file)
             errorCount = 0;    
             tokenLine = currentLine;
             tokenCollumn = currentColumn;
-
-            // Eliminates whitespace and control characters.
-            // This seemed more reasonable than creating an entire dfa for the same purpose
-            if(c <= 32 || c == 127) {
-                c = -2;
-            }
 
             for(int i = 0; i < numDfas; i++) {
                 dfas[i]->resetDfa();
@@ -115,5 +117,5 @@ std::vector<Token*> *Scanner::Scan(std::ifstream& file)
         }
     }
     
-    return tokens;
+    return 0;
 }
