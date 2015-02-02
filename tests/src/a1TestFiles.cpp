@@ -321,5 +321,6 @@ std::string a1TestFiles [] = {
 	"Je_1_Escapes_3DigitOctal_3.java",
 	"Je_1_SuperThis_ThisInMethod.java",
 	"J1_forifstatements3.java",
-    "Je_1_NoClassConstructor.java"
+    "Je_1_NoClassConstructor.java",
+    "Je_1_NonAbstractBody.java"
 };

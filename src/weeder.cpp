@@ -7,6 +7,7 @@
 #include "weed_NoStaticFinalNativeInterfaceMethod_impl.h"
 #include "weed_ClassConstructor_impl.h"
 #include "weed_NoFinalField_impl.h"
+#include "weed_NonAbstractBody_impl.h"
 
 Weeder::Weeder()
 {
@@ -18,13 +19,12 @@ Weeder::Weeder()
     weeds.push_back(new NativeAndStaticMethod());
     weeds.push_back(new ClassConstructor());
     weeds.push_back(new NoFinalField());
-
-    // Non-operational and UNTESTED because of parsing issues
-    // weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
+    weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
+    weeds.push_back(new NonAbstractBody());
 }
 
 
-int Weeder::weedParseTree(ParseTree* node)
+int Weeder::weedParseTree(ParseTree* node, std::string parseFile)
 {
     int errors = 0;
 
@@ -36,7 +36,7 @@ int Weeder::weedParseTree(ParseTree* node)
     }
 
     for (unsigned int j = 0; j < node->children.size(); j++) {
-        errors += weedParseTree(node->children[j]);
+        errors += weedParseTree(node->children[j], parseFile);
     }
 
     return errors;
