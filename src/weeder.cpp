@@ -6,6 +6,7 @@
 #include "weed_NativeAndStatic_impl.h"
 #include "weed_NoStaticFinalNativeInterfaceMethod_impl.h"
 #include "weed_ClassConstructor_impl.h"
+#include "weed_NoFinalField_impl.h"
 
 Weeder::Weeder()
 {
@@ -16,6 +17,7 @@ Weeder::Weeder()
     weeds.push_back(new NoFinalStaticMethod());
     weeds.push_back(new NativeAndStaticMethod());
     weeds.push_back(new ClassConstructor());
+    weeds.push_back(new NoFinalField());
 
     // Non-operational and UNTESTED because of parsing issues
     // weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
