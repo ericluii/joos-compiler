@@ -2,6 +2,7 @@
 #define __WEEDS_NO_ABSTRACT_FINAL_H__
 
 #include "weed.h"
+#include <cassert>
 
 class NoAbstractFinal final : public Weed
 {
@@ -58,6 +59,7 @@ class NoAbstractFinal final : public Weed
                 }
             }
 
+            assert(false);
             return "COMPILER ERROR - NOTIFY CREATORS";
         }
 
