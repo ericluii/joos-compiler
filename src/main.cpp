@@ -4,14 +4,23 @@
 #include <vector>
 #include "scanner.h"
 #include "weeder.h"
+#include "parser.h"
 
-void cleanUp(std::vector<std::vector<Token*> *> tokens)
+void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
-    for (unsigned int i = 0; i < tokens.size(); i++) {
-        for(unsigned int j = 0; j < tokens[i]->size(); j++) {
-            delete [] tokens[i]->at(j);
+    std::map<std::string, std::vector<Token*> *>::iterator it;
+    for (it = tokens.begin(); it != tokens.end(); it++) {
+        for(unsigned int i = 0; i < (it->second)->size(); i++) {
+            delete (it->second)->at(i);
         }
-        delete [] tokens[i];
+        delete it->second;
+    }
+}
+
+void cleanUpParseTrees(std::map<std::string, ParseTree*>& parseTrees) {
+    std::map<std::string, ParseTree*>::iterator it;
+    for(it = parseTrees.begin(); it != parseTrees.end(); it++) {
+        delete it->second;
     }
 }
 
@@ -27,17 +36,22 @@ int main(int argc, char *argv[])
     
     int result;
 
-    for (int i = 1; i <= argc; i++) {
-        file.open(argv[i], std::ifstream::in);
+    std::string fileName;
+    for (int i = 1; i < argc; i++) {
+        fileName = argv[i];
+        scanner.setFileName(fileName);
+        file.open(fileName, std::ifstream::in);
         tokenList = new std::vector<Token*>();
         result = scanner.Scan(file, tokenList);
+        scanner.resetDFAs();
         tokens[argv[i]] = tokenList;
         file.close();
         
         //Error out
-        if(result != 0){
-            cleanUp(tokens);
-            return 42;
+        if(result != SCANNER_OK){
+            std::cerr << "Lexical error in file: " << argv[i] << std::endl;
+            cleanUpTokens(tokens);
+            exit(42);
         }
     }
 
@@ -52,9 +66,26 @@ int main(int argc, char *argv[])
     // TODO: Some kind of error checking..
     //       Haven't really discussed how we want
     //       to do this yet.
-    ParseTree* tree = buildParseTree(tokens);
-    weeder.weedParseTree(tree);
     
-    cleanUp(tokens);
-    return 0;
+    Parser parser(tokens);
+    std::map<std::string, ParseTree*> completeParseTrees;
+    for(int i = 1; i < argc; i++) {
+        std::string parseFile(argv[i]);
+        ParseTree* newParseTrees = parser.Parse(parseFile);
+        // error in parsing this file
+        if(newParseTrees == NULL) {
+            exit(42);
+        }
+        // Print the parse tree created if needed
+        // std::cout << "Parse Tree:\n" << *newParseTrees << std::endl;
+        
+        completeParseTrees[argv[i]] = newParseTrees;
+        weeder.weedParseTree(newParseTrees);
+    }
+   
+
+    cleanUpTokens(tokens);
+    cleanUpParseTrees(completeParseTrees);
+
+    exit(0);
 }

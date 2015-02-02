@@ -15,7 +15,7 @@ class Weeder final
 
         ~Weeder()
         {
-            for (int i = 0; i < weeds.size(); i++) {
+            for (unsigned int i = 0; i < weeds.size(); i++) {
                 delete weeds[i];
             }
         }

@@ -4,21 +4,27 @@
 #include "token.h"
 #include <map>
 #include <vector>
+#include <iostream>
+#include <string>
 
 class ParseTree final
 {
     public:
         int rule;
-        std::vector<Token *> tokens;
-        std::vector<ParseTree *> children;
+        Token* token;
+        std::string treeLexeme;
+        std::vector<ParseTree*> children;
+        ParseTree(Token* token, int ruleNum, std::string treeLexeme);
         ~ParseTree()
         {
-            for (int i = 0; i < children.size(); i++) {
+            for (unsigned int i = 0; i < children.size(); i++) {
                 delete children[i];
             }
         }
-};
 
-ParseTree* buildParseTree(std::map<std::string, std::vector<Token*> *> &tokens);
+        friend std::ostream& operator<<(std::ostream& os, const ParseTree & parseTree);
+
+        void addChild(ParseTree* child);
+};
 
 #endif

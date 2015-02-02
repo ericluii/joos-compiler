@@ -94,3 +94,4 @@ Operations
 - No bitwise operations (context-sensitive analysis)
 - No increment and decrement, assignment operations, unary plus, choice, bit shift (parser)
 - No implicit integer constant casts (weeder)
+- No expressions in casting e.g (5-a) someVar is not allowed (weeder)
