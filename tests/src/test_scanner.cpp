@@ -17,13 +17,14 @@ void Test_Scanner::test() {
     std::string fileContent;
     std::string buffer;
 
+    std::cout << test_name << ": " << test_description << std::endl;
+    std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+
     for(unsigned int i = 0; i < A1_NUM_FILES; i++) {
         fileName = a1TestFiles[i];
         scanner.setFileName(fileName);
         scanFile.open(directoryPath+"/"+fileName, std::ifstream::in);
         tokens = new std::vector<Token*>;
-        std::cout << test_name << ": " << test_description << std::endl;
-        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
         while(getline(scanFile, buffer)) {
             fileContent+= buffer + "\n";
@@ -37,7 +38,6 @@ void Test_Scanner::test() {
         checkTrue("Scanning file: " + fileName, scanResult == SCANNER_ABORT || scanResult == SCANNER_OK,
                  "Check if scanner can scan this file", "\n" + fileContent);
         
-        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
         // do resets
         fileContent = "";
         scanFile.close();
@@ -49,6 +49,8 @@ void Test_Scanner::test() {
 
         delete tokens;
     }
+
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 }
 
 Test_Scanner::Test_Scanner(std::string& directoryPath) : directoryPath(directoryPath) {}

@@ -20,6 +20,9 @@ void Test_Parser::test() {
     std::string buffer;
     ParseTree* parseTree;
 
+    std::cout << test_name << ": " << test_description << std::endl;
+    std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+
     for(unsigned int i = 0; i < A1_NUM_FILES; i++) {
         fileName = a1TestFiles[i];
         scanner.setFileName(fileName);
@@ -35,19 +38,15 @@ void Test_Parser::test() {
         scanFile.clear();
         scanFile.seekg(0, std::ios_base::beg);
 
-
         int scanResult = scanner.Scan(scanFile, tokens);
         parser = new Parser(parserInput);
 
-        std::cout << test_name << ": " << test_description << std::endl;
-        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
-        
         if(scanResult == SCANNER_OK) {
             parseTree = parser->Parse(fileName);
             if(fileName[1] == 'e') {
                 // indicate error file
                 checkTrue("Parsing file: " + fileName, parseTree == NULL,
-                          "Check if parser can parse this file", "\n" + fileContent);
+                          "Ensure parser can't parse this file", "\n" + fileContent);
             } else {
                 checkTrue("Parsing file: " + fileName, parseTree != NULL,
                           "Check if parser can parse this file", "\n" + fileContent);
@@ -63,13 +62,14 @@ void Test_Parser::test() {
                 delete parseTree;
             }
         } else {
-            checkTrue("Parsing file: " + fileName, true, "Check if parser can parse this file", "\n" + fileContent);
+            // Unscannable file is being tested - quietely skip
         }
         
-        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
         // do resets
         fileContent = "";
         scanFile.close();
         scanner.resetDFAs();
     }
+
+    std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 }
