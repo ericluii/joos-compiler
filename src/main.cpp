@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -41,6 +42,11 @@ int main(int argc, char *argv[])
         fileName = argv[i];
         scanner.setFileName(fileName);
         file.open(fileName, std::ifstream::in);
+        if(!file.is_open()){
+            std::cerr << "Unable to open file: " << fileName << std::endl;
+            cleanUpTokens(tokens);
+            exit(42);
+        }
         tokenList = new std::vector<Token*>();
         result = scanner.Scan(file, tokenList);
         scanner.resetDFAs();
