@@ -22,6 +22,7 @@ void Test_Parser::test() {
 
     for(unsigned int i = 0; i < A1_NUM_FILES; i++) {
         fileName = a1TestFiles[i];
+        scanner.setFileName(fileName);
         tokens = new std::vector<Token*>;
         std::map<std::string, std::vector<Token*> *> parserInput;
         parserInput[fileName] = tokens;
@@ -37,19 +38,29 @@ void Test_Parser::test() {
 
         int scanResult = scanner.Scan(scanFile, tokens);
         parser = new Parser(parserInput);
-        parseTree = parser->Parse(fileName);
 
         std::cout << test_name << ": " << test_description << std::endl;
         std::cout << "---------------------------------------------------------------------------------------" << std::endl;
-
+        
         if(scanResult == SCANNER_OK) {
+            parseTree = parser->Parse(fileName);
             if(fileName[1] == 'e') {
                 // indicate error file
-                checkTrue("Parsing file: " + fileName, parseTree != NULL,
-                          "Check if scanner can scan this file", "\n" + fileContent);
-            } else {
                 checkTrue("Parsing file: " + fileName, parseTree == NULL,
-                          "Check if scanner can scan this file", "\n" + fileContent);
+                          "Check if parser can parse this file", "\n" + fileContent);
+            } else {
+                checkTrue("Parsing file: " + fileName, parseTree != NULL,
+                          "Check if parser can parse this file", "\n" + fileContent);
+            }
+
+            for(unsigned int i = 0; i < tokens->size(); i++) {
+                delete (*tokens)[i];
+            }
+
+            delete tokens;
+            delete parser;
+            if(parseTree != NULL) {
+                delete parseTree;
             }
         } else {
             checkTrue("Parsing file: " + fileName, true, "Check if parser can parse this file", "\n" + fileContent);
@@ -60,15 +71,5 @@ void Test_Parser::test() {
         fileContent = "";
         scanFile.close();
         scanner.resetDFAs();
-  
-        for(unsigned int i = 0; i < tokens->size(); i++) {
-            delete (*tokens)[i];
-        }
-
-        delete tokens;
-        delete parser;
-        if(parseTree != NULL) {
-            delete parseTree;
-        }
     }
 }

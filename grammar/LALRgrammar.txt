@@ -22,7 +22,8 @@ This grammar is derived from:
 http://www.cs.cornell.edu/andru/javaspec/19.doc.html
 
 Goal -> CompilationUnit
-CompilationUnit -> PackageDeclaration* ImportDeclarations* ClassDeclaration | PackageDeclaration* ImportDeclarations* InterfaceDeclaration
+CompilationUnit -> PackageDeclaration* ImportDeclarations* ClassDeclaration $ |
+                   PackageDeclaration* ImportDeclarations* InterfaceDeclaration $
 PackageDeclaration* -> package Name ; | epsilon
 ImportDeclarations* -> ImportDeclarations | epsilon
 ImportDeclarations -> ImportDeclaration | ImportDeclarations ImportDeclaration
@@ -123,7 +124,8 @@ ReturnStatement -> return Expression* ;
 ConstructorDeclaration -> MemberModifiers ConstructorDeclarator ConstructorBody
 ConstructorDeclarator -> SimpleName ( FormalParameterList* )
 ConstructorBody -> { BlockStatements* }
-InterfaceDeclaration -> Modifiers interface Identifier ExtendsInterfaces InterfaceBody
+InterfaceDeclaration -> Modifiers interface Identifier ExtendsInterfaces* InterfaceBody
+ExtendsInterfaces* -> ExtendsInterfaces | epsilon
 ExtendsInterfaces -> extends InterfaceType | ExtendsInterfaces , InterfaceType
 InterfaceBody -> { InterfaceMemberDeclarations* }
 InterfaceMemberDeclarations* -> InterfaceMemberDeclarations | epsilon

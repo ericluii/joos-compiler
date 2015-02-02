@@ -41,7 +41,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
     //Values for the token currently being scanned
     TOKEN_TYPE type = TT_INVALID;
     std::string lexime = "";
-    int tokenLine = 0; 
+    int tokenLine = 1; 
     int tokenCollumn = 0; 
     
     int currentLine = 0;
@@ -125,7 +125,9 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             c = -2;
         }
     }
-    
+   
+    // Indicate EOF
+    tokens->push_back(new Token(TT_EOF, "$", std::pair<unsigned int, unsigned int>(tokenLine, tokenCollumn+1)));
     return SCANNER_OK;
 }
 

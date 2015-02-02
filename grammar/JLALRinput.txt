@@ -1,4 +1,5 @@
-60
+61
+$
 ;
 package
 import
@@ -59,7 +60,7 @@ for
 return
 (
 )
-103
+104
 Goal
 CompilationUnit
 PackageDeclaration*
@@ -157,6 +158,7 @@ ConstructorDeclaration
 ConstructorDeclarator
 ConstructorBody
 InterfaceDeclaration
+ExtendsInterfaces*
 ExtendsInterfaces
 InterfaceBody
 InterfaceMemberDeclarations*
@@ -164,10 +166,10 @@ InterfaceMemberDeclarations
 InterfaceMemberDeclaration
 AbstractMethodDeclaration
 Goal
-203
+205
 Goal CompilationUnit
-CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration
-CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration
+CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration $
+CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration $
 PackageDeclaration package Name ;
 PackageDeclaration
 ImportDeclarations* ImportDeclarations
@@ -356,7 +358,9 @@ ReturnStatement return Expression* ;
 ConstructorDeclaration MemberModifiers ConstructorDeclarator ConstructorBody
 ConstructorDeclarator SimpleName ( FormalParameterList* )
 ConstructorBody { BlockStatements* }
-InterfaceDeclaration Modifiers interface Identifier ExtendsInterfaces InterfaceBody
+InterfaceDeclaration Modifiers interface Identifier ExtendsInterfaces* InterfaceBody
+ExtendsInterfaces* ExtendsInterfaces
+ExtendsInterfaces*
 ExtendsInterfaces extends InterfaceType
 ExtendsInterfaces ExtendsInterfaces , InterfaceType
 InterfaceBody { InterfaceMemberDeclarations* }

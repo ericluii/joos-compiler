@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
         file.close();
         
         //Error out
-        if(result != 0){
+        if(result != SCANNER_OK){
             std::cerr << "Lexical error in file: " << argv[i] << std::endl;
             cleanUpTokens(tokens);
             exit(42);
@@ -76,11 +76,14 @@ int main(int argc, char *argv[])
         if(newParseTrees == NULL) {
             exit(42);
         }
-        parser.resetParser();
+        // Print the parse tree created if needed
+        // std::cout << "Parse Tree:\n" << *newParseTrees << std::endl;
+        
         completeParseTrees[argv[i]] = newParseTrees;
         weeder.weedParseTree(newParseTrees);
     }
-    
+   
+
     cleanUpTokens(tokens);
     cleanUpParseTrees(completeParseTrees);
 

@@ -29,7 +29,7 @@ enum RuleNumbers {
     MOD_ABSTRACT,                   // 22 Modifier abstract
     MOD_FINAL,                      // 23 Modifier final
     EXTENDS_CLASS,                  // 24 Super extends ClassType
-    EXTENDS_EPSILON,                // 25 Super
+    EXTENDS_CLASS_EPSILON,          // 25 Super
     CLASS_TYPE,                     // 26 ClassType ClassOrInterfaceType
     CLASS_OR_INTERFACE_NAME,        // 27 ClassOrInterfaceType Name
     IMPLEMENTING,                   // 28 Interfaces implements InterfaceTypeList
@@ -207,6 +207,8 @@ enum RuleNumbers {
     ABSTRACT_METHOD_UNROLL,         // 200 AbstractMethodDeclaration MethodHeader ;
     RELATION_TO_ADDITIVE,           // 201 RelationalExpression AdditiveExpression
     CAST_TO_EXPRESSION,             // 202 CastExpression ( Expression ) UnaryExpressionNotMinus
+    EXTENDS_INTERFACE,              // 203 ExtendsInterface* ExtendsInterface
+    EXTENDS_INTERFACE_EPSILON,      // 204 ExtendsInterface*
 };
 
 #endif

@@ -69,6 +69,7 @@ enum TOKEN_TYPE {
     TT_DOUBLE,
     TT_IMPORT,
     TT_NATIVE,
+    TT_NULL,
     TT_PUBLIC,
     TT_RETURN,
     TT_STATIC,

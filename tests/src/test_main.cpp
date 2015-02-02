@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     std::string directoryPath;
     if(argc == 2) {
         directoryPath = argv[1];
-        test_list.push_back(new Test_Scanner(directoryPath));
+        //test_list.push_back(new Test_Scanner(directoryPath));
         test_list.push_back(new Test_Parser(directoryPath));
     }
     

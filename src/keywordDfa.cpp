@@ -49,6 +49,7 @@ int pyGen(char c, int current_state)
         case DS_N:
             if (c == 'a') { return DS_NA; }
             if (c == 'e') { return DS_NE; }
+            if (c == 'u') { return DS_NU; }
             return DS_ERROR;
         case DS_P:
             if (c == 'a') { return DS_PA; }
@@ -149,6 +150,9 @@ int pyGen(char c, int current_state)
         case DS_WH:
             if (c == 'i') { return DS_WHI; }
             return DS_ERROR;
+        case DS_NU:
+            if (c == 'l') { return DS_NUL; }
+            return DS_ERROR;
         case DS_ABS:
             if (c == 't') { return DS_ABST; }
             return DS_ERROR;
@@ -226,6 +230,9 @@ int pyGen(char c, int current_state)
         case DS_WHI:
             if (c == 'l') { return DS_WHIL; }
             return DS_ERROR;
+        case DS_NUL:
+            if (c == 'l') { return DS_NULL; }
+            return DS_ERROR;
         case DS_ABST:
             if (c == 'r') { return DS_ABSTR; }
             return DS_ERROR;
@@ -294,6 +301,8 @@ int pyGen(char c, int current_state)
             return DS_ERROR;
         case DS_WHIL:
             if (c == 'e') { return DS_WHILE; }
+            return DS_ERROR;
+        case DS_NULL:
             return DS_ERROR;
         case DS_ABSTR:
             if (c == 'a') { return DS_ABSTRA; }
@@ -453,6 +462,7 @@ TOKEN_TYPE KeywordDfa::getTokenType()
     if (current_state == DS_ENUM) { return TT_ENUM; }
     if (current_state == DS_THIS) { return TT_THIS; }
     if (current_state == DS_VOID) { return TT_VOID; }
+    if (current_state == DS_NULL) { return TT_NULL; }
     if (current_state == DS_BREAK) { return TT_BREAK; }
     if (current_state == DS_CLASS) { return TT_CLASS; }
     if (current_state == DS_FINAL) { return TT_FINAL; }
@@ -518,6 +528,7 @@ void KeywordDfa::initDfa()
     dfa[DS_TH] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_VO] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_WH] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NU] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_ABS] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_ASS] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_BOO] = std::make_pair(DS_RUNNING, &pyGen);
@@ -544,6 +555,7 @@ void KeywordDfa::initDfa()
     dfa[DS_THI] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_VOI] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_WHI] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NUL] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_ABST] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_ASSE] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_BOOL] = std::make_pair(DS_RUNNING, &pyGen);
@@ -569,6 +581,7 @@ void KeywordDfa::initDfa()
     dfa[DS_THIS] = std::make_pair(DS_ACCEPT, &pyGen);
     dfa[DS_VOID] = std::make_pair(DS_ACCEPT, &pyGen);
     dfa[DS_WHIL] = std::make_pair(DS_RUNNING, &pyGen);
+    dfa[DS_NULL] = std::make_pair(DS_ACCEPT, &pyGen);
     dfa[DS_ABSTR] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_ASSER] = std::make_pair(DS_RUNNING, &pyGen);
     dfa[DS_BOOLE] = std::make_pair(DS_RUNNING, &pyGen);
