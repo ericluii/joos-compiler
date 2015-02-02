@@ -320,5 +320,6 @@ std::string a1TestFiles [] = {
 	"J1_NegativeOneByteIntCast.java",
 	"Je_1_Escapes_3DigitOctal_3.java",
 	"Je_1_SuperThis_ThisInMethod.java",
-	"J1_forifstatements3.java"
+	"J1_forifstatements3.java",
+    "Je_1_NoClassConstructor.java"
 };
