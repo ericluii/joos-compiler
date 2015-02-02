@@ -3,6 +3,7 @@
 #include "weed_NoBodyAbstract_impl.h"
 #include "weed_NoFinalStaticAbstractMethod_impl.h"
 #include "weed_NoFinalStaticMethod_impl.h"
+#include "weed_NativeAndStatic_impl.h"
 
 Weeder::Weeder()
 {
@@ -11,6 +12,7 @@ Weeder::Weeder()
     weeds.push_back(new NoAbstractBody());
     weeds.push_back(new NoFinalStaticAbstractMethod());
     weeds.push_back(new NoFinalStaticMethod());
+    weeds.push_back(new NativeAndStaticMethod());
 }
 
 
