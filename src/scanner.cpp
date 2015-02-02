@@ -50,7 +50,6 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
     while (file) {
         if (c == -2) {
             c = file.get();
-            currentColumn++;
     
             // EOF is represented as -1
             // ASCII is from 0 to 127
@@ -67,6 +66,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                 currentLine++;
                 currentColumn = -1;
             }
+            currentColumn++;
         }
 
         // Dfas must be ordered in reverse priority.
