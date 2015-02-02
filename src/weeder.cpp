@@ -4,6 +4,7 @@
 #include "weed_NoFinalStaticAbstractMethod_impl.h"
 #include "weed_NoFinalStaticMethod_impl.h"
 #include "weed_NativeAndStatic_impl.h"
+#include "weed_NoStaticFinalNativeInterfaceMethod_impl.h"
 
 Weeder::Weeder()
 {
@@ -13,6 +14,9 @@ Weeder::Weeder()
     weeds.push_back(new NoFinalStaticAbstractMethod());
     weeds.push_back(new NoFinalStaticMethod());
     weeds.push_back(new NativeAndStaticMethod());
+
+    // Non-operational and UNTESTED because of parsing issues
+    // weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
 }
 
 
