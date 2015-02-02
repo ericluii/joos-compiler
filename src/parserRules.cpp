@@ -193,8 +193,6 @@ std::string parserRules [] = {
 	"ConstructorDeclarator SimpleName ( FormalParameterList* )",
 	"ConstructorBody { BlockStatements* }",
 	"InterfaceDeclaration Modifiers interface Identifier ExtendsInterfaces* InterfaceBody",
-	"ExtendsInterfaces* ExtendsInterfaces",
-	"ExtendsInterfaces*",
 	"ExtendsInterfaces extends InterfaceType",
 	"ExtendsInterfaces ExtendsInterfaces , InterfaceType",
 	"InterfaceBody { InterfaceMemberDeclarations* }",
@@ -205,5 +203,7 @@ std::string parserRules [] = {
 	"InterfaceMemberDeclaration AbstractMethodDeclaration",
 	"AbstractMethodDeclaration MethodHeader ;",
 	"RelationalExpression AdditiveExpression",
-	"CastExpression ( Expression ) UnaryExpressionNotMinus"
+	"CastExpression ( Expression ) UnaryExpressionNotMinus",
+	"ExtendsInterfaces* ExtendsInterfaces",
+	"ExtendsInterfaces*"
 };

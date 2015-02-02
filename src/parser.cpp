@@ -31,7 +31,6 @@ void Parser::createNonTerminalNode(int ruleToReduce) {
 void Parser::printExpectedTokens(int state) {
     int counter = 1;
     int entrySize = parserTable[state].size();
-    std::cerr << "curState: " << state << std::endl;
     std::cerr << "Expected tokens include:\n";
     std::map<std::string, std::pair<std::string, int> >::iterator it;
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
@@ -47,7 +46,7 @@ void Parser::printExpectedTokens(int state) {
         } else {
             // checks if it isn't a non-terminal i.e a terminal
             if(!('A' <= token[0] && token[0] <= 'Z') && token != "$") {
-                std::cerr << token;
+                std::cerr << '"' << token << '"';
             } else {
                 counter++;
                 continue;
@@ -179,12 +178,11 @@ ParseTree* Parser::Parse(std::string& parseFile) {
 
         if(parserTable[curState][toParse].first == "shift") {
             curState = parserTable[curState][toParse].second;
-            pushSymbolStack(new ParseTree(token, 0, toParse));
+            pushSymbolStack(new ParseTree(token, GOAL, toParse));
             stateStack.push(curState);
             tokensIndex++;
         } else {
             int ruleToReduce;
-            int round = 0;
             do {
                 ruleToReduce = parserTable[curState][toParse].second;
                 createNonTerminalNode(parserTable[curState][toParse].second);
@@ -200,21 +198,14 @@ ParseTree* Parser::Parse(std::string& parseFile) {
 
                 curState = parserTable[curState][nonTerminal].second;
                 stateStack.push(curState);
-                round++;
             } while(parserTable[curState][toParse].first == "reduce");
         }
     }
   
-    /* std::cout << "Final curLocStack: " << curLocStack << std::endl;
-    std::cout << "Final Stack:" << std::endl;
-    for(unsigned int i = 0; i < curLocStack; i++) {
-        std::cout << symbolStack[i]->treeLexeme << std::endl;
-    }*/ 
-
     if(checkParsingCompletion(curState, parseFile)) {
         int firstNodeRule = symbolStack[0]->rule;
         int thirdNodeRule = symbolStack[2]->rule;
-        // Cause to push to the new node to the bottom of the stack
+        // Cause to push the new node to the bottom of the stack
         if(firstNodeRule != COMPILATION_UNIT_CLASS && firstNodeRule != COMPILATION_UNIT_INTERFACE) { 
             if(thirdNodeRule == CLASS_DECL) {
                 curLocStack = rules[COMPILATION_UNIT_CLASS].size() - 1;
