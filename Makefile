@@ -15,6 +15,10 @@ TEST_CFLAGS=-std=c++11 -c -Wall -I./include -I./tests/include
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
+# Include
+SRC_INC = $(wildcard include/*.h)
+TEST_INC = $(wildcard tests/include/*.h)
+
 # Static Lib for Tests
 LIB_O = $(filter-out build/src/main.o, $(SRC_O))
 JOOSLIB = build/lib/libjoos.a
@@ -32,7 +36,7 @@ init:
 	@mkdir -p $(BUILD_DIR) build/tests build/lib
 
 # Main Compiler
-build/src/%.o: src/%.cpp
+build/src/%.o: src/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/$(notdir $(@:.cpp=.o))
 
 $(OUT_FILE): $(SRC_O)
@@ -42,7 +46,7 @@ $(OUT_FILE): $(SRC_O)
 $(JOOSLIB): $(LIB_O)
 	ar rvs $(JOOSLIB) $(LIB_O)
 
-build/tests/%.o: tests/src/%.cpp $(JOOSLIB)
+build/tests/%.o: tests/src/%.cpp $(JOOSLIB) $(TEST_INC)
 	$(CC) $(TEST_CFLAGS) $< -o build/tests/$(notdir $(@:.cpp=.o))
 
 $(TEST_OUT_FILE): $(TEST_O)

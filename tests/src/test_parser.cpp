@@ -2,6 +2,7 @@
 #include "test_parser.h"
 #include "token.h"
 #include "parseTree.h"
+#include "weeder.h"
 #include <vector>
 #include <map>
 
@@ -19,6 +20,7 @@ void Test_Parser::test() {
     std::string fileContent;
     std::string buffer;
     ParseTree* parseTree;
+    Weeder weeder;
 
     std::cout << test_name << ": " << test_description << std::endl;
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
@@ -44,12 +46,22 @@ void Test_Parser::test() {
         if(scanResult == SCANNER_OK) {
             parseTree = parser->Parse(fileName);
             if(fileName[1] == 'e') {
-                // indicate error file
-                checkTrue("Parsing file: " + fileName, parseTree == NULL,
-                          "Ensure parser can't parse this file", "\n" + fileContent);
+                if (parseTree) {
+                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) != 0,
+                              "Ensure weeder fails this file", "\n" + fileContent);
+                } else {
+                    // indicate error file
+                    checkTrue("Parsing file: " + fileName, parseTree == NULL,
+                              "Ensure parser can't parse this file", "\n" + fileContent);
+                }
             } else {
-                checkTrue("Parsing file: " + fileName, parseTree != NULL,
-                          "Check if parser can parse this file", "\n" + fileContent);
+                if (parseTree) {
+                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) == 0,
+                              "Check weeder passes this file", "\n" + fileContent);
+                } else {
+                    checkTrue("Parsing file: " + fileName, parseTree != NULL,
+                              "Check if parser can parse this file", "\n" + fileContent);
+                }
             }
 
             for(unsigned int i = 0; i < tokens->size(); i++) {
