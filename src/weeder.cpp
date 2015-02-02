@@ -1,10 +1,12 @@
 #include "weeder.h"
 #include "weed_NoAbstractFinal_impl.h"
+#include "weed_NoBodyAbstract_impl.h"
 
 Weeder::Weeder()
 {
     // Add 'weeds' that need to be veried to this vector
     weeds.push_back(new NoAbstractFinal());
+    weeds.push_back(new NoAbstractBody());
 }
 
 
