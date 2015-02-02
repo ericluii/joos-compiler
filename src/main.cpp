@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
         
         //Error out
         if(result != SCANNER_OK){
-            std::cerr << "Lexical error in file: " << argv[i] << std::endl;
             cleanUpTokens(tokens);
             exit(42);
         }
@@ -74,6 +73,8 @@ int main(int argc, char *argv[])
         ParseTree* newParseTrees = parser.Parse(parseFile);
         // error in parsing this file
         if(newParseTrees == NULL) {
+            cleanUpTokens(tokens);
+            cleanUpParseTrees(completeParseTrees);
             exit(42);
         }
         // Print the parse tree created if needed
