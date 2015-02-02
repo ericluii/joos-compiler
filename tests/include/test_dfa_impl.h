@@ -109,14 +109,6 @@ class Test_Dfa final: public Test_Base {
             kw_dfa.transition('l');
             checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_ACCEPT, TT_FINAL),
                       "Keyword final - substring of finally", "final");
-
-            kw_dfa.transition('l');
-            checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
-                      "Keyword final + l - substring of finally", "finall");
-
-            kw_dfa.transition('y');
-            checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_ACCEPT, TT_FINALLY),
-                      "Keyword finally - contains final", "finally");
         }
 };
 
