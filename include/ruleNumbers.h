@@ -3,8 +3,6 @@
 
 // Rules
 
-
-
 enum RuleNumbers {
     GOAL = 0,                       // 0 Goal CompilationUnit
     COMPILATION_UNIT_CLASS,         // 1 CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration
@@ -138,7 +136,7 @@ enum RuleNumbers {
     PRIMARY_UNARY,                  // 129 UnaryExpressionNotMinus Primary
     UNARY_NAME,                     // 130 UnaryExpressionNotMinus Name
     CAST_PRIMITIVE,                 // 131 CastExpression ( PrimitiveType Dims ) UnaryExpression
-    CAST_NONPRIMITIVE,              // 132 CastExpression ( Name Dims ) UnaryExpressionNotMinus
+    CAST_NONPRIMITIVE,              // 132 CastExpression ( Name [ ] ) UnaryExpressionNotMinus
     ARRAY_DIMS,                     // 133 Dims [ ]
     ARRAY_DIMS_EPSILON,             // 134 Dims
     METHOD_HEADER_AND_BODY,         // 135 MethodDeclaration MethodHeader MethodBody
@@ -207,6 +205,8 @@ enum RuleNumbers {
     INTERFACE_MEMBER_DECL_LIST,     // 198 InterfaceMemberDeclarations InterfaceMemberDeclarations InterfaceMemberDeclaration
     INTERFACE_ABSTRACT_METHOD,      // 199 InterfaceMemberDeclaration AbstractMethodDeclaration
     ABSTRACT_METHOD_UNROLL,         // 200 AbstractMethodDeclaration MethodHeader ;
+    RELATION_TO_ADDITIVE,           // 201 RelationalExpression AdditiveExpression
+    CAST_TO_EXPRESSION,             // 202 CastExpression ( Expression ) UnaryExpressionNotMinus
 };
 
 #endif

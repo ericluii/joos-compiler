@@ -30,9 +30,6 @@ enum TOKEN_TYPE {
     TT_SEMICOLON,
     TT_COMMA,
     TT_DOT,
-    TT_TRIPLEDOT,
-    TT_AT,
-    TT_COLONCOLON,
 
     // Operator token types
     TT_ASSIGNMENT,

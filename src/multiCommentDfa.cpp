@@ -17,6 +17,9 @@ int checkSlashMulti(char c, int current_state)
     }
 
     if (current_state == DS_STARSECOND) {
+        if(c == '*') {
+            return DS_STARSECOND;
+        }
         return DS_MIDCOMMENT;
     }
 

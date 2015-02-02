@@ -164,7 +164,7 @@ InterfaceMemberDeclarations
 InterfaceMemberDeclaration
 AbstractMethodDeclaration
 Goal
-201
+203
 Goal CompilationUnit
 CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration
 CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration
@@ -297,7 +297,7 @@ UnaryExpressionNotMinus CastExpression
 UnaryExpressionNotMinus Primary
 UnaryExpressionNotMinus Name
 CastExpression ( PrimitiveType Dims ) UnaryExpression
-CastExpression ( Name Dims ) UnaryExpressionNotMinus
+CastExpression ( Name [ ] ) UnaryExpressionNotMinus
 Dims [ ]
 Dims
 MethodDeclaration MethodHeader MethodBody
@@ -365,4 +365,6 @@ InterfaceMemberDeclarations*
 InterfaceMemberDeclarations InterfaceMemberDeclaration
 InterfaceMemberDeclarations InterfaceMemberDeclarations InterfaceMemberDeclaration
 InterfaceMemberDeclaration AbstractMethodDeclaration
-AbstractMethodDeclaration MethodHeader ; 
+AbstractMethodDeclaration MethodHeader ;
+RelationalExpression AdditiveExpression
+CastExpression ( Expression ) UnaryExpressionNotMinus

@@ -3,11 +3,12 @@
 #include "parserRulesAndActions.h"
 #include <sstream>
 #include <iostream>
+#include <cassert>
 
 #define START_STATE 0
 
 void Parser::pushSymbolStack(ParseTree* newTree) {
-    if(curLocStack == symbolStack.size() - 1) {
+    if(curLocStack == symbolStack.size()) {
         symbolStack.push_back(newTree);
     } else {
         symbolStack[curLocStack] = newTree;
@@ -17,10 +18,12 @@ void Parser::pushSymbolStack(ParseTree* newTree) {
 
 void Parser::createNonTerminalNode(int ruleToReduce) {
     ParseTree* newTree = new ParseTree(NULL, ruleToReduce);
-    for(unsigned int i = rules[ruleToReduce].size() - 1; i > 0; i--) {
+    unsigned int numRHS = rules[ruleToReduce].size() - 1;
+    for(unsigned int i = numRHS; i > 0; i--) {
         stateStack.pop();
         newTree->addChild(symbolStack[curLocStack-i]);
     }
+    curLocStack-= numRHS;
     pushSymbolStack(newTree);
 }
 
@@ -43,6 +46,9 @@ void Parser::printExpectedTokens(int state) {
             // checks if it isn't a non-terminal i.e a terminal
             if(!('A' <= token[0] && token[0] <= 'Z')) {
                 std::cerr << token;
+            } else {
+                counter++;
+                continue;
             }
         }
 
@@ -54,10 +60,10 @@ void Parser::printExpectedTokens(int state) {
         }
         counter++;
     }
-    std::cerr << std::endl;
+    std::cerr << '\n' << std::endl;
 }
 
-bool Parser::checkParsingCompletion(int lastState) {
+bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
     unsigned int symbolStackSize = symbolStack.size();
     if(symbolStackSize != 3 || symbolStackSize != 4) {
         if(symbolStackSize == 1) {
@@ -65,20 +71,20 @@ bool Parser::checkParsingCompletion(int lastState) {
                symbolStack[0]->rule == COMPILATION_UNIT_INTERFACE) {
                 return true;
             }
-            return false;
         }
+        return false;
+    }
     
-        int firstNodeRule = symbolStack[0]->rule;
-        int secondNodeRule = symbolStack[1]->rule;
-        int thirdNodeRule = symbolStack[2]->rule;
+    int firstNodeRule = symbolStack[0]->rule;
+    int secondNodeRule = symbolStack[1]->rule;
+    int thirdNodeRule = symbolStack[2]->rule;
 
-        if((firstNodeRule != PACKAGE_NAME && firstNodeRule != PACKAGE_EPSILON) &&
-           (secondNodeRule != IMPORT_STAR_DECLS && secondNodeRule != IMPORT_STAR_EPSILON) &&
-           (thirdNodeRule != CLASS_DECL && thirdNodeRule != INTERFACE_DECL)) {
-            std::cerr << "Incomplete file given. ";
-            printExpectedTokens(lastState);
-            return false;
-        }
+    if((firstNodeRule != PACKAGE_NAME && firstNodeRule != PACKAGE_EPSILON) &&
+       (secondNodeRule != IMPORT_STAR_DECLS && secondNodeRule != IMPORT_STAR_EPSILON) &&
+       (thirdNodeRule != CLASS_DECL && thirdNodeRule != INTERFACE_DECL)) {
+        std::cerr << "Incomplete file: " << fileName << " was given. ";
+        printExpectedTokens(lastState);
+        return false;
     }
     return true;
 }
@@ -94,8 +100,6 @@ void Parser::initParser() {
         std::string partRule;
         std::vector<std::string> rule;
         std::istringstream iss(rulesAndActions[i]);
-        iss >> partRule;
-        rule.push_back(partRule);
         while(iss >> partRule) {
             rule.push_back(partRule);
         }
@@ -111,15 +115,35 @@ void Parser::initParser() {
     std::string action;
     int ruleOrStateNum;
 
-    for(int i = numRules; i < numActions; i++) {
+    for(int i = numRules; i < numActions+numRules; i++) {
         std::istringstream iss(rulesAndActions[i]);
         iss >> stateNumber >> input >> action >> ruleOrStateNum;
         parserTable[stateNumber][input] = make_pair(action, ruleOrStateNum);
     }
 }
 
+void Parser::printErrorStatement(Token* token, int curState) {
+    std::pair<unsigned int, unsigned int> location = token->getLocation();
+    std::cerr << "An unexpected token: " << token->getString() << " was seen at: "
+              << location.first << "(row), " << location.second << "(column)" << std::endl;
+    printExpectedTokens(curState);
+}
+
+void Parser::resetParser(bool success) {
+    if(success) {
+        assert(symbolStack.size() > 0);
+        assert(symbolStack[0]->token->getString() == "CompilationUnit");
+    }
+
+    curLocStack = 0;
+    for(unsigned int i = 0; i < stateStack.size(); i++) {
+        stateStack.pop();
+    }
+}
+
 ParseTree* Parser::Parse(std::string& parseFile) {
     std::vector<Token*>* fileTokens = tokens[parseFile];
+    std::string nonTerminal;
     int curState = START_STATE;
     stateStack.push(curState);
     Token* token;
@@ -141,10 +165,9 @@ ParseTree* Parser::Parse(std::string& parseFile) {
 
         // invalid token
         if(parserTable[curState].find(toParse) == parserTable[curState].end()) {
-            std::pair<unsigned int, unsigned int> location = token->getLocation();
-            std::cerr << "An unexpected token: " << token->getString() << " was seen at: "
-                      << location.first << "(row), " << location.second << "(column)" << std::endl;
-            printExpectedTokens(curState);
+            std::cerr << "Parsing error in file: " << parseFile << "\n";
+            printErrorStatement(token, curState);
+            resetParser(false);
             return NULL;
         }
 
@@ -155,18 +178,28 @@ ParseTree* Parser::Parse(std::string& parseFile) {
             tokensIndex++;
         } else {
             int ruleToReduce;
+            int round = 0;
             do {
                 ruleToReduce = parserTable[curState][toParse].second;
-                unsigned int updateLocStack = curLocStack - rules[ruleToReduce].size() - 1;
-                curLocStack = updateLocStack < curLocStack ? updateLocStack : curLocStack;
                 createNonTerminalNode(parserTable[curState][toParse].second);
                 curState = stateStack.top();
-                toParse = rules[ruleToReduce][0];
+                nonTerminal = rules[ruleToReduce][0];
+                if(parserTable[curState].find(nonTerminal) == parserTable[curState].end() ||
+                   parserTable[curState][nonTerminal].first != "shift") {
+                    std::cerr << "Parsing error in file: " << parseFile << "\n";
+                    printErrorStatement(token, curState);
+                    resetParser(false);
+                    return NULL;
+                }
+
+                curState = parserTable[curState][nonTerminal].second;
+                stateStack.push(curState);
+                round++;
             } while(parserTable[curState][toParse].first == "reduce");
         }
     }
 
-    if(checkParsingCompletion(curState)) {
+    if(checkParsingCompletion(curState, parseFile)) {
         int firstNodeRule = symbolStack[0]->rule;
         int thirdNodeRule = symbolStack[2]->rule;
         // Cause to push to the new node to the bottom of the stack
@@ -178,9 +211,11 @@ ParseTree* Parser::Parse(std::string& parseFile) {
                 createNonTerminalNode(COMPILATION_UNIT_INTERFACE);
             }
         }
-
+        
+        resetParser(true);
         return symbolStack[0];
     }
     
+    resetParser(false);
     return NULL;
 }

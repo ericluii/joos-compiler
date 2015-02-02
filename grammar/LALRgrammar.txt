@@ -79,7 +79,7 @@ ConditionalAndExpression -> InclusiveOrExpression | ConditionalAndExpression && 
 InclusiveOrExpression -> AndExpression | InclusiveOrExpression | AndExpression
 AndExpression -> EqualityExpression | AndExpression & EqualityExpression
 EqualityExpression -> RelationalExpression | EqualityExpression == RelationalExpression | EqualityExpression != RelationalExpression
-RelationalExpression -> RelationalExpression < AdditiveExpression | RelationalExpression > AdditiveExpression |
+RelationalExpression -> AdditiveExpression | RelationalExpression < AdditiveExpression | RelationalExpression > AdditiveExpression |
 			RelationalExpression <= AdditiveExpression | RelationalExpression >= AdditiveExpression |
 			RelationalExpression instanceof ReferenceType
 AdditiveExpression -> MultiplicativeExpression | AdditiveExpression + MultiplicativeExpression |

@@ -36,15 +36,20 @@ int main(int argc, char *argv[])
     
     int result;
 
+    std::string fileName;
     for (int i = 1; i < argc; i++) {
-        file.open(argv[i], std::ifstream::in);
+        fileName = argv[i];
+        scanner.setFileName(fileName);
+        file.open(fileName, std::ifstream::in);
         tokenList = new std::vector<Token*>();
         result = scanner.Scan(file, tokenList);
+        scanner.resetDFAs();
         tokens[argv[i]] = tokenList;
         file.close();
         
         //Error out
         if(result != 0){
+            std::cerr << "Lexical error in file: " << argv[i] << std::endl;
             cleanUpTokens(tokens);
             exit(42);
         }
@@ -67,6 +72,11 @@ int main(int argc, char *argv[])
     for(int i = 1; i < argc; i++) {
         std::string parseFile(argv[i]);
         ParseTree* newParseTrees = parser.Parse(parseFile);
+        // error in parsing this file
+        if(newParseTrees == NULL) {
+            exit(42);
+        }
+        parser.resetParser();
         completeParseTrees[argv[i]] = newParseTrees;
         weeder.weedParseTree(newParseTrees);
     }

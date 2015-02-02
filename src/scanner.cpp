@@ -12,7 +12,6 @@
 
 #include <iostream>
 #include <cassert>
-#include <string>
 
 Scanner::Scanner()
 {
@@ -56,10 +55,11 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             // EOF is represented as -1
             // ASCII is from 0 to 127
             if (c < -1 || c > 127) {
+                std::cerr << "Lexical error in file: " << fileName << '\n';
                 std::cerr << "Invalid character with code: " 
                           << c 
-                          << "\n Input files must contain only ASCII characters";
-                return -1;
+                          << "\n Input files must contain only ASCII characters" << "\n" << std::endl;
+                return SCANNER_NON_ASCII;
             }
 
             // Line feed character LF
@@ -84,7 +84,9 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                         break;
                     case DS_ABORT:
                         // TODO: DECIDE WHAT TO DO WITH THIS
-                        assert(false);
+                        // assert(false);
+                        // For now let us return
+                        return SCANNER_ABORT;
                         break;
                     default:
                         break;
@@ -98,8 +100,9 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
         if (errorCount == numDfas) {
         
             if(type == TT_INVALID){
-                std::cerr << "Invalid token with lexime: " << lexime << (char)c << "\n";
-                return -2;
+                std::cerr << "Lexical error in file: " << fileName << '\n';
+                std::cerr << "Invalid token with lexime: " << lexime << (char)c << "\n" << std::endl;
+                return SCANNER_INV_LEXEME;
             }
         
             if(type != TT_COMMENT && type != TT_WHITESPACE) {
@@ -123,5 +126,15 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
         }
     }
     
-    return 0;
+    return SCANNER_OK;
+}
+
+void Scanner::resetDFAs() {
+    for(unsigned int i = 0; i < dfas.size(); i++) {
+        dfas[i]->resetDfa();
+    }
+}
+
+void Scanner::setFileName(std::string setName) {
+    fileName = setName;
 }
