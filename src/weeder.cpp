@@ -24,7 +24,7 @@ Weeder::Weeder()
 }
 
 
-int Weeder::weedParseTree(ParseTree* node, std::string parseFile)
+int Weeder::weedParseTree(ParseTree* node)
 {
     int errors = 0;
 
@@ -36,7 +36,7 @@ int Weeder::weedParseTree(ParseTree* node, std::string parseFile)
     }
 
     for (unsigned int j = 0; j < node->children.size(); j++) {
-        errors += weedParseTree(node->children[j], parseFile);
+        errors += weedParseTree(node->children[j]);
     }
 
     return errors;

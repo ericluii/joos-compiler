@@ -47,7 +47,7 @@ void Test_Parser::test() {
             parseTree = parser->Parse(fileName);
             if(fileName[1] == 'e') {
                 if (parseTree) {
-                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree, fileName) != 0,
+                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) != 0,
                               "Ensure weeder fails this file", "\n" + fileContent);
                 } else {
                     // indicate error file
@@ -56,7 +56,7 @@ void Test_Parser::test() {
                 }
             } else {
                 if (parseTree) {
-                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree, fileName) == 0,
+                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) == 0,
                               "Check weeder passes this file", "\n" + fileContent);
                 } else {
                     checkTrue("Parsing file: " + fileName, parseTree != NULL,

@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
             exit(42);
         }
 
-        if (weeder.weedParseTree(newParseTrees, parseFile)) {
+        if (weeder.weedParseTree(newParseTrees)) {
             exit(42);
         }
 
