@@ -2,8 +2,8 @@
 
 std::string parserRules [] = {
 	"Goal CompilationUnit",
-	"CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration $",
-	"CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration $",
+	"CompilationUnit PackageDeclaration ImportDeclarations* TypeDeclaration $",
+	"TypeDeclaration ClassDeclaration",
 	"PackageDeclaration package Name ;",
 	"PackageDeclaration",
 	"ImportDeclarations* ImportDeclarations",
@@ -205,5 +205,7 @@ std::string parserRules [] = {
 	"RelationalExpression AdditiveExpression",
 	"CastExpression ( Expression ) UnaryExpressionNotMinus",
 	"ExtendsInterfaces* ExtendsInterfaces",
-	"ExtendsInterfaces*"
+	"ExtendsInterfaces*",
+	"TypeDeclaration InterfaceDeclaration",
+	"TypeDeclaration"
 };

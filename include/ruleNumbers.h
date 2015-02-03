@@ -5,8 +5,8 @@
 
 enum RuleNumbers {
     GOAL = 0,                       // 0 Goal CompilationUnit
-    COMPILATION_UNIT_CLASS,         // 1 CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration
-    COMPILATION_UNIT_INTERFACE,     // 2 CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration
+    COMPILATION_UNIT,               // 1 CompilationUnit PackageDeclaration ImportDeclarations* TypeDeclaration $
+    TYPE_CLASS,                     // 2 TypeDeclaration ClassDeclaration
     PACKAGE_NAME,                   // 3 PackageDeclaration package Name ;
     PACKAGE_EPSILON,                // 4 PackageDeclaration
     IMPORT_STAR_DECLS,              // 5 ImportDeclarations* ImportDeclarations
@@ -209,6 +209,8 @@ enum RuleNumbers {
     CAST_TO_EXPRESSION,             // 202 CastExpression ( Expression ) UnaryExpressionNotMinus
     EXTENDS_INTERFACE,              // 203 ExtendsInterface* ExtendsInterface
     EXTENDS_INTERFACE_EPSILON,      // 204 ExtendsInterface*
+    TYPE_INTERFACE,                 // 205 TypeDeclaration InterfaceDeclaration
+    TYPE_EPSILON,                   // 206 TypeDeclaration
 };
 
 #endif

@@ -22,8 +22,8 @@ This grammar is derived from:
 http://www.cs.cornell.edu/andru/javaspec/19.doc.html
 
 Goal -> CompilationUnit
-CompilationUnit -> PackageDeclaration* ImportDeclarations* ClassDeclaration $ |
-                   PackageDeclaration* ImportDeclarations* InterfaceDeclaration $
+CompilationUnit -> PackageDeclaration* ImportDeclarations* TypeDeclaration $
+TypeDeclaration -> ClassDeclaration | InterfacesDeclaration | epsilon
 PackageDeclaration* -> package Name ; | epsilon
 ImportDeclarations* -> ImportDeclarations | epsilon
 ImportDeclarations -> ImportDeclaration | ImportDeclarations ImportDeclaration

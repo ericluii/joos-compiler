@@ -60,13 +60,14 @@ for
 return
 (
 )
-104
+105
 Goal
 CompilationUnit
 PackageDeclaration*
 PackageDeclaration
 ImportDeclarations*
 ImportDeclarations
+TypeDeclaration
 Name
 ImportDeclaration
 SingleTypeImportDeclaration
@@ -166,10 +167,10 @@ InterfaceMemberDeclarations
 InterfaceMemberDeclaration
 AbstractMethodDeclaration
 Goal
-205
+207
 Goal CompilationUnit
-CompilationUnit PackageDeclaration ImportDeclarations* ClassDeclaration $
-CompilationUnit PackageDeclaration ImportDeclarations* InterfaceDeclaration $
+CompilationUnit PackageDeclaration ImportDeclarations* TypeDeclaration $
+TypeDeclaration ClassDeclaration
 PackageDeclaration package Name ;
 PackageDeclaration
 ImportDeclarations* ImportDeclarations
@@ -372,3 +373,5 @@ RelationalExpression AdditiveExpression
 CastExpression ( Expression ) UnaryExpressionNotMinus
 ExtendsInterfaces* ExtendsInterfaces
 ExtendsInterfaces*
+TypeDeclaration InterfaceDeclaration
+TypeDeclaration
