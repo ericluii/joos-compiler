@@ -8,6 +8,7 @@
 #include "weed_ClassConstructor_impl.h"
 #include "weed_NoFinalField_impl.h"
 #include "weed_NonAbstractNonNativeBody_impl.h"
+#include "weed_ClassFilename_impl.h"
 
 Weeder::Weeder()
 {
@@ -21,6 +22,7 @@ Weeder::Weeder()
     weeds.push_back(new NoFinalField());
     weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
     weeds.push_back(new NonAbstractNonNativeBody());
+    weeds.push_back(new ClassFilename());
 }
 
 
