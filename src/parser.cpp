@@ -67,8 +67,7 @@ void Parser::printExpectedTokens(int state) {
 bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
     unsigned int symbolStackSize = symbolStack.size();
     if(symbolStackSize > 0) {
-        if(symbolStack[0]->rule == COMPILATION_UNIT_CLASS ||
-           symbolStack[0]->rule == COMPILATION_UNIT_INTERFACE) {
+        if(symbolStack[0]->rule == COMPILATION_UNIT) {
             return true;
         } else if (symbolStackSize >= 3) {
             int firstNodeRule = symbolStack[0]->rule;
@@ -77,14 +76,13 @@ bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
 
             if((firstNodeRule != PACKAGE_NAME && firstNodeRule != PACKAGE_EPSILON) ||
                (secondNodeRule != IMPORT_STAR_DECLS && secondNodeRule != IMPORT_STAR_EPSILON) ||
-               (thirdNodeRule != CLASS_DECL && thirdNodeRule != INTERFACE_DECL)) {
+               (thirdNodeRule != TYPE_CLASS && thirdNodeRule != TYPE_INTERFACE && thirdNodeRule != TYPE_EPSILON)) {
                 std::cerr << "Parsing error in file: " << fileName << "\n";
                 printExpectedTokens(lastState);
                 return false;
             }
             return true;
         }
-        return false;
     }
     return false;
 }
@@ -136,8 +134,7 @@ void Parser::printErrorStatement(Token* token, int curState) {
 void Parser::resetParser(bool success) {
     if(success) {
         assert(symbolStack.size() > 0);
-        assert(symbolStack[0]->rule == COMPILATION_UNIT_CLASS ||
-               symbolStack[0]->rule == COMPILATION_UNIT_INTERFACE);
+        assert(symbolStack[0]->rule == COMPILATION_UNIT);
     }
 
     curLocStack = 0;
@@ -204,16 +201,10 @@ ParseTree* Parser::Parse(std::string& parseFile) {
   
     if(checkParsingCompletion(curState, parseFile)) {
         int firstNodeRule = symbolStack[0]->rule;
-        int thirdNodeRule = symbolStack[2]->rule;
         // Cause to push the new node to the bottom of the stack
-        if(firstNodeRule != COMPILATION_UNIT_CLASS && firstNodeRule != COMPILATION_UNIT_INTERFACE) { 
-            if(thirdNodeRule == CLASS_DECL) {
-                curLocStack = rules[COMPILATION_UNIT_CLASS].size() - 1;
-                createNonTerminalNode(COMPILATION_UNIT_CLASS);
-            } else {
-                curLocStack = rules[COMPILATION_UNIT_INTERFACE].size() - 1;
-                createNonTerminalNode(COMPILATION_UNIT_INTERFACE);
-            }
+        if(firstNodeRule != COMPILATION_UNIT) { 
+            curLocStack = rules[COMPILATION_UNIT].size() - 1;
+            createNonTerminalNode(COMPILATION_UNIT);
         }
        
         resetParser(true);

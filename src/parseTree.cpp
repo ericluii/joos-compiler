@@ -17,7 +17,7 @@ std::ostream& operator<<(std::ostream& os, const ParseTree& parseTree) {
             if(i != 0) {
                 os << ", ";
             }
-            os << (parseTree.children[i])->rule;
+            os << (parseTree.children[i])->treeLexeme;
         }
 
         os << '\n';
