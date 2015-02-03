@@ -83,11 +83,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                         errorCount++;
                         break;
                     case DS_ABORT:
-                        // TODO: DECIDE WHAT TO DO WITH THIS
-                        // assert(false);
-                        // For now let us return
                         return SCANNER_ABORT;
-                        break;
                     default:
                         break;
                 }

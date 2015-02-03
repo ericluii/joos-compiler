@@ -328,7 +328,7 @@ int pyGen2(char c, int current_state)
 
 TOKEN_TYPE BannedKeywordDfa::getTokenType()
 {
-    if (dfa[current_state].first != DS_ACCEPT) {
+    if (dfa[current_state].first != DS_ABORT) {
         return TT_INVALID;
     }
 
@@ -373,7 +373,7 @@ void BannedKeywordDfa::initDfa()
     dfa[DS_CO] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_GO] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_DO] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_DO] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_FI] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_FL] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_LO] = std::make_pair(DS_RUNNING, &pyGen2);
@@ -400,19 +400,19 @@ void BannedKeywordDfa::initDfa()
     dfa[DS_TRA] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_SUP] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_VOL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_TRY] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_TRY] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_THR] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_STR] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_CATC] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CASE] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_CASE] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_CONS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_GOTO] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_GOTO] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_CONT] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DEFA] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DOUB] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_FINA] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_FLOA] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_LONG] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_LONG] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SWIT] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_SYNC] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_PRIV] = std::make_pair(DS_RUNNING, &pyGen2);
@@ -421,50 +421,50 @@ void BannedKeywordDfa::initDfa()
     dfa[DS_VOLA] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_THRO] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_STRI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CATCH] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_CONST] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_CATCH] = std::make_pair(DS_ABORT, &pyGen2);
+    dfa[DS_CONST] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_CONTI] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DEFAU] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DOUBL] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_FINAL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_FLOAT] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_FLOAT] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SWITC] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_SYNCH] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_PRIVA] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_TRANS] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SUPER] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_SUPER] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_VOLAT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_THROW] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_THROW] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_STRIC] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_CONTIN] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_DEFAUL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_DOUBLE] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_DOUBLE] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_FINALL] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SWITCH] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_SWITCH] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SYNCHR] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_PRIVAT] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_TRANSI] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_VOLATI] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_STRICT] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_THROWS] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_THROWS] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_CONTINU] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_DEFAULT] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_FINALLY] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_DEFAULT] = std::make_pair(DS_ABORT, &pyGen2);
+    dfa[DS_FINALLY] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SYNCHRO] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_PRIVATE] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_PRIVATE] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_TRANSIE] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_VOLATIL] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_STRICTF] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_CONTINUE] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_CONTINUE] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SYNCHRON] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_TRANSIEN] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_VOLATILE] = std::make_pair(DS_ACCEPT, &pyGen2);
-    dfa[DS_STRICTFP] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_VOLATILE] = std::make_pair(DS_ABORT, &pyGen2);
+    dfa[DS_STRICTFP] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SYNCHRONI] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_TRANSIENT] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_TRANSIENT] = std::make_pair(DS_ABORT, &pyGen2);
     dfa[DS_SYNCHRONIZ] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_SYNCHRONIZE] = std::make_pair(DS_RUNNING, &pyGen2);
-    dfa[DS_SYNCHRONIZED] = std::make_pair(DS_ACCEPT, &pyGen2);
+    dfa[DS_SYNCHRONIZED] = std::make_pair(DS_ABORT, &pyGen2);
 }
 
 BannedKeywordDfa::BannedKeywordDfa() : Dfa()
