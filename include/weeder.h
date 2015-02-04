@@ -2,7 +2,7 @@
 #define __WEEDER_H__
 
 #include "parseTree.h"
-#include "weeds_impl.h"
+#include "weed.h"
 #include <map>
 
 class Weeder final

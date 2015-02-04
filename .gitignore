@@ -1,6 +1,8 @@
 joosc
 test_joosc
 
+*.swp
+*.swo
 .DS_Store
 
 # Compiled Object files

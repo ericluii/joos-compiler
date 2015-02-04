@@ -25,6 +25,7 @@ class ParseTree final
         friend std::ostream& operator<<(std::ostream& os, const ParseTree & parseTree);
 
         void addChild(ParseTree* child);
+        void print(int depth = 0);
 };
 
 #endif

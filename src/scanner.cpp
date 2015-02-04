@@ -83,11 +83,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                         errorCount++;
                         break;
                     case DS_ABORT:
-                        // TODO: DECIDE WHAT TO DO WITH THIS
-                        // assert(false);
-                        // For now let us return
                         return SCANNER_ABORT;
-                        break;
                     default:
                         break;
                 }
@@ -106,7 +102,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             }
         
             if(type != TT_COMMENT && type != TT_WHITESPACE) {
-                tokens->push_back(new Token(type, lexime, std::pair <unsigned int, unsigned int>(tokenLine, tokenCollumn)));
+                tokens->push_back(new Token(type, lexime, std::pair <unsigned int, unsigned int>(tokenLine, tokenCollumn), fileName));
             }
 
             // Reset all the things!!!
@@ -127,7 +123,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
     }
    
     // Indicate EOF
-    tokens->push_back(new Token(TT_EOF, "$", std::pair<unsigned int, unsigned int>(tokenLine, tokenCollumn+1)));
+    tokens->push_back(new Token(TT_EOF, "$", std::pair<unsigned int, unsigned int>(tokenLine, tokenCollumn+1), fileName));
     return SCANNER_OK;
 }
 

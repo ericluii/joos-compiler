@@ -97,13 +97,15 @@ class Token {
     private:
         TOKEN_TYPE type;
         std::string string;
+        std::string file;
         std::pair <unsigned int, unsigned int> location;
     public:
         TOKEN_TYPE getType();
         std::string getString();
+        std::string getFile();
         std::pair <unsigned int, unsigned int> getLocation();
 		
-        Token(TOKEN_TYPE ptype, std::string pstring, std::pair <unsigned int, unsigned int> plocation);
+        Token(TOKEN_TYPE ptype, std::string pstring, std::pair <unsigned int, unsigned int> plocation, std::string file);
 };
 
 #endif
