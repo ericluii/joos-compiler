@@ -34,17 +34,17 @@ class NoFinalInterface : public Weed {
         }
 
         std::string getInterfaceName(ParseTree* node) {
+            token = node->children[2]->children[0]->token;
             return node->children[2]->children[0]->token->getString();
         }
 
-        unsigned int check(ParseTree* node) {
+        void check(ParseTree* node) {
             if(hasFinal(node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Interface '" << getInterfaceName(node) << "' cannot be declared as final." << std::endl;
-                return 1;
+                std::stringstream ss;
+                ss << "Interface '" << getInterfaceName(node) << "' cannot be declared as final.";
+
+                Error(E_WEEDER, token, ss.str());
             }
-            
-            return 0;
         }
 };
 

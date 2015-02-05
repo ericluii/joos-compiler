@@ -28,26 +28,27 @@ class NoPackagePrivateFields : public Weed {
         }
 
         std::string getFieldName(ParseTree* node) {
+            token = node->children[2]->children[0]->children[0]->token;
             return node->children[2]->children[0]->children[0]->token->getString();
         }
 
-        unsigned int check(ParseTree* node) {
+        void check(ParseTree* node) {
             unsigned int hasPublic = hasMod(MEMBER_MOD_PUBLIC, node);
             unsigned int hasProtected = hasMod(MEMBER_MOD_PROTECTED, node);
 
             if(hasPublic && hasProtected) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Field '" << getFieldName(node) << "' in class cannot be both public and protected." << std::endl;
-                return 1;
+                std::stringstream ss;
+                ss << "Field '" << getFieldName(node) << "' in class cannot be both public and protected.";
+
+                Error(E_WEEDER, token, ss.str());
             }
 
             if (!hasPublic && !hasProtected) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Field '" << getFieldName(node) << "' in class cannot be a package private field." << std::endl;
-                return 1;
-            }
+                std::stringstream ss;
+                ss << "Field '" << getFieldName(node) << "' in class cannot be a package private field.";
 
-            return 0;
+                Error(E_WEEDER, token, ss.str());
+            }
         }
 };
 

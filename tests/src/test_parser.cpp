@@ -1,5 +1,6 @@
 #include "a1TestFiles.h"
 #include "test_parser.h"
+#include "error.h"
 #include "token.h"
 #include "parseTree.h"
 #include "weeder.h"
@@ -47,7 +48,8 @@ void Test_Parser::test() {
             parseTree = parser->Parse(fileName);
             if(fileName[1] == 'e') {
                 if (parseTree) {
-                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) != 0,
+                    weeder.weedParseTree(parseTree);
+                    checkTrue("Weeding file: " + fileName, Error::count() != 0,
                               "Ensure weeder fails this file", "\n" + fileContent);
                 } else {
                     // indicate error file
@@ -56,7 +58,8 @@ void Test_Parser::test() {
                 }
             } else {
                 if (parseTree) {
-                    checkTrue("Weeding file: " + fileName, weeder.weedParseTree(parseTree) == 0,
+                    weeder.weedParseTree(parseTree);
+                    checkTrue("Weeding file: " + fileName, Error::count() == 0,
                               "Check weeder passes this file", "\n" + fileContent);
                 } else {
                     checkTrue("Parsing file: " + fileName, parseTree != NULL,
@@ -73,6 +76,7 @@ void Test_Parser::test() {
             if(parseTree != NULL) {
                 delete parseTree;
             }
+            Error::resetErrors();
         } else {
             // Unscannable file is being tested - quietely skip
         }

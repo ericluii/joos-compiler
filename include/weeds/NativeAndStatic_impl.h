@@ -50,6 +50,7 @@ class NativeAndStaticMethod : public Weed
 
             for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
+                    token = node->children[i]->children[0]->token;
                     return node->children[i]->children[0]->token->getString();
                 }
             }
@@ -57,13 +58,14 @@ class NativeAndStaticMethod : public Weed
             assert(false);
         }
 
-        unsigned int check(ParseTree* node)
+        void check(ParseTree* node)
         {
             if (hasMod(MEMBER_MOD_NATIVE, node) &&
                 !hasMod(MEMBER_MOD_STATIC, node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Native method '" << getMethodName(node) << "' must be declared as static." << std::endl;
-                return 1;
+                std::stringstream ss;
+                ss << "Native method '" << getMethodName(node) << "' must be declared as static.";
+
+                Error(E_WEEDER, token, ss.str());
             }
 
             return 0;

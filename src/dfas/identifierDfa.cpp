@@ -19,7 +19,7 @@ int isJavaLetterOrDigit(char c, int current_state) {
 }
 
 void IdentifierDfa::initDfa() {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &isJavaLetterOrDigit);
     dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &isJavaLetterOrDigit);
 }

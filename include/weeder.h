@@ -11,7 +11,7 @@ class Weeder
         std::vector<Weed *> weeds;
     public:
         Weeder();
-        int weedParseTree(ParseTree* node);
+        void weedParseTree(ParseTree* node);
 
         ~Weeder()
         {

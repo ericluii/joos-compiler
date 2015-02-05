@@ -7,6 +7,22 @@ class NoCastExpression : public Weed {
             rule = CAST_TO_EXPRESSION;
         }
 
+        Token* getTokenWithLocation(ParseTree* node) {
+            if (node->token) {
+                return node->token;
+            }
+
+            Token* token;
+            for (unsigned int i = 0; i < node->children.size(); i++) {
+                token = getTokenWithLocation(node->children[i]);
+                if (token) {
+                    return token;
+                }
+            }
+
+            assert(false);
+        }
+
         unsigned int isAnExpression(ParseTree* node) {
             while(true) {
                 switch(node->rule) {
@@ -29,6 +45,7 @@ class NoCastExpression : public Weed {
                     case UNARY_NAME:
                         return 0;
                     default:
+                        token = getTokenWithLocation(node);
                         return 1;
                 }
             }
@@ -36,14 +53,13 @@ class NoCastExpression : public Weed {
             return 0;
         }
 
-        unsigned int check(ParseTree* node) {
+        void check(ParseTree* node) {
             if(isAnExpression(node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Casting to an expression is not allowed" << std::endl;
-                return 1;
+                std::stringstream ss;
+                ss << "Casting to an expression is not allowed.";
+
+                Error(E_WEEDER, token, ss.str());
             }
-            
-            return 0;
         }
 };
 

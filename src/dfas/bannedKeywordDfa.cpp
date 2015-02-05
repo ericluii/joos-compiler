@@ -358,7 +358,7 @@ TOKEN_TYPE BannedKeywordDfa::getTokenType()
 
 void BannedKeywordDfa::initDfa()
 {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_C] = std::make_pair(DS_RUNNING, &pyGen2);
     dfa[DS_G] = std::make_pair(DS_RUNNING, &pyGen2);

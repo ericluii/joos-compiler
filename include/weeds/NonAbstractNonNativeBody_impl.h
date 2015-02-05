@@ -74,6 +74,7 @@ class NonAbstractNonNativeBody : public Weed
 
             for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
+                    token = node->children[i]->children[0]->token;
                     return node->children[i]->children[0]->token->getString();
                 }
             }
@@ -81,23 +82,23 @@ class NonAbstractNonNativeBody : public Weed
             assert(false);
         }
 
-        unsigned int check(ParseTree* node)
+        void check(ParseTree* node)
         {
             if (!hasAbstractMod(node) && !hasNativeMod(node)) {
                 for (unsigned int i = 0; i < node->children.size(); i++) {
                     if (node->children[i]->rule == METHOD_BODY_EMPTY) {
-                        std::cerr << "Weeding error in file: TODO" << std::endl;
-                        std::cerr << "Non-Abstract method '" << getMethodName(node) << "' must have a body." << std::endl;
-                        return 1;
+                        std::stringstream ss;
+                        ss << "Non-Abstract method '" << getMethodName(node) << "' must have a body.";
+
+                        Error(E_WEEDER, token, ss.str());
+                        return;
                     } else if (node->children[i]->rule == METHOD_BODY) {
-                        return 0;
+                        return;
                     }
                 }
 
                 assert(false);
             }
-
-            return 0;
         }
 };
 

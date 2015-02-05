@@ -3,12 +3,16 @@
 
 #include "parseTree.h"
 #include "ruleNumbers.h"
+#include "error.h"
+#include <sstream>
 
 class Weed
 {
+    protected:
+        Token* token;
     public:
         int rule;
-        virtual unsigned int check(ParseTree* node) = 0;
+        virtual void check(ParseTree* node) = 0;
         virtual bool checkRule(int check) {
             return rule == check;
         }

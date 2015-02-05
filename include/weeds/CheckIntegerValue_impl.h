@@ -2,7 +2,6 @@
 #define __WEED_CHECK_INTEGER_VALUE_H__
 
 #include "weed.h"
-#include <sstream>
 
 class CheckIntegerValue : public Weed {
     private:
@@ -47,6 +46,7 @@ class CheckIntegerValue : public Weed {
                         node = node->children[0];
                         break;
                     case LITERAL_NUM:
+                        token = node->children[0]->token;
                         integerVal = prefix+node->children[0]->token->getString();
                         ss << integerVal;
                         if(!(ss >> numVal)) {
@@ -60,16 +60,14 @@ class CheckIntegerValue : public Weed {
             return 0;
         }
 
-        unsigned int check(ParseTree* node) {
+        void check(ParseTree* node) {
             if (isTooSmallOrTooBig(node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Integer: " << integerVal << " is out of range. "
-                          << "Should be between -2147483648 and 2147483647, inclusive" << std::endl;
-                return 1;
+                std::stringstream ss;
+                ss << "Integer: " << integerVal << " is out of range. "
+                   << "Should be between -2147483648 and 2147483647, inclusive.";
+
+                Error(E_WEEDER, token, ss.str());
             }
-
-            return 0;
-
         }
 };
 

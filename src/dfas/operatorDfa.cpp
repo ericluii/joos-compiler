@@ -53,11 +53,11 @@ int isEqualSign(char c, int current_state) {
 }
 
 void OperatorDfa::initDfa() {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &isFirstCharOperator);
     dfa[DS_CHECKEQUAL] = std::make_pair(DS_ACCEPT, &isEqualSign);
     dfa[DS_CHECKLAZYOP] = std::make_pair(DS_ACCEPT, &isLazyBooleanOp);
-    dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &dfa_error);
 }
 
 TOKEN_TYPE OperatorDfa::getTokenType() {

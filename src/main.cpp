@@ -3,6 +3,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include "error.h"
 #include "scanner.h"
 #include "weeder.h"
 #include "parser.h"
@@ -77,7 +78,9 @@ int main(int argc, char *argv[])
             exit(42);
         }
 
-        if (weeder.weedParseTree(newParseTrees)) {
+        weeder.weedParseTree(newParseTrees);
+        if (Error::count()) {
+            Error::print();
             cleanUpTokens(tokens);
             cleanUpParseTrees(completeParseTrees);
             exit(42);

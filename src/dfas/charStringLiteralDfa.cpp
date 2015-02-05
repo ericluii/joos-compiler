@@ -146,7 +146,7 @@ int genericOctalCheck(char c, int current_state) {
 }
 
 void CharStringLiteralDfa::initDfa() {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &isSingleOrDoubleQuotes);
     dfa[DS_SINGLEQUOTE] = std::make_pair(DS_RUNNING, &genericCharCheck);
     dfa[DS_DOUBLEQUOTE] = std::make_pair(DS_RUNNING, &genericCharCheck);
@@ -155,8 +155,8 @@ void CharStringLiteralDfa::initDfa() {
     dfa[DS_ESCAPEDOUBLE] = std::make_pair(DS_RUNNING, &genericEscapeCheck);
     dfa[DS_OCTALSINGLE] = std::make_pair(DS_RUNNING, &genericOctalCheck);
     dfa[DS_OCTALDOUBLE] = std::make_pair(DS_RUNNING, &genericOctalCheck);
-    dfa[DS_ACCEPTCHAR] = std::make_pair(DS_ACCEPT, &error);
-    dfa[DS_ACCEPTSTRING] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ACCEPTCHAR] = std::make_pair(DS_ACCEPT, &dfa_error);
+    dfa[DS_ACCEPTSTRING] = std::make_pair(DS_ACCEPT, &dfa_error);
 }
 
 TOKEN_TYPE CharStringLiteralDfa::getTokenType() {
