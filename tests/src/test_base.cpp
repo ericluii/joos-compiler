@@ -1,3 +1,4 @@
+#include <sstream>
 #include "test_base.h"
 
 int Test_Base::test_count;
@@ -19,8 +20,10 @@ void Test_Base::checkTrue(std::string name, bool value,
     test_count++;
 
     if (!value) {
-        test_fails.push_back(name + " : " + description + " : " + raw_input + " : " +
-                             std::to_string(value));
+        std::stringstream ss;
+        ss << name << " : " << description << " : " << raw_input << " : " << value;
+        test_fails.push_back(ss.str());
+
         printFail(name, description);
     } else {
         printPass(name, description);
@@ -33,9 +36,10 @@ void Test_Base::checkRange(std::string name, int value, int min, int max,
     test_count++;
 
     if (value < min || value > max) {
-        test_fails.push_back(name + " : " + description + " : " + raw_input + " : " +
-                             std::to_string(value) + " [" + std::to_string(min)
-                             + ", " + std::to_string(max) + "]");
+        std::stringstream ss;
+        ss << name << " : " << description << " : " << raw_input << " : " << value << " [" << min << ", " << max << "]";
+        test_fails.push_back(ss.str());
+
         printFail(name, description);
     } else {
         printPass(name, description);
