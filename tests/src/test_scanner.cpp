@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <sstream>
 
 void Test_Scanner::init() {
     test_name = "Scanner Test";
@@ -12,6 +13,7 @@ void Test_Scanner::init() {
 }
 
 void Test_Scanner::test() {
+    std::stringstream ss;
     std::vector<Token*> * tokens;
     std::ifstream scanFile;
     std::string fileName;
@@ -37,8 +39,10 @@ void Test_Scanner::test() {
         int scanResult = scanner.Scan(scanFile, tokens);
 
         if(fileName[1] == 'e') {
+            ss.str(std::string());
+            ss << scanResult;
             checkTrue("Scanning file: " + fileName, true,
-                      "Ambiguous result, logging.", std::to_string(scanResult));
+                      "Ambiguous result, logging.", ss.str());
         } else {
             checkTrue("Scanning file: " + fileName, scanResult == SCANNER_OK,
                       "Check if scanner can scan this file", "\n" + fileContent);

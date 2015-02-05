@@ -7,6 +7,7 @@
 #include "validNumberDfa.h"
 #include "keywordDfa.h"
 #include <iostream>
+#include <sstream>
 
 std::pair<DFA_STATES, TOKEN_TYPE> e_pair(DFA_STATES ds, TOKEN_TYPE tt)
 {
@@ -67,6 +68,8 @@ class Test_Dfa : public Test_Base {
 
         void test_kw_dfa()
         {
+            std::stringstream ss;
+
             KeywordDfa kw_dfa;
             checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
                       "Empty String", "");
@@ -74,17 +77,21 @@ class Test_Dfa : public Test_Base {
             std::string str = "0123456789";
             for(char& c : str) {
                 kw_dfa.transition(c);
+                ss << c;
                 checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_ERROR, TT_INVALID),
-                          "Number Test 0-9", std::to_string(c));
+                          "Number Test 0-9", ss.str());
                 kw_dfa.resetDfa();
+                ss.str(std::string());
             }
 
             str = "abstrac";
             for(char& c : str) {
                 kw_dfa.transition(c);
+                ss << c;
                 checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
-                          "word abstrac", std::to_string(c));
+                          "word abstrac", ss.str());
             }
+            ss.str(std::string());
 
             kw_dfa.transition('t');
             checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_ACCEPT, TT_ABSTRACT),
@@ -102,8 +109,9 @@ class Test_Dfa : public Test_Base {
             str = "fina";
             for(char& c : str) {
                 kw_dfa.transition(c);
+                ss << c;
                 checkTrue("KeywordDfa", kw_dfa.getStatus() == e_pair(DS_RUNNING, TT_INVALID),
-                          "word fina", std::to_string(c));
+                          "word fina", ss.str());
             }
 
             kw_dfa.transition('l');
