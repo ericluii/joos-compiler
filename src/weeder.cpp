@@ -14,6 +14,8 @@
 #include "weed_NoPackagePrivateInterfaceMethod_impl.h"
 #include "weed_NoCastExpression_impl.h"
 #include "weed_CheckIntegerValue_impl.h"
+#include "weed_NoFinalInterface_impl.h"
+#include "weed_NoPackagePrivateFields_impl.h"
 
 Weeder::Weeder()
 {
@@ -33,6 +35,8 @@ Weeder::Weeder()
     weeds.push_back(new NoPackagePrivateClassMethod());
     weeds.push_back(new NoCastExpression());
     weeds.push_back(new CheckIntegerValue());
+    weeds.push_back(new NoFinalInterface());
+    weeds.push_back(new NoPackagePrivateFields());
 }
 
 

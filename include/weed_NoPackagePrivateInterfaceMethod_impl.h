@@ -60,7 +60,7 @@ class NoPackagePrivateInterfaceMethod : public Weed {
         unsigned int check(ParseTree* node) {
             if (!hasPublicMod(node)) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Method '" << getMethodName(node) << "' in interfacecannot be a package private method." << std::endl;
+                std::cerr << "Method '" << getMethodName(node) << "' in interface cannot be a package private method." << std::endl;
                 return 1;
             }
 

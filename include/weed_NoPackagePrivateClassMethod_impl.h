@@ -60,7 +60,7 @@ class NoPackagePrivateClassMethod : public Weed {
         unsigned int check(ParseTree* node) {
             if (!hasPublicMod(node)) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Method '" << getMethodName(node) << "' cannot be a package private method." << std::endl;
+                std::cerr << "Method '" << getMethodName(node) << "' in class cannot be a package private method." << std::endl;
                 return 1;
             }
 

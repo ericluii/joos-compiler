@@ -23,9 +23,9 @@ From Assignment 1 specifications:
 - Escape sequences are expanded for char/string literals (not sure about this)
 - Interface cannot be final (weeder)
 - No repeating modifiers (weeder)
-- Constructors must have the same name as the class
-- A native method must return an int and have only one parameter that is an int
-
+- Constructors must have the same name as the class (weeder)
+- A native method must return an int and have only one parameter that is an int (weeder)
+- A constructor can only have the modifiers public or protected (weeder)
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 
