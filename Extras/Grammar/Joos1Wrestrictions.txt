@@ -2,32 +2,32 @@ List of restrictions. Each indicates where it can be checked for as of Assignmen
 
 From Assignment 1 specifications:
 - The program is written in ASCII 0-127 (scanner)
-- A class cannot be both abstract and final (weeder)
+- A class cannot be both abstract and final (weeder) : Done
 - A method has a body if and only if it is neither abstract nor native i.e an abstract/native method cannot have a
-  body while all other methods MUST have a body (weeder)
-- An abstract method cannot be  static or final (weeder)
-- A static method cannot be final (weeder)
-- A native method must be static (weeder)
-- The type void may only be used as the return type of a method (parser)
-- A formal parameter of a method must not have an initializer (parser)
+  body while all other methods MUST have a body (weeder) : Done
+- An abstract method cannot be  static or final (weeder) : Done
+- A static method cannot be final (weeder) : Done
+- A native method must be static (weeder) : Done
+- The type void may only be used as the return type of a method (parser) : Done
+- A formal parameter of a method must not have an initializer (parser) : Done
 - A class/interface must be declared in a .java file with the same base name as the class/interface 
-  (weeder to check name matching, parser for the constraint of one class/interface per file)
-- An interface cannot contain fields or constructors (parser)
-- An interface method cannot be static, final, or native (weeder)
-- An interface method cannot have a body (parser)
-- Every class must contain at least one explicit constructor (weeder)
-- No field can be final (weeder)
-- No multidimensional array types or array creation expressions are allowed (parser)
-- A method or constructor must not contain explicit this() or super() calls (parser)
-- Integer values are within range of an integer in Java (weeder)
+  (weeder to check name matching, parser for the constraint of one class/interface per file) : Done
+- An interface cannot contain fields or constructors (parser) : Done
+- An interface method cannot be static, final, or native (weeder) : Done
+- An interface method cannot have a body (parser) : Done
+- Every class must contain at least one explicit constructor (weeder) : Done
+- No field can be final (weeder) : Done
+- No multidimensional array types or array creation expressions are allowed (parser) : Done
+- A method or constructor must not contain explicit this() or super() calls (parser) : Done
+- Integer values are within range of an integer in Java (weeder) : Done
 - Escape sequences are expanded for char/string literals (not sure about this)
 - Interface cannot be final (weeder)
+- No repeating modifiers (weeder)
+- Constructors must have the same name as the class
+- A native method must return an int and have only one parameter that is an int
+
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
-
-Miscellaneus
-============
-- No repeating modifiers (unsure whether this holds in Joos 1W)
 
 Class Structure
 ===============

@@ -12,8 +12,8 @@ class NoAbstractFinal : public Weed
             rule = CLASS_DECL;
         }
 
-        int hasAbstractMod(ParseTree* node) {
-            int found = 0;
+        unsigned int hasAbstractMod(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case CLASS_DECL:
@@ -32,8 +32,8 @@ class NoAbstractFinal : public Weed
             return found;
         }
 
-        int hasFinalMod(ParseTree* node) {
-            int found = 0;
+        unsigned int hasFinalMod(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case CLASS_DECL:
@@ -63,7 +63,7 @@ class NoAbstractFinal : public Weed
             return "COMPILER ERROR - NOTIFY CREATORS";
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             if (hasAbstractMod(node) && hasFinalMod(node)) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;
