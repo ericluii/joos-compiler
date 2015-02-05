@@ -28,69 +28,63 @@ void cleanUpParseTrees(std::map<std::string, ParseTree*>& parseTrees) {
 
 int main(int argc, char *argv[])
 {
+    int rc = 0;
+    std::string filename;
     std::ifstream file;
-    std::map<std::string, std::vector<Token*> *> tokens;
 
+    // Scanning
     Scanner scanner;
-    Weeder weeder = Weeder();
+    std::map<std::string, std::vector<Token*> *> tokens;
     std::vector<Token*> *tokenList;
-    std::map<std::string, std::string> symbol_table;
 
-    int result;
-
-    std::string fileName;
-    for (int i = 1; i < argc; i++) {
-        fileName = argv[i];
-        scanner.setFileName(fileName);
-        file.open(fileName, std::ifstream::in);
-        if(!file.is_open()){
-            std::cerr << "Unable to open file: " << fileName << std::endl;
-            cleanUpTokens(tokens);
-            exit(42);
-        }
-        tokenList = new std::vector<Token*>();
-        result = scanner.Scan(file, tokenList);
-        scanner.resetDFAs();
-        tokens[argv[i]] = tokenList;
-        file.close();
-
-        //Error out
-        if(result != SCANNER_OK){
-            cleanUpTokens(tokens);
-            exit(42);
-        }
-    }
-
-    // TODO: Some kind of error checking..
-    //       Haven't really discussed how we want
-    //       to do this yet.
-
+    // Parsing
     Parser parser(tokens);
     std::map<std::string, ParseTree*> completeParseTrees;
-    for(int i = 1; i < argc; i++) {
-        std::string parseFile(argv[i]);
-        ParseTree* newParseTrees = parser.Parse(parseFile);
 
-        // error in parsing this file
-        if(newParseTrees == NULL) {
-            cleanUpTokens(tokens);
-            cleanUpParseTrees(completeParseTrees);
-            exit(42);
+    // Weeding
+    Weeder weeder = Weeder();
+
+    try {
+
+        for (int i = 1; i < argc; i++) {
+            filename = argv[i];
+
+            file.open(filename, std::ifstream::in);
+            if(!file.is_open()){
+                std::stringstream ss;
+                ss << "Unable to open file: " << filename << ".";
+                Error(E_DEFAULT, NULL, ss.str()); 
+                CHECK_ERROR();
+            }
+
+            tokenList = new std::vector<Token*>();
+            scanner.setFileName(filename);
+            scanner.Scan(file, tokenList);
+            scanner.resetDFAs();
+            tokens[filename] = tokenList;
+            file.close();
+
+            CHECK_ERROR();
         }
 
-        weeder.weedParseTree(newParseTrees);
-        if (Error::count()) {
-            Error::print();
-            cleanUpTokens(tokens);
-            cleanUpParseTrees(completeParseTrees);
-            exit(42);
-        }
+        for(int i = 1; i < argc; i++) {
+            filename = argv[i];
 
-        completeParseTrees[argv[i]] = newParseTrees;
+            ParseTree* newParseTrees = parser.Parse(filename);
+            CHECK_ERROR();
+
+            weeder.weedParseTree(newParseTrees);
+            CHECK_ERROR();
+
+            completeParseTrees[filename] = newParseTrees;
+        }
+    } catch (std::exception &e) {
+        Error::print();
+        rc = 42;
     }
 
     cleanUpTokens(tokens);
     cleanUpParseTrees(completeParseTrees);
 
-    exit(0);
+    exit(rc);
 }

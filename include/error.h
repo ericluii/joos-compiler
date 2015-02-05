@@ -7,7 +7,8 @@
 enum E_TYPE {
     E_SCANNER,
     E_PARSER,
-    E_WEEDER
+    E_WEEDER,
+    E_DEFAULT
 };
 
 class Error {
@@ -25,5 +26,7 @@ class Error {
         // WARNING: DO NOT USE ANYWHERE EXCEPT FOR TESTING.
         static void resetErrors();
 };
+
+void CHECK_ERROR();
 
 #endif

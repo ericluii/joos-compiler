@@ -24,10 +24,26 @@ unsigned int Error::count() {
 void Error::print()
 {
     for (int i = 0; i < all_errors.size(); i++) {
-        std::cerr << all_errors[i].token->getFile() << ":"
-                  << all_errors[i].token->getLocation().first << ":"
-                  << all_errors[i].token->getLocation().second << ": error: "
-                  << all_errors[i].message << std::endl;
+        switch (all_errors[i].type) {
+            case E_SCANNER:
+                std::cerr << all_errors[i].message << std::endl;
+                break;
+            case E_PARSER:
+            case E_WEEDER:
+                std::cerr << all_errors[i].token->getFile() << ":"
+                          << all_errors[i].token->getLocation().first << ":"
+                          << all_errors[i].token->getLocation().second << ": error: "
+                          << all_errors[i].message << std::endl;
+                break;
+            case E_DEFAULT:
+                std::cerr << all_errors[i].message << std::endl;
+        };
     }
     std::cerr << all_errors.size() << " Error(s) generated." << std::endl;
+}
+
+void CHECK_ERROR() {
+    if (Error::count()) {
+        throw std::runtime_error("Invalid Program Detected.");
+    }
 }

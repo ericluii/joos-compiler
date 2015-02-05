@@ -60,7 +60,7 @@ class NoFinalStaticMethod : public Weed
 
         void check(ParseTree* node)
         {
-            if (hasMod(MEMBER_MOD_FINAL, node)) {
+            if (hasMod(MEMBER_MOD_STATIC, node)) {
                 if (hasMod(MEMBER_MOD_FINAL, node)) {
                     std::stringstream ss;
                     ss << "Static method '" << getMethodName(node) << "' cannot be declared as final.";

@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "error.h"
 #include "ruleNumbers.h"
 #include "parserRules.h"
 #include "parserActions.h"
@@ -28,25 +29,25 @@ void Parser::createNonTerminalNode(int ruleToReduce) {
     pushSymbolStack(newTree);
 }
 
-void Parser::printExpectedTokens(int state) {
+void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     int counter = 1;
     int entrySize = parserTable[state].size();
-    std::cerr << "Expected tokens include:\n";
+    ss << "\n\tExpected tokens include: ";
     std::map<std::string, std::pair<std::string, int> >::iterator it;
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
         std::string token = it->first;
         if(token == "ID") {
-            std::cerr << "an identifier";
+            ss << "an identifier";
         } else if(token == "CHAR") {
-            std::cerr << "a char literal";
+            ss << "a char literal";
         } else if(token == "STRING") {
-            std::cerr << "a string literal";
+            ss << "a string literal";
         } else if(token == "NUMBER") {
-            std::cerr << "an integer";
+            ss << "an integer";
         } else {
             // checks if it isn't a non-terminal i.e a terminal
             if(!('A' <= token[0] && token[0] <= 'Z') && token != "$") {
-                std::cerr << '"' << token << '"';
+                ss << '"' << token << '"';
             } else {
                 counter++;
                 continue;
@@ -54,14 +55,13 @@ void Parser::printExpectedTokens(int state) {
         }
 
         if(counter != entrySize) {
-            std::cerr << ", ";
+            ss << ", ";
             if(counter == entrySize - 1) {
-                std::cerr << "and ";
+                ss << "and ";
             }
         }
         counter++;
     }
-    std::cerr << '\n' << std::endl;
 }
 
 bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
@@ -77,8 +77,11 @@ bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
             if((firstNodeRule != PACKAGE_NAME && firstNodeRule != PACKAGE_EPSILON) ||
                (secondNodeRule != IMPORT_STAR_DECLS && secondNodeRule != IMPORT_STAR_EPSILON) ||
                (thirdNodeRule != TYPE_CLASS && thirdNodeRule != TYPE_INTERFACE && thirdNodeRule != TYPE_EPSILON)) {
-                std::cerr << "Parsing error in file: " << fileName << "\n";
-                printExpectedTokens(lastState);
+                std::stringstream ss;
+                ss << "Unexpected token appeared while parsing.";
+                getExpectedTokens(lastState, ss);
+
+                Error(E_DEFAULT, NULL, ss.str());
                 return false;
             }
             return true;
@@ -120,15 +123,13 @@ void Parser::initParser() {
     }
 }
 
-void Parser::printErrorStatement(Token* token, int curState) {
-    std::pair<unsigned int, unsigned int> location = token->getLocation();
+void Parser::getErrorMessage(Token* token, int curState, std::stringstream &ss) {
     if(token->getType() == TT_EOF) {
-        std::cerr << "An incomplete file was given" << std::endl;
+        ss << "An incomplete file was given.";
     } else {
-        std::cerr << "An unexpected token: " << token->getString() << " was seen at: "
-              << location.first << "(row), " << location.second << "(column)" << std::endl;
+        ss << "An unexpected token: '" << token->getString() << "' was found.";
     }
-    printExpectedTokens(curState);
+    getExpectedTokens(curState, ss);
 }
 
 void Parser::resetParser(bool success) {
@@ -167,9 +168,11 @@ ParseTree* Parser::Parse(std::string& parseFile) {
 
         // invalid token
         if(parserTable[curState].find(toParse) == parserTable[curState].end()) {
-            std::cerr << "Parsing error in file: " << parseFile << "\n";
-            printErrorStatement(token, curState);
+            std::stringstream ss;
+            getErrorMessage(token, curState, ss);
             resetParser(false);
+
+            Error(E_PARSER, token, ss.str());
             return NULL;
         }
 
@@ -187,9 +190,11 @@ ParseTree* Parser::Parse(std::string& parseFile) {
                 nonTerminal = rules[ruleToReduce][0];
                 if(parserTable[curState].find(nonTerminal) == parserTable[curState].end() ||
                    parserTable[curState][nonTerminal].first != "shift") {
-                    std::cerr << "Parsing error in file: " << parseFile << "\n";
-                    printErrorStatement(token, curState);
+                    std::stringstream ss;
+                    getErrorMessage(token, curState, ss);
                     resetParser(false);
+
+                    Error(E_PARSER, token, ss.str());
                     return NULL;
                 }
 

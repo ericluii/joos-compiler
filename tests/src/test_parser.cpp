@@ -40,6 +40,7 @@ void Test_Parser::test() {
         // start from beginning again
         scanFile.clear();
         scanFile.seekg(0, std::ios_base::beg);
+        Error::resetErrors();
 
         int scanResult = scanner.Scan(scanFile, tokens);
         parser = new Parser(parserInput);
@@ -51,10 +52,12 @@ void Test_Parser::test() {
                     weeder.weedParseTree(parseTree);
                     checkTrue("Weeding file: " + fileName, Error::count() != 0,
                               "Ensure weeder fails this file", "\n" + fileContent);
+                    Error::print();
                 } else {
                     // indicate error file
                     checkTrue("Parsing file: " + fileName, parseTree == NULL,
                               "Ensure parser can't parse this file", "\n" + fileContent);
+                    Error::print();
                 }
             } else {
                 if (parseTree) {
@@ -76,7 +79,6 @@ void Test_Parser::test() {
             if(parseTree != NULL) {
                 delete parseTree;
             }
-            Error::resetErrors();
         } else {
             // Unscannable file is being tested - quietely skip
         }
