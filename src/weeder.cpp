@@ -4,18 +4,18 @@
 #include "weed_NoFinalStaticAbstractMethod_impl.h"
 #include "weed_NoFinalStaticMethod_impl.h"
 #include "weed_NativeAndStatic_impl.h"
-#include "weed_NoStaticFinalNativeInterfaceMethod_impl.h"
+#include "weed_NoStaticFinalNativeProtectedInterfaceMethod_impl.h"
 #include "weed_ClassConstructor_impl.h"
 #include "weed_NoFinalField_impl.h"
 #include "weed_NonAbstractNonNativeBody_impl.h"
 #include "weed_ClassFilename_impl.h"
 #include "weed_InterfaceFilename_impl.h"
 #include "weed_NoPackagePrivateClassMethod_impl.h"
-#include "weed_NoPackagePrivateInterfaceMethod_impl.h"
 #include "weed_NoCastExpression_impl.h"
 #include "weed_CheckIntegerValue_impl.h"
 #include "weed_NoFinalInterface_impl.h"
 #include "weed_NoPackagePrivateFields_impl.h"
+#include "weed_NoPackagePrivateType_impl.h"
 
 Weeder::Weeder()
 {
@@ -27,16 +27,16 @@ Weeder::Weeder()
     weeds.push_back(new NativeAndStaticMethod());
     weeds.push_back(new ClassConstructor());
     weeds.push_back(new NoFinalField());
-    weeds.push_back(new NoStaticFinalNativeInterfaceMethod());
+    weeds.push_back(new NoStaticFinalNativeProtectedInterfaceMethod());
     weeds.push_back(new NonAbstractNonNativeBody());
     weeds.push_back(new ClassFilename());
     weeds.push_back(new InterfaceFilename());
-    weeds.push_back(new NoPackagePrivateInterfaceMethod());
     weeds.push_back(new NoPackagePrivateClassMethod());
     weeds.push_back(new NoCastExpression());
     weeds.push_back(new CheckIntegerValue());
     weeds.push_back(new NoFinalInterface());
     weeds.push_back(new NoPackagePrivateFields());
+    weeds.push_back(new NoPackagePrivateType());
 }
 
 

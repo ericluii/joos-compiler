@@ -13,7 +13,7 @@ From Assignment 1 specifications:
 - A class/interface must be declared in a .java file with the same base name as the class/interface 
   (weeder to check name matching, parser for the constraint of one class/interface per file) : Done
 - An interface cannot contain fields or constructors (parser) : Done
-- An interface method cannot be static, final, or native (weeder) : Done
+- An interface method cannot be static, final, native, or protected (weeder) : Done
 - An interface method cannot have a body (parser) : Done
 - Every class must contain at least one explicit constructor (weeder) : Done
 - No field can be final (weeder) : Done
@@ -26,6 +26,7 @@ From Assignment 1 specifications:
 - Constructors must have the same name as the class (weeder)
 - A native method must return an int and have only one parameter that is an int (weeder)
 - A constructor can only have the modifiers public or protected (weeder)
+- A class/interface needs to be public or protected (weeder) : Done
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 

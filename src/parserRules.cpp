@@ -201,11 +201,15 @@ std::string parserRules [] = {
 	"InterfaceMemberDeclarations InterfaceMemberDeclaration",
 	"InterfaceMemberDeclarations InterfaceMemberDeclarations InterfaceMemberDeclaration",
 	"InterfaceMemberDeclaration AbstractMethodDeclaration",
-	"AbstractMethodDeclaration MethodHeader ;",
+	"AbstractMethodDeclaration AbstractMethodHeader ;",
 	"RelationalExpression AdditiveExpression",
 	"CastExpression ( Expression ) UnaryExpressionNotMinus",
 	"ExtendsInterfaces* ExtendsInterfaces",
 	"ExtendsInterfaces*",
 	"TypeDeclaration InterfaceDeclaration",
-	"TypeDeclaration"
+	"TypeDeclaration",
+	"MemberModifiers* MemberModifiers",
+	"MemberModifiers*",
+	"AbstractMethodHeader MemberModifiers* Type MethodBody",
+	"AbstractMethodHeader MemberModifiers* void MethodBody"
 };

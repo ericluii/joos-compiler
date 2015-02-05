@@ -204,13 +204,17 @@ enum RuleNumbers {
     INTERFACE_MEMBER_DECL,          // 197 InterfaceMemberDeclarations InterfaceMemberDeclaration
     INTERFACE_MEMBER_DECL_LIST,     // 198 InterfaceMemberDeclarations InterfaceMemberDeclarations InterfaceMemberDeclaration
     INTERFACE_ABSTRACT_METHOD,      // 199 InterfaceMemberDeclaration AbstractMethodDeclaration
-    ABSTRACT_METHOD_UNROLL,         // 200 AbstractMethodDeclaration MethodHeader ;
+    ABSTRACT_METHOD_UNROLL,         // 200 AbstractMethodDeclaration AbstractMethodHeader ;
     RELATION_TO_ADDITIVE,           // 201 RelationalExpression AdditiveExpression
     CAST_TO_EXPRESSION,             // 202 CastExpression ( Expression ) UnaryExpressionNotMinus
     EXTENDS_INTERFACE,              // 203 ExtendsInterface* ExtendsInterface
     EXTENDS_INTERFACE_EPSILON,      // 204 ExtendsInterface*
     TYPE_INTERFACE,                 // 205 TypeDeclaration InterfaceDeclaration
     TYPE_EPSILON,                   // 206 TypeDeclaration
+    MEMBER_MOD_EXPAND,              // 207 MemberModifiers* MemberModifiers
+    MEMBER_MOD_EPSILON,             // 208 MemberModifiers*
+    ABSTRACT_METHOD_TYPE,           // 209 AbstractMethodHeader MemberModifiers* Type MethodBody
+    ABSTRACT_METHOD_VOID,           // 210 AbstractMethodHeader MemberModifiers* void MethodBody
 };
 
 #endif
