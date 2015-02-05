@@ -7,12 +7,15 @@
 class CheckIntegerValue : public Weed {
     private:
         std::string integerVal;
-        int ruleSecond = MULTI_TO_MULTUNARY;
-        int ruleThird = MULTI_TO_DIVUNARY;
-        int ruleFourth = MULTI_TO_MODUNARY;
+        int ruleSecond;
+        int ruleThird;
+        int ruleFourth;
     public:
         CheckIntegerValue() {
             rule = MULTI_TO_UNARY;
+            ruleSecond = MULTI_TO_MULTUNARY;
+            ruleThird = MULTI_TO_DIVUNARY;
+            ruleFourth = MULTI_TO_MODUNARY;
         }
 
         bool checkRule(int check) {
