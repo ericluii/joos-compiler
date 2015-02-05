@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
         }
 
         if (weeder.weedParseTree(newParseTrees)) {
+            cleanUpTokens(tokens);
+            cleanUpParseTrees(completeParseTrees);
             exit(42);
         }
 

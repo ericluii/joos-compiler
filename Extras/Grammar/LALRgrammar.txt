@@ -131,4 +131,6 @@ InterfaceBody -> { InterfaceMemberDeclarations* }
 InterfaceMemberDeclarations* -> InterfaceMemberDeclarations | epsilon
 InterfaceMemberDeclarations -> InterfaceMemberDeclaration | InterfaceMemberDeclarations InterfaceMemberDeclaration
 InterfaceMemberDeclaration -> AbstractMethodDeclaration
-AbstractMethodDeclaration -> MethodHeader ; 
+AbstractMethodDeclaration -> AbstractMethodHeader ;
+MemberModifiers* -> MemberModifiers | epsilon
+AbstractMethodHeader -> MemberModifiers* Type MethodBody | MemberModifiers* void MethodBody

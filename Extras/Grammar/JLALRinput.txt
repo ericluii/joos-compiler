@@ -60,7 +60,7 @@ for
 return
 (
 )
-105
+107
 Goal
 CompilationUnit
 PackageDeclaration*
@@ -76,6 +76,7 @@ SimpleName
 QualifiedName
 Identifier
 ClassDeclaration
+MemberModifiers*
 Modifiers
 Modifier
 Super
@@ -166,8 +167,9 @@ InterfaceMemberDeclarations*
 InterfaceMemberDeclarations
 InterfaceMemberDeclaration
 AbstractMethodDeclaration
+AbstractMethodHeader
 Goal
-207
+211
 Goal CompilationUnit
 CompilationUnit PackageDeclaration ImportDeclarations* TypeDeclaration $
 TypeDeclaration ClassDeclaration
@@ -368,10 +370,14 @@ InterfaceMemberDeclarations*
 InterfaceMemberDeclarations InterfaceMemberDeclaration
 InterfaceMemberDeclarations InterfaceMemberDeclarations InterfaceMemberDeclaration
 InterfaceMemberDeclaration AbstractMethodDeclaration
-AbstractMethodDeclaration MethodHeader ;
+AbstractMethodDeclaration AbstractMethodHeader ;
 RelationalExpression AdditiveExpression
 CastExpression ( Expression ) UnaryExpressionNotMinus
 ExtendsInterfaces* ExtendsInterfaces
 ExtendsInterfaces*
 TypeDeclaration InterfaceDeclaration
 TypeDeclaration
+MemberModifiers* MemberModifiers
+MemberModifiers*
+AbstractMethodHeader MemberModifiers* Type MethodBody
+AbstractMethodHeader MemberModifiers* void MethodBody

@@ -1,0 +1,1 @@
+abstract interface Je_1_Package_Private_Abstract_Interface {}

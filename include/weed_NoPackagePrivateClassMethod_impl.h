@@ -10,7 +10,7 @@ class NoPackagePrivateClassMethod : public Weed {
             rule = METHOD_HEADER_AND_BODY;
         }
 
-        unsigned int hasPublicMod(ParseTree* node) {
+        unsigned int hasMod(unsigned int rule, ParseTree* node) {
             int found = 0;
 
             switch(node->rule) {
@@ -20,13 +20,11 @@ class NoPackagePrivateClassMethod : public Weed {
                 case MEMBER_MOD:
                 case MEMBER_MOD_LIST:
                     for(unsigned int i = 0; i < node->children.size(); i++) {
-                        found+= hasPublicMod(node->children[i]);
+                        found+= hasMod(rule, node->children[i]);
                     }
                     break;
-                case MEMBER_MOD_PUBLIC:
-                    return 1;
                 default:
-                    return 0;
+                    return rule == (unsigned int) node->rule;
             }
 
             return found;
@@ -58,9 +56,18 @@ class NoPackagePrivateClassMethod : public Weed {
         }
 
         unsigned int check(ParseTree* node) {
-            if (!hasPublicMod(node)) {
+            unsigned int hasPublic = hasMod(MEMBER_MOD_PUBLIC, node);
+            unsigned int hasProtected = hasMod(MEMBER_MOD_PROTECTED, node);
+
+            if(hasPublic && hasProtected) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Method '" << getMethodName(node) << "' cannot be a package private method." << std::endl;
+                std::cerr << "Method '" << getMethodName(node) << "' in class cannot be both public and protected." << std::endl;
+                return 1;
+            }
+
+            if (!hasPublic && !hasProtected) {
+                std::cerr << "Weeding error in file: TODO" << std::endl;
+                std::cerr << "Method '" << getMethodName(node) << "' in class cannot be a package private method." << std::endl;
                 return 1;
             }
 

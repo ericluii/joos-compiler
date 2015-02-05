@@ -64,7 +64,7 @@ class CheckIntegerValue : public Weed {
             if (isTooSmallOrTooBig(node)) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;
                 std::cerr << "Integer: " << integerVal << " is out of range. "
-                          << "Should be between -2147483648 and 214748367, inclusive" << std::endl;
+                          << "Should be between -2147483648 and 2147483647, inclusive" << std::endl;
                 return 1;
             }
 
