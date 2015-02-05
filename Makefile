@@ -4,6 +4,9 @@ CFLAGS=-std=c++11 -c -Wall -I./include
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
+# Test Folders
+TEST_CASES = a1
+
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
 SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o)))
@@ -34,6 +37,7 @@ tests: init $(TEST_OUT_FILE)
 
 init:
 	@mkdir -p $(BUILD_DIR) build/tests build/lib
+	@$(foreach TEST_CASE, $(TEST_CASES), @python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 
 # Main Compiler
 build/src/%.o: src/%.cpp $(SRC_INC)
