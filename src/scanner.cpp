@@ -58,7 +58,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             if (c < -1 || c > 127) {
                 std::stringstream ss;
                 ss << fileName << ":" << currentLine << ":" << currentColumn
-                   << ": error: Invalid character: " << c << ". Input must be ASCII values from 0 to 127";
+                   << ": error: Invalid character with ASCII CODE: " << c << ".";
 
                 Error(E_SCANNER, NULL, ss.str());
                 return SCANNER_NON_ASCII;
@@ -99,7 +99,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
         if (errorCount == numDfas) {
             if(type == TT_INVALID){
                 std::stringstream ss;
-                ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Invalid token with lexime: " << lexime << c << ".";
+                ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Invalid token with lexime: " << lexime << (char)c << ".";
 
                 Error(E_SCANNER, NULL, ss.str());
                 return SCANNER_INV_LEXEME;

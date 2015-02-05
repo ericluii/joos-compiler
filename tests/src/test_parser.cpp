@@ -52,12 +52,10 @@ void Test_Parser::test() {
                     weeder.weedParseTree(parseTree);
                     checkTrue("Weeding file: " + fileName, Error::count() != 0,
                               "Ensure weeder fails this file", "\n" + fileContent);
-                    Error::print();
                 } else {
                     // indicate error file
                     checkTrue("Parsing file: " + fileName, parseTree == NULL,
                               "Ensure parser can't parse this file", "\n" + fileContent);
-                    Error::print();
                 }
             } else {
                 if (parseTree) {
