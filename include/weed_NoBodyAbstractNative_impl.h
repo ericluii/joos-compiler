@@ -4,7 +4,7 @@
 #include "weed.h"
 #include <cassert>
 
-class NoAbstractNativeBody final : public Weed
+class NoAbstractNativeBody : public Weed
 {
     public:
         NoAbstractNativeBody()
@@ -21,7 +21,7 @@ class NoAbstractNativeBody final : public Weed
                 case METHOD_VOID:
                 case MEMBER_MOD:
                 case MEMBER_MOD_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasAbstractMod(node->children[i]);
                     }
                     break;
@@ -43,7 +43,7 @@ class NoAbstractNativeBody final : public Weed
                 case METHOD_VOID:
                 case MEMBER_MOD:
                 case MEMBER_MOD_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasNativeMod(node->children[i]);
                     }
                     break;
@@ -57,7 +57,7 @@ class NoAbstractNativeBody final : public Weed
         }
 
         std::string getMethodName(ParseTree* node) {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == METHOD_TYPE ||
                     node->children[i]->rule == METHOD_VOID) {
                     node = node->children[i];
@@ -65,14 +65,14 @@ class NoAbstractNativeBody final : public Weed
                 }
             }
 
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == METHOD_DECL) {
                     node = node->children[i];
                     break;
                 }
             }
 
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getString();
                 }
@@ -85,7 +85,7 @@ class NoAbstractNativeBody final : public Weed
         {
             if (hasAbstractMod(node) ||
                 hasNativeMod(node)) {
-                for (int i = 0; i < node->children.size(); i++) {
+                for (unsigned int i = 0; i < node->children.size(); i++) {
                     if (node->children[i]->rule == METHOD_BODY_EMPTY) {
                         return 0;
                     } else if (node->children[i]->rule == METHOD_BODY) {

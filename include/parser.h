@@ -8,7 +8,8 @@
 #include <vector>
 #include <stack>
 
-class Parser final {
+class Parser
+{
     private:
         std::map<std::string, std::vector<Token*> *>& tokens;
         unsigned int curLocStack;

@@ -3,7 +3,7 @@
 
 #include "dfa.h"
 
-class ValidNumberDfa final : public Dfa {
+class ValidNumberDfa : public Dfa {
     private:
         void initDfa();
         TOKEN_TYPE getTokenType();

@@ -4,7 +4,7 @@
 #include "weed.h"
 #include <cassert>
 
-class NoAbstractFinal final : public Weed
+class NoAbstractFinal : public Weed
 {
     public:
         NoAbstractFinal()
@@ -19,7 +19,7 @@ class NoAbstractFinal final : public Weed
                 case CLASS_DECL:
                 case MODIFIERS_MOD:
                 case MODIFIERS_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasAbstractMod(node->children[i]);
                     }
                     break;
@@ -39,7 +39,7 @@ class NoAbstractFinal final : public Weed
                 case CLASS_DECL:
                 case MODIFIERS_MOD:
                 case MODIFIERS_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasFinalMod(node->children[i]);
                     }
                     break;
@@ -53,7 +53,7 @@ class NoAbstractFinal final : public Weed
         }
 
         std::string getClassName(ParseTree* node) {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getString();
                 }

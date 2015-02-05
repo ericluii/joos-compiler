@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++11 -c -Wall -I./include
+CFLAGS=-std=c++0x -c -Wall -I./include
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -14,7 +14,7 @@ SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o)))
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++11 -c -Wall -I./include -I./tests/include
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 

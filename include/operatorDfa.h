@@ -4,7 +4,7 @@
 #include "dfa.h"
 #include <string>
 
-class OperatorDfa final : public Dfa {
+class OperatorDfa : public Dfa {
     // the kind of operators which are valid in joos 1W are:
     // - those that involve arithmetic operations, (+,-,*,/,%)
     // - those that involve comparison operations, (<, >, <=, >=, ==, !=)

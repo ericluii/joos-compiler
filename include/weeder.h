@@ -5,7 +5,7 @@
 #include "weed.h"
 #include <map>
 
-class Weeder final
+class Weeder
 {
     private:
         std::vector<Weed *> weeds;

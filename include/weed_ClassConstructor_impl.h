@@ -4,7 +4,7 @@
 #include "weed.h"
 #include <cassert>
 
-class ClassConstructor final : public Weed
+class ClassConstructor : public Weed
 {
     public:
         ClassConstructor()
@@ -21,7 +21,7 @@ class ClassConstructor final : public Weed
                 case CLASS_BODY_DECLSTAR:
                 case CLASS_BODY_DECL:
                 case CLASS_BODY_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasConstructorDeclaration(node->children[i]);
                     }
                     break;
@@ -35,7 +35,7 @@ class ClassConstructor final : public Weed
         }
 
         std::string getClassName(ParseTree* node) {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getString();
                 }
