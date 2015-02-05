@@ -3,7 +3,7 @@
 
 #include "dfa.h"
 
-class IdentifierDfa final : public Dfa {
+class IdentifierDfa : public Dfa {
     private:
         void initDfa();
         TOKEN_TYPE getTokenType();

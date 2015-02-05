@@ -4,7 +4,7 @@
 #include "weed.h"
 #include <cassert>
 
-class InterfaceFilename final : public Weed
+class InterfaceFilename : public Weed
 {
     public:
         InterfaceFilename()
@@ -14,7 +14,7 @@ class InterfaceFilename final : public Weed
 
         std::string getInterfaceName(ParseTree* node)
         {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getString();
                 }
@@ -25,7 +25,7 @@ class InterfaceFilename final : public Weed
 
         std::string getFileName(ParseTree* node)
         {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getFile();
                 }

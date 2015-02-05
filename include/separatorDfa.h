@@ -4,7 +4,7 @@
 #include "dfa.h"
 #include <string>
 
-class SeparatorDfa final : public Dfa {
+class SeparatorDfa : public Dfa {
     private:
         
         void initDfa();

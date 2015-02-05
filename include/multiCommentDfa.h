@@ -4,7 +4,7 @@
 #include "dfa.h"
 #include <string>
 
-class MultiCommentDfa final : public Dfa {
+class MultiCommentDfa : public Dfa {
     private:
         void initDfa();
         TOKEN_TYPE getTokenType();

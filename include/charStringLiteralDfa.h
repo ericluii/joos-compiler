@@ -4,7 +4,7 @@
 #include "dfa.h"
 #include <string>
 
-class CharStringLiteralDfa final : public Dfa {
+class CharStringLiteralDfa : public Dfa {
     private:
         void initDfa();
         TOKEN_TYPE getTokenType();

@@ -12,7 +12,7 @@
 #include <fstream>
 #include <string>
 
-class Scanner final
+class Scanner
 {
     private:
         std::string fileName;

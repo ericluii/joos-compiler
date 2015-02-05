@@ -4,7 +4,7 @@
 #include "dfa.h"
 #include <string>
 
-class WhitespaceAndControlDfa final : public Dfa {
+class WhitespaceAndControlDfa : public Dfa {
     private:
         void initDfa();
         TOKEN_TYPE getTokenType();

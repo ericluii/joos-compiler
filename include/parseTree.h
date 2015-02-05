@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 
-class ParseTree final
+class ParseTree
 {
     public:
         int rule;

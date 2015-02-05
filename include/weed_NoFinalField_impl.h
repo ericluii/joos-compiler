@@ -4,7 +4,7 @@
 #include "weed.h"
 #include <cassert>
 
-class NoFinalField final : public Weed
+class NoFinalField : public Weed
 {
     public:
         NoFinalField()
@@ -19,7 +19,7 @@ class NoFinalField final : public Weed
                 case FIELD_DECL:
                 case MEMBER_MOD:
                 case MEMBER_MOD_LIST:
-                    for (int i = 0; i < node->children.size(); i++) {
+                    for (unsigned int i = 0; i < node->children.size(); i++) {
                         found += hasFinalMod(node->children[i]);
                     }
                     break;
@@ -33,7 +33,7 @@ class NoFinalField final : public Weed
         }
 
         std::string getFieldName(ParseTree* node) {
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == DECL_VARIABLE ||
                     node->children[i]->rule == DECL_VARIABLE_ASSIGN) {
                     node = node->children[i];
@@ -41,7 +41,7 @@ class NoFinalField final : public Weed
                 }
             }
 
-            for (int i = 0; i < node->children.size(); i++) {
+            for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
                     return node->children[i]->children[0]->token->getString();
                 }
