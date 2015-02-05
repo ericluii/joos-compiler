@@ -1,5 +1,5 @@
 #ifndef __PARSERLITERAL_H__
-#define
+#define __PARSERLITERAL_H__
 
 enum ParserLiteral {
     PL_SEMICOLON = ";",
