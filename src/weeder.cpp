@@ -3,7 +3,7 @@
 #include "weed_NoBodyAbstractNative_impl.h"
 #include "weed_NoFinalStaticAbstractMethod_impl.h"
 #include "weed_NoFinalStaticMethod_impl.h"
-#include "weed_NativeAndStatic_impl.h"
+#include "weed_RestrictedNativeMethod_impl.h"
 #include "weed_NoStaticFinalNativeProtectedInterfaceMethod_impl.h"
 #include "weed_ClassConstructor_impl.h"
 #include "weed_NoFinalField_impl.h"
@@ -24,7 +24,7 @@ Weeder::Weeder()
     weeds.push_back(new NoAbstractNativeBody());
     weeds.push_back(new NoFinalStaticAbstractMethod());
     weeds.push_back(new NoFinalStaticMethod());
-    weeds.push_back(new NativeAndStaticMethod());
+    weeds.push_back(new RestrictedNativeMethod());
     weeds.push_back(new ClassConstructor());
     weeds.push_back(new NoFinalField());
     weeds.push_back(new NoStaticFinalNativeProtectedInterfaceMethod());

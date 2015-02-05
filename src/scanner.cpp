@@ -44,7 +44,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
     int tokenLine = 1; 
     int tokenCollumn = 0; 
     
-    int currentLine = 0;
+    int currentLine = 1;
     int currentColumn = -1;
     
     while (file) {
@@ -57,7 +57,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                 std::cerr << "Lexical error in file: " << fileName << '\n';
                 std::cerr << "Invalid character with code: " 
                           << c 
-                          << "\n Input files must contain only ASCII characters" << "\n" << std::endl;
+                          << "\nInput files must contain only ASCII characters with code 0 to 127" << "\n" << std::endl;
                 return SCANNER_NON_ASCII;
             }
 

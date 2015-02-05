@@ -21,12 +21,14 @@ From Assignment 1 specifications:
 - A method or constructor must not contain explicit this() or super() calls (parser) : Done
 - Integer values are within range of an integer in Java (weeder) : Done
 - Escape sequences are expanded for char/string literals (not sure about this)
-- Interface cannot be final (weeder)
+- Interface cannot be final (weeder) : Done
 - No repeating modifiers (weeder)
 - Constructors must have the same name as the class (weeder)
-- A native method must return an int and have only one parameter that is an int (weeder)
+- A native method must return an int and have only one parameter that is an int (weeder) : Done
 - A constructor can only have the modifiers public or protected (weeder)
 - A class/interface needs to be public or protected (weeder) : Done
+- A method cannot be both public and protected (weeder) : Done
+- An interface method is implicitly public and abstract, thus no need for those keywords (syntactic part is parser) : Done - Parser
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 

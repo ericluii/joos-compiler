@@ -18,24 +18,25 @@ class NoPackagePrivateType : public Weed {
 
         unsigned int hasPublicMod(ParseTree* node) {
             unsigned int found = 0;
-            switch(node->rule) {
-                case INTERFACE_DECL:
-                case CLASS_DECL:
-                case MODIFIERS_MOD:
-                    node = node->children[0];
-                    break;
-                case MODIFIERS_LIST:
-                    for(unsigned int i = 0; i < node->children.size(); i++) {
-                        found+= hasPublicMod(node->children[i]);
-                    }
+            while(true) {
+                switch(node->rule) {
+                    case INTERFACE_DECL:
+                    case CLASS_DECL:
+                    case MODIFIERS_MOD:
+                        node = node->children[0];
+                        break;
+                    case MODIFIERS_LIST:
+                        for(unsigned int i = 0; i < node->children.size(); i++) {
+                            found+= hasPublicMod(node->children[i]);
+                        }
 
-                    return found;
-                case MOD_PUBLIC:
-                    return 1;
-                default:
-                    return 0;
+                        return found;
+                    case MOD_PUBLIC:
+                        return 1;
+                    default:
+                        return 0;
+                }
             }
-
             return found;
         }
 
