@@ -34,7 +34,7 @@ class InterfaceFilename : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             std::string interfacename = getInterfaceName(node);
             std::string filename = getFileName(node);

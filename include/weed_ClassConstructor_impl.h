@@ -12,8 +12,8 @@ class ClassConstructor : public Weed
             rule = CLASS_DECL;
         }
 
-        int hasConstructorDeclaration(ParseTree* node) {
-            int found = 0;
+        unsigned int hasConstructorDeclaration(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case CLASS_DECL:
@@ -44,7 +44,7 @@ class ClassConstructor : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             if (hasConstructorDeclaration(node) == 0) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;

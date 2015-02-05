@@ -12,8 +12,8 @@ class NonAbstractNonNativeBody : public Weed
             rule = METHOD_HEADER_AND_BODY;
         }
 
-        int hasAbstractMod(ParseTree* node) {
-            int found = 0;
+        unsigned int hasAbstractMod(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case METHOD_HEADER_AND_BODY:
@@ -34,8 +34,8 @@ class NonAbstractNonNativeBody : public Weed
             return found;
         }
 
-        int hasNativeMod(ParseTree* node) {
-            int found = 0;
+        unsigned int hasNativeMod(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case METHOD_HEADER_AND_BODY:
@@ -81,7 +81,7 @@ class NonAbstractNonNativeBody : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             if (!hasAbstractMod(node) && !hasNativeMod(node)) {
                 for (unsigned int i = 0; i < node->children.size(); i++) {

@@ -8,7 +8,10 @@ class Weed
 {
     public:
         int rule;
-        virtual int check(ParseTree* node) = 0;
+        virtual unsigned int check(ParseTree* node) = 0;
+        virtual bool checkRule(int check) {
+            return rule == check;
+        }
 
         virtual ~Weed() {}
 };

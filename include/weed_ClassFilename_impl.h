@@ -34,7 +34,7 @@ class ClassFilename : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             std::string classname = getClassName(node);
             std::string filename = getFileName(node);

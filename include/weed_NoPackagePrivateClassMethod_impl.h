@@ -1,32 +1,32 @@
-#ifndef __WEEDS_NO_FINAL_OR_STATIC_IN_ABSTRACT_METHOD_H__
-#define __WEEDS_NO_FINAL_OR_STATIC_IN_ABSTRACT_METHOD_H__
+#ifndef __WEED_NO_PACKAGE_PRIVATE_CLASS_METHOD_H__
+#define __WEED_NO_PACKAGE_PRIVATE_CLASS_METHOD_H__
 
 #include "weed.h"
 #include <cassert>
 
-class NoFinalStaticAbstractMethod : public Weed
-{
+class NoPackagePrivateClassMethod : public Weed {
     public:
-        NoFinalStaticAbstractMethod()
-        {
+        NoPackagePrivateClassMethod() {
             rule = METHOD_HEADER_AND_BODY;
         }
 
-        unsigned int hasMod(unsigned int rule, ParseTree* node) {
-            unsigned int found = 0;
+        unsigned int hasPublicMod(ParseTree* node) {
+            int found = 0;
 
-            switch (node->rule) {
+            switch(node->rule) {
                 case METHOD_HEADER_AND_BODY:
                 case METHOD_TYPE:
                 case METHOD_VOID:
                 case MEMBER_MOD:
                 case MEMBER_MOD_LIST:
-                    for (unsigned int i = 0; i < node->children.size(); i++) {
-                        found += hasMod(rule, node->children[i]);
+                    for(unsigned int i = 0; i < node->children.size(); i++) {
+                        found+= hasPublicMod(node->children[i]);
                     }
                     break;
+                case MEMBER_MOD_PUBLIC:
+                    return 1;
                 default:
-                    return rule == (unsigned int)node->rule;
+                    return 0;
             }
 
             return found;
@@ -57,20 +57,11 @@ class NoFinalStaticAbstractMethod : public Weed
             assert(false);
         }
 
-        unsigned int check(ParseTree* node)
-        {
-            if (hasMod(MEMBER_MOD_ABSTRACT, node)) {
-                if (hasMod(MEMBER_MOD_STATIC, node)) {
-                        std::cerr << "Weeding error in file: TODO" << std::endl;
-                        std::cerr << "Abstract method '" << getMethodName(node) << "' cannot be declared as static." << std::endl;
-                    return 1;
-                }
-
-                if (hasMod(MEMBER_MOD_FINAL, node)) {
-                        std::cerr << "Weeding error in file: TODO" << std::endl;
-                        std::cerr << "Abstract method '" << getMethodName(node) << "' cannot be declared as final." << std::endl;
-                    return 1;
-                }
+        unsigned int check(ParseTree* node) {
+            if (!hasPublicMod(node)) {
+                std::cerr << "Weeding error in file: TODO" << std::endl;
+                std::cerr << "Method '" << getMethodName(node) << "' cannot be a package private method." << std::endl;
+                return 1;
             }
 
             return 0;

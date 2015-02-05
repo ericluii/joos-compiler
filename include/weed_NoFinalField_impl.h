@@ -12,8 +12,8 @@ class NoFinalField : public Weed
             rule = FIELD_DECL;
         }
 
-        int hasFinalMod(ParseTree* node) {
-            int found = 0;
+        unsigned int hasFinalMod(ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case FIELD_DECL:
@@ -50,7 +50,7 @@ class NoFinalField : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             if (hasFinalMod(node)) {
                 std::cerr << "Weeding error in file: TODO" << std::endl;

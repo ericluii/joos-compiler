@@ -12,8 +12,8 @@ class NoStaticFinalNativeInterfaceMethod : public Weed
             rule = ABSTRACT_METHOD_UNROLL;
         }
 
-        int hasMod(int rule, ParseTree* node) {
-            int found = 0;
+        unsigned int hasMod(unsigned int rule, ParseTree* node) {
+            unsigned int found = 0;
 
             switch (node->rule) {
                 case ABSTRACT_METHOD_UNROLL:
@@ -26,7 +26,7 @@ class NoStaticFinalNativeInterfaceMethod : public Weed
                     }
                     break;
                 default:
-                    return rule == node->rule;
+                    return rule == (unsigned int) node->rule;
             }
 
             return found;
@@ -57,7 +57,7 @@ class NoStaticFinalNativeInterfaceMethod : public Weed
             assert(false);
         }
 
-        int check(ParseTree* node)
+        unsigned int check(ParseTree* node)
         {
             if (hasMod(MEMBER_MOD_STATIC, node)) {
                     std::cerr << "Weeding error in file: TODO" << std::endl;
