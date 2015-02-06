@@ -45,12 +45,12 @@ int checkStar(char c, int current_state)
 
 void MultiCommentDfa::initDfa()
 {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &checkSlashMulti);
     dfa[DS_SLASHFIRST] = std::make_pair(DS_RUNNING, &checkStar);
     dfa[DS_STARSECOND] = std::make_pair(DS_RUNNING, &checkSlashMulti);
     dfa[DS_MIDCOMMENT] = std::make_pair(DS_RUNNING, &checkStar);
-    dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &dfa_error);
 }
 
 TOKEN_TYPE MultiCommentDfa::getTokenType()

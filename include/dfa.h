@@ -7,7 +7,7 @@
 
 typedef int (*TransitionFunction)(char, int);
 
-int error(char c, int current_state);
+int dfa_error(char c, int current_state);
 
 class Dfa {
     protected:

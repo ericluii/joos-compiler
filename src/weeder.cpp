@@ -1,4 +1,5 @@
 #include "weeder.h"
+#include "error.h"
 #include "NoAbstractFinal_impl.h"
 #include "NoBodyAbstractNative_impl.h"
 #include "NoFinalStaticAbstractMethod_impl.h"
@@ -40,20 +41,16 @@ Weeder::Weeder()
 }
 
 
-int Weeder::weedParseTree(ParseTree* node)
+void Weeder::weedParseTree(ParseTree* node)
 {
-    int errors = 0;
-
     // Try to match against all weeds
     for (unsigned int i = 0; i < weeds.size(); i++) {
         if (weeds[i]->checkRule(node->rule)) {
-            errors += weeds[i]->check(node);
+            weeds[i]->check(node);
         }
     }
 
     for (unsigned int j = 0; j < node->children.size(); j++) {
-        errors += weedParseTree(node->children[j]);
+        weedParseTree(node->children[j]);
     }
-
-    return errors;
 }

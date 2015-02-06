@@ -50,6 +50,7 @@ class NoFinalStaticAbstractMethod : public Weed
 
             for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
+                    token = node->children[i]->children[0]->token;
                     return node->children[i]->children[0]->token->getString();
                 }
             }
@@ -57,23 +58,22 @@ class NoFinalStaticAbstractMethod : public Weed
             assert(false);
         }
 
-        unsigned int check(ParseTree* node)
+        void check(ParseTree* node)
         {
             if (hasMod(MEMBER_MOD_ABSTRACT, node)) {
                 if (hasMod(MEMBER_MOD_STATIC, node)) {
-                        std::cerr << "Weeding error in file: TODO" << std::endl;
-                        std::cerr << "Abstract method '" << getMethodName(node) << "' cannot be declared as static." << std::endl;
-                    return 1;
+                    std::stringstream ss;
+                    ss << "Abstract method '" << getMethodName(node) << "' cannot be declared as static.";
+
+                    Error(E_WEEDER, token, ss.str());
                 }
 
                 if (hasMod(MEMBER_MOD_FINAL, node)) {
-                        std::cerr << "Weeding error in file: TODO" << std::endl;
-                        std::cerr << "Abstract method '" << getMethodName(node) << "' cannot be declared as final." << std::endl;
-                    return 1;
+                    std::stringstream ss;
+                    ss << "Abstract method '" << getMethodName(node) << "' cannot be declared as final.";
+                    Error(E_WEEDER, token, ss.str());
                 }
             }
-
-            return 0;
         }
 };
 

@@ -24,8 +24,8 @@ class Parser
         void pushSymbolStack(ParseTree* newTree);
         void createNonTerminalNode(int ruleToReduce);
         bool checkParsingCompletion(int lastState, std::string& fileName);
-        void printErrorStatement(Token* token, int curState);
-        void printExpectedTokens(int state);
+        void getErrorMessage(Token* token, int curState, std::stringstream &ss);
+        void getExpectedTokens(int state, std::stringstream &ss);
         void resetParser(bool success);
     public:
         void initParser();

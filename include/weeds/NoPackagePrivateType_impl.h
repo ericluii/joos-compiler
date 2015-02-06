@@ -41,23 +41,23 @@ class NoPackagePrivateType : public Weed {
         }
 
         std::string getObjectName(ParseTree* node) {
+            token = node->children[2]->children[0]->token;
             return node->children[2]->children[0]->token->getString();
         }
 
-        unsigned int check(ParseTree* node) {
+        void check(ParseTree* node) {
             if(!hasPublicMod(node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
+                std::stringstream ss;
+
                 if(node->rule == rule) {
-                    std::cerr << "Class '";
+                    ss << "Class '";
                 } else {
-                    std::cerr << "Interface '";
+                    ss << "Interface '";
                 }
+                ss << getObjectName(node) << "' must be public.";
 
-                std::cerr << getObjectName(node) << "' must be public." << std::endl;
-                return 1;
+                Error(E_WEEDER, token, ss.str());
             }
-
-            return 0;
         }
 };
 

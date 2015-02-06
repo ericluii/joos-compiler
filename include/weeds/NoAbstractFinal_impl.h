@@ -55,6 +55,7 @@ class NoAbstractFinal : public Weed
         std::string getClassName(ParseTree* node) {
             for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
+                    token = node->children[i]->children[0]->token;
                     return node->children[i]->children[0]->token->getString();
                 }
             }
@@ -63,15 +64,14 @@ class NoAbstractFinal : public Weed
             return "COMPILER ERROR - NOTIFY CREATORS";
         }
 
-        unsigned int check(ParseTree* node)
+        void check(ParseTree* node)
         {
             if (hasAbstractMod(node) && hasFinalMod(node)) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "class '" << getClassName(node) << "' cannot be declared as both final and abstract." << std::endl;
-                return 1;
-            }
+                std::stringstream ss;
+                ss << "class '" << getClassName(node) << "' cannot be declared as both final and abstract.";
 
-            return 0;
+                Error(E_WEEDER, token, ss.str());
+            }
         }
 };
 

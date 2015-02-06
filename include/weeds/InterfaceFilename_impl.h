@@ -16,6 +16,7 @@ class InterfaceFilename : public Weed
         {
             for (unsigned int i = 0; i < node->children.size(); i++) {
                 if (node->children[i]->rule == IDENTIFIER) {
+                    token = node->children[i]->children[0]->token;
                     return node->children[i]->children[0]->token->getString();
                 }
             }
@@ -34,7 +35,7 @@ class InterfaceFilename : public Weed
             assert(false);
         }
 
-        unsigned int check(ParseTree* node)
+        void check(ParseTree* node)
         {
             std::string interfacename = getInterfaceName(node);
             std::string filename = getFileName(node);
@@ -50,12 +51,11 @@ class InterfaceFilename : public Weed
             }
 
             if (filename != interfacename) {
-                std::cerr << "Weeding error in file: TODO" << std::endl;
-                std::cerr << "Interface named '" << getInterfaceName(node) << "' does not match the filename '" << getFileName(node) << "'." << std::endl;
-                return 1;
-            }
+                std::stringstream ss;
+                ss << "Interface named '" << getInterfaceName(node) << "' does not match the filename '" << getFileName(node) << "'.";
 
-            return 0;
+                Error(E_WEEDER, token, ss.str());
+            }
         }
 };
 

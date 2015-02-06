@@ -1,7 +1,7 @@
 #include "dfa.h"
 #include <assert.h>
 
-int error(char c, int current_state) {
+int dfa_error(char c, int current_state) {
     return DS_ERROR;
 }
 

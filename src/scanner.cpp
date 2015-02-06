@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "error.h"
 #include "dfas/identifierDfa.h"
 #include "dfas/validNumberDfa.h"
 #include "dfas/operatorDfa.h"
@@ -12,6 +13,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 Scanner::Scanner()
 {
@@ -32,32 +34,33 @@ Scanner::Scanner()
 int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
 {
     int c = -2;
-    
+
     int numDfas = this->dfas.size();
     int errorCount = 0;
     std::vector<int> errorFlags(numDfas, 0);
     std::pair<DFA_STATES, TOKEN_TYPE> result;
-    
+
     //Values for the token currently being scanned
     TOKEN_TYPE type = TT_INVALID;
     std::string lexime = "";
-    int tokenLine = 1; 
-    int tokenCollumn = 0; 
-    
+    int tokenLine = 1;
+    int tokenCollumn = 0;
+
     int currentLine = 1;
     int currentColumn = -1;
-    
+
     while (file) {
         if (c == -2) {
             c = file.get();
-    
+
             // EOF is represented as -1
             // ASCII is from 0 to 127
             if (c < -1 || c > 127) {
-                std::cerr << "Lexical error in file: " << fileName << '\n';
-                std::cerr << "Invalid character with code: " 
-                          << c 
-                          << "\nInput files must contain only ASCII characters with code 0 to 127" << "\n" << std::endl;
+                std::stringstream ss;
+                ss << fileName << ":" << currentLine << ":" << currentColumn
+                   << ": error: Invalid character with ASCII CODE: " << c << ".";
+
+                Error(E_SCANNER, NULL, ss.str());
                 return SCANNER_NON_ASCII;
             }
 
@@ -91,16 +94,17 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
         }
 
         // Sanity Check
-        assert(errorCount <= numDfas); 
+        assert(errorCount <= numDfas);
 
         if (errorCount == numDfas) {
-        
             if(type == TT_INVALID){
-                std::cerr << "Lexical error in file: " << fileName << '\n';
-                std::cerr << "Invalid token with lexime: " << lexime << (char)c << "\n" << std::endl;
+                std::stringstream ss;
+                ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Invalid token with lexime: " << lexime << (char)c << ".";
+
+                Error(E_SCANNER, NULL, ss.str());
                 return SCANNER_INV_LEXEME;
             }
-        
+
             if(type != TT_COMMENT && type != TT_WHITESPACE) {
                 tokens->push_back(new Token(type, lexime, std::pair <unsigned int, unsigned int>(tokenLine, tokenCollumn), fileName));
             }
@@ -108,7 +112,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             // Reset all the things!!!
             type = TT_INVALID;
             lexime = "";
-            errorCount = 0;    
+            errorCount = 0;
             tokenLine = currentLine;
             tokenCollumn = currentColumn;
 
@@ -121,7 +125,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
             c = -2;
         }
     }
-   
+
     // Indicate EOF
     tokens->push_back(new Token(TT_EOF, "$", std::pair<unsigned int, unsigned int>(tokenLine, tokenCollumn+1), fileName));
     return SCANNER_OK;

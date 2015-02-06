@@ -29,10 +29,10 @@ TOKEN_TYPE ValidNumberDfa::getTokenType()
 }
 
 void ValidNumberDfa::initDfa() {
-    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &error);
+    dfa[DS_ERROR] = std::make_pair(DS_ERROR, &dfa_error);
     dfa[DS_START] = std::make_pair(DS_RUNNING, &isNonZeroDigit);
     dfa[DS_ACCEPT] = std::make_pair(DS_ACCEPT, &isDigitOrUnderscore);
-    dfa[DS_ZERO] = std::make_pair(DS_ACCEPT, &error);
+    dfa[DS_ZERO] = std::make_pair(DS_ACCEPT, &dfa_error);
 }
 
 ValidNumberDfa::ValidNumberDfa() : Dfa() {
