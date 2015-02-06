@@ -27,6 +27,8 @@ class Parser
         void getErrorMessage(Token* token, int curState, std::stringstream &ss);
         void getExpectedTokens(int state, std::stringstream &ss);
         void resetParser(bool success);
+        void cleanSymbolStack();
+        bool isTerminal(char c);
     public:
         void initParser();
         ParseTree* Parse(std::string& parseFile);

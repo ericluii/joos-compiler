@@ -29,6 +29,7 @@ From Assignment 1 specifications:
 - A class/interface needs to be public or protected (weeder) : Done
 - A method cannot be both public and protected (weeder) : Done
 - An interface method is implicitly public and abstract, thus no need for those keywords (syntactic part is parser) : Done - Parser
+- A local variable needs to be initialized (parser)
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 

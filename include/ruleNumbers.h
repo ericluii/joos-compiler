@@ -158,7 +158,7 @@ enum RuleNumbers {
     LOCAL_VAR_STMT,                 // 151 BlockStatement LocalVariableDeclarationStatement
     BLOCK_IS_STMT,                  // 152 BlockStatement Statement
     LOCAL_VAR_DECL,                 // 153 LocalVariableDeclarationStatement LocalVariableDeclaration ;
-    TYPE_VAR,                       // 154 LocalVariableDeclaration Type VariableDeclarator
+    TYPE_VAR,                       // 154 LocalVariableDeclaration Type Identintifier = Expression
     STMT_NO_TRAILING,               // 155 Statement StatementWithoutTrailingSubstatement
     IF_STMT,                        // 156 Statement IfThenStatement
     IF_THEN_STMT,                   // 157 Statement IfThenElseStatement

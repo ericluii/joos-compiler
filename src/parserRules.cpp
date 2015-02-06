@@ -155,7 +155,7 @@ std::string parserRules [] = {
 	"BlockStatement LocalVariableDeclarationStatement",
 	"BlockStatement Statement",
 	"LocalVariableDeclarationStatement LocalVariableDeclaration ;",
-	"LocalVariableDeclaration Type VariableDeclarator",
+	"LocalVariableDeclaration Type Identifier = Expression",
 	"Statement StatementWithoutTrailingSubstatement",
 	"Statement IfThenStatement",
 	"Statement IfThenElseStatement",
