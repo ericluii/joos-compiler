@@ -43,12 +43,12 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
     //Values for the token currently being scanned
     TOKEN_TYPE type = TT_INVALID;
     std::string lexime = "";
-    int tokenLine = 1;
-    int tokenCollumn = 0;
-
+    int tokenLine = 1; 
+    int tokenCollumn = 1; 
+    
     int currentLine = 1;
-    int currentColumn = -1;
-
+    int currentColumn = 0;
+    
     while (file) {
         if (c == -2) {
             c = file.get();
