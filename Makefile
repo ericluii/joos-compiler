@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -18,7 +18,7 @@ SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O)
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
@@ -44,6 +44,9 @@ init:
 	@$(foreach TEST_CASE, $(TEST_CASES), @python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 
 # Main Compiler
+build/src/AST/%.o: src/AST/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/AST/$(notdir $(@:.cpp=.o))
+
 build/src/dfas/%.o: src/dfas/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/dfas/$(notdir $(@:.cpp=.o))
 
