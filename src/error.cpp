@@ -1,5 +1,6 @@
 #include "error.h"
 #include <iostream>
+#include <stdexcept>
 
 std::vector<Error> Error::all_errors;
 
@@ -23,7 +24,7 @@ unsigned int Error::count() {
 
 void Error::print()
 {
-    for (int i = 0; i < all_errors.size(); i++) {
+    for (unsigned int i = 0; i < all_errors.size(); i++) {
         switch (all_errors[i].type) {
             case E_SCANNER:
                 std::cerr << all_errors[i].message << std::endl;
