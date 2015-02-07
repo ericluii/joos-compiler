@@ -17,6 +17,10 @@
 #include "NoFinalInterface_impl.h"
 #include "NoPackagePrivateFields_impl.h"
 #include "NoPackagePrivateType_impl.h"
+#include "PublicOrProtectedConstructor_impl.h"
+#include "NoMethodPublicAndProtected_impl.h"
+#include "NoFieldPublicAndProtected_impl.h"
+#include "NoConstructorPublicAndProtected_impl.h"
 
 Weeder::Weeder()
 {
@@ -38,6 +42,10 @@ Weeder::Weeder()
     weeds.push_back(new NoFinalInterface());
     weeds.push_back(new NoPackagePrivateFields());
     weeds.push_back(new NoPackagePrivateType());
+    weeds.push_back(new PublicOrProtectedConstructor());
+    weeds.push_back(new NoMethodPublicAndProtected());
+    weeds.push_back(new NoFieldPublicAndProtected());
+    weeds.push_back(new NoConstructorPublicAndProtected());
 }
 
 

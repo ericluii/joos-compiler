@@ -59,14 +59,7 @@ class NoPackagePrivateClassMethod : public Weed {
         void check(ParseTree* node) {
             unsigned int hasPublic = hasMod(MEMBER_MOD_PUBLIC, node);
             unsigned int hasProtected = hasMod(MEMBER_MOD_PROTECTED, node);
-
-            if(hasPublic && hasProtected) {
-                std::stringstream ss;
-                ss << "Method '" << getMethodName(node) << "' in class cannot be both public and protected.";
-
-                Error(E_WEEDER, token, ss.str());
-            }
-
+            
             if (!hasPublic && !hasProtected) {
                 std::stringstream ss;
                 ss << "Method '" << getMethodName(node) << "' in class cannot be a package private method.";

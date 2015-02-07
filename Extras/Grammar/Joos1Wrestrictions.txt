@@ -25,9 +25,9 @@ From Assignment 1 specifications:
 - No repeating modifiers (weeder)
 - Constructors must have the same name as the class (weeder)
 - A native method must return an int and have only one parameter that is an int (weeder) : Done
-- A constructor can only have the modifiers public or protected (weeder)
-- A class/interface needs to be public or protected (weeder) : Done
-- A method cannot be both public and protected (weeder) : Done
+- A constructor can only have the modifiers public or protected (weeder) : Done
+- A class/interface needs to be public (weeder) : Done
+- A method/constructor/field cannot be both public and protected (weeder) : Done
 - An interface method is implicitly public and abstract, thus no need for those keywords (syntactic part is parser) : Done - Parser
 - A local variable needs to be initialized (parser)
 
