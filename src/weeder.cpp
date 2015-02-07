@@ -21,6 +21,9 @@
 #include "NoMethodPublicAndProtected_impl.h"
 #include "NoFieldPublicAndProtected_impl.h"
 #include "NoConstructorPublicAndProtected_impl.h"
+#include "ConstructorName_impl.h"
+
+std::string Weed::className = "";
 
 Weeder::Weeder()
 {
@@ -46,6 +49,7 @@ Weeder::Weeder()
     weeds.push_back(new NoMethodPublicAndProtected());
     weeds.push_back(new NoFieldPublicAndProtected());
     weeds.push_back(new NoConstructorPublicAndProtected());
+    weeds.push_back(new ConstructorName());
 }
 
 

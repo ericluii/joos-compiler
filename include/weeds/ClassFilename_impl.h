@@ -37,7 +37,8 @@ class ClassFilename : public Weed
 
         void check(ParseTree* node)
         {
-            std::string classname = getClassName(node);
+            // set the class name for the weeders
+            className = getClassName(node);
             std::string filename = getFileName(node);
 
             size_t last_slash = filename.find_last_of('/');
@@ -50,7 +51,7 @@ class ClassFilename : public Weed
                 filename.erase(last_dot);
             }
 
-            if (filename != classname) {
+            if (filename != className) {
                 std::stringstream ss;
                 ss << "Class named '" << getClassName(node) << "' does not match the filename '" << getFileName(node) << "'.";
 
