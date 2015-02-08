@@ -16,20 +16,22 @@ From Assignment 1 specifications:
 - An interface method cannot be static, final, native, or protected (weeder) : Done
 - An interface method cannot have a body (parser) : Done
 - Every class must contain at least one explicit constructor (weeder) : Done
-- No field can be final (weeder) : Done
+- No field can be final, abstract or native (weeder) : Done
 - No multidimensional array types or array creation expressions are allowed (parser) : Done
 - A method or constructor must not contain explicit this() or super() calls (parser) : Done
 - Integer values are within range of an integer in Java (weeder) : Done
 - Escape sequences are expanded for char/string literals (not sure about this)
 - Interface cannot be final (weeder) : Done
-- No repeating modifiers (weeder)
+- No repeating modifiers (weeder) : Done
 - Constructors must have the same name as the class (weeder) : Done
 - A native method must return an int and have only one parameter that is an int (weeder) : Done
 - A constructor can only have the modifiers public or protected (weeder) : Done
 - A class/interface needs to be public (weeder) : Done
 - A method/constructor/field cannot be both public and protected (weeder) : Done
 - An interface method is implicitly public and abstract, thus no need for those keywords (syntactic part is parser) : Done - Parser
-- A local variable needs to be initialized (parser)
+- A local variable needs to be initialized (parser) : Done
+- Keywords in Java 1.3 but not in Joos 1W should be rejected (scanner) : Done
+- Operators in Java 1.3 but not in Joos 1W should be rejected (scanner)
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 

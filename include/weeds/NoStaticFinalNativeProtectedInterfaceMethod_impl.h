@@ -36,8 +36,8 @@ class NoStaticFinalNativeProtectedInterfaceMethod : public Weed
 
         std::string getMethodName(ParseTree* node) {
             for (unsigned int i = 0; i < node->children.size(); i++) {
-                if (node->children[i]->rule == METHOD_TYPE ||
-                    node->children[i]->rule == METHOD_VOID) {
+                if (node->children[i]->rule == ABSTRACT_METHOD_TYPE ||
+                    node->children[i]->rule == ABSTRACT_METHOD_VOID) {
                     node = node->children[i];
                     break;
                 }

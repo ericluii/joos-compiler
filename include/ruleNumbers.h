@@ -213,8 +213,8 @@ enum RuleNumbers {
     TYPE_EPSILON,                   // 206 TypeDeclaration
     MEMBER_MOD_EXPAND,              // 207 MemberModifiers* MemberModifiers
     MEMBER_MOD_EPSILON,             // 208 MemberModifiers*
-    ABSTRACT_METHOD_TYPE,           // 209 AbstractMethodHeader MemberModifiers* Type MethodBody
-    ABSTRACT_METHOD_VOID,           // 210 AbstractMethodHeader MemberModifiers* void MethodBody
+    ABSTRACT_METHOD_TYPE,           // 209 AbstractMethodHeader MemberModifiers* Type MethodDeclarator
+    ABSTRACT_METHOD_VOID,           // 210 AbstractMethodHeader MemberModifiers* void MethodDeclarator
 };
 
 #endif

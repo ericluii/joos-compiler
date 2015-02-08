@@ -3,7 +3,7 @@
 
 #include <string>
 #define NUM_STATES 348
-#define NUM_ACTIONS 4881
+#define NUM_ACTIONS 4856
 
 extern std::string parserActions[];
 

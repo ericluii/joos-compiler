@@ -1,0 +1,1 @@
+public abstract public interface Je_1_PublicInterfaceRepeatModifier{}

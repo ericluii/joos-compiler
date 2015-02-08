@@ -7,7 +7,7 @@
 #include "RestrictedNativeMethod_impl.h"
 #include "NoStaticFinalNativeProtectedInterfaceMethod_impl.h"
 #include "ClassConstructor_impl.h"
-#include "NoFinalField_impl.h"
+#include "NoFinalAbstractNativeField_impl.h"
 #include "NonAbstractNonNativeBody_impl.h"
 #include "ClassFilename_impl.h"
 #include "InterfaceFilename_impl.h"
@@ -22,23 +22,32 @@
 #include "NoFieldPublicAndProtected_impl.h"
 #include "NoConstructorPublicAndProtected_impl.h"
 #include "ConstructorName_impl.h"
+#include "NoClassInterfaceRepeatModifiers_impl.h"
+#include "NoFieldRepeatModifiers_impl.h"
+#include "NoClassMethodRepeatModifiers_impl.h"
+#include "NoInterfaceMethodRepeatModifiers_impl.h"
+#include "NoConstructorRepeatModifiers_impl.h"
 
 std::string Weed::className = "";
+std::string Weed::interfaceName = "";
 
 Weeder::Weeder()
 {
     // Add 'weeds' that need to be veried to this vector
+
+    // These two should always be first
+    weeds.push_back(new ClassFilename());
+    weeds.push_back(new InterfaceFilename());
+
     weeds.push_back(new NoAbstractFinal());
     weeds.push_back(new NoAbstractNativeBody());
     weeds.push_back(new NoFinalStaticAbstractMethod());
     weeds.push_back(new NoFinalStaticMethod());
     weeds.push_back(new RestrictedNativeMethod());
     weeds.push_back(new ClassConstructor());
-    weeds.push_back(new NoFinalField());
+    weeds.push_back(new NoFinalAbstractNativeField());
     weeds.push_back(new NoStaticFinalNativeProtectedInterfaceMethod());
     weeds.push_back(new NonAbstractNonNativeBody());
-    weeds.push_back(new ClassFilename());
-    weeds.push_back(new InterfaceFilename());
     weeds.push_back(new NoPackagePrivateClassMethod());
     weeds.push_back(new NoCastExpression());
     weeds.push_back(new CheckIntegerValue());
@@ -50,6 +59,11 @@ Weeder::Weeder()
     weeds.push_back(new NoFieldPublicAndProtected());
     weeds.push_back(new NoConstructorPublicAndProtected());
     weeds.push_back(new ConstructorName());
+    weeds.push_back(new NoClassInterfaceRepeatModifiers());
+    weeds.push_back(new NoFieldRepeatModifiers());
+    weeds.push_back(new NoClassMethodRepeatModifiers());
+    weeds.push_back(new NoInterfaceMethodRepeatModifiers());
+    weeds.push_back(new NoConstructorRepeatModifiers());
 }
 
 
