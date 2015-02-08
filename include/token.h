@@ -38,6 +38,9 @@ enum TOKEN_TYPE {
     TT_NOT,
     TT_BINBOOLOPEAGER,
     TT_BINBOOLOPLAZY,
+    // Banned operators
+    TT_PLUSPLUS,
+    TT_MINUSMINUS,
 
     // Keyword States
     TT_DO,

@@ -275,13 +275,12 @@ enum DFA_STATES {
     DS_ACCEPTSTRING,
 
     // Separator DFA states
-    DS_DOTFIRST,
-    DS_DOTSECOND,
-    DS_COLON,
-
+    
     // Operator DFA states
     DS_CHECKEQUAL,
     DS_CHECKLAZYOP,
+    DS_PLUS,
+    DS_MINUS,
 
     //Comment DFA states
     DS_SLASHFIRST,

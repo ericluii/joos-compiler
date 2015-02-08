@@ -31,7 +31,7 @@ From Assignment 1 specifications:
 - An interface method is implicitly public and abstract, thus no need for those keywords (syntactic part is parser) : Done - Parser
 - A local variable needs to be initialized (parser) : Done
 - Keywords in Java 1.3 but not in Joos 1W should be rejected (scanner) : Done
-- Operators in Java 1.3 but not in Joos 1W should be rejected (scanner)
+- Operators in Java 1.3 but not in Joos 1W should be rejected (scanner) : Done
 
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 
