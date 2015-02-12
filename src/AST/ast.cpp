@@ -3,6 +3,7 @@
     
 CompilationUnit *ast::makeCompilationUnit(ParseTree *tree){
     if(debug) std::cout << "compilationunit\n";
+    assert(tree->rule == COMPILATION_UNIT);
     return new CompilationUnit(makePackageDecl(tree->children[0]),
                                makeImportDeclsStar(tree->children[1]),
                                makeTypeDecl(tree->children[2]));
@@ -64,12 +65,14 @@ TypeDecl *ast::makeTypeDecl(ParseTree *tree){
 ClassDecl *ast::makeClassDecl(ParseTree *tree){
     //TODO actually make a ClassDecl
     if(debug) std::cout << "ClassDecl\n";
+    assert(tree->rule == CLASS_DECL);
     return new ClassDecl();
 }
 
 InterfaceDecl *ast::makeInterfaceDecl(ParseTree *tree){
     //TODO actually make a InterfaceDecl
     if(debug) std::cout << "InterfaceDecl\n";
+    assert(tree->rule == INTERFACE_DECL);
     return new InterfaceDecl();
 }
 
@@ -85,5 +88,6 @@ Name *ast::makeName(ParseTree *tree){
 
 Identifier *ast::makeIdentifier(ParseTree *tree){
     if(debug) std::cout << "Identifier\n";
+    assert(tree->rule == IDENTIFIER);
     return new Identifier(tree->token);
 }
