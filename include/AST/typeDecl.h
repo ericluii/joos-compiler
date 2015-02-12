@@ -6,6 +6,6 @@ class TypeDecl
 {
     public:
         TypeDecl();
-}
+};
 
 #endif

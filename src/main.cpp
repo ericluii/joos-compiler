@@ -7,6 +7,7 @@
 #include "scanner.h"
 #include "weeder.h"
 #include "parser.h"
+#include "AST/ast.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -82,7 +83,10 @@ int main(int argc, char *argv[])
         Error::print();
         rc = 42;
     }
-
+    
+    std::cout << "starting\n";
+    CompilationUnit *unit = ast::makeCompilationUnit(completeParseTrees[argv[1]]);
+    
     cleanUpTokens(tokens);
     cleanUpParseTrees(completeParseTrees);
 

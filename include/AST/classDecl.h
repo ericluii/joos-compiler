@@ -1,7 +1,7 @@
 #ifndef __CLASSDECL_H__
 #define __CLASSDECL_H__
 
-#include typeDecl.h
+#include "typeDecl.h"
 
 class ClassDecl : public TypeDecl
 {
@@ -10,6 +10,6 @@ class ClassDecl : public TypeDecl
         ClassDecl(/*parameters*/); 
 
         //get fields
-}
+};
 
 #endif

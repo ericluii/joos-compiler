@@ -1,15 +1,19 @@
 #ifndef __NAMEDECL_H__
 #define __NAMEDECL_H__
 
-#include packageDecl.h
-//TODO make class
+#include "packageDecl.h"
+#include "identifier.h"
+
 class Name : public PackageDecl
 {
-        //fields
+        Name *qualifier;
+        Identifier *id;
     public:
-        Name(/*parameters*/); 
+        Name(Name *qualifier, Identifier *id);
+        Name(Identifier *id); 
 
-        //get fields
-}
+        Identifier *GetId();
+        Name *GetQualifier();
+};
 
 #endif

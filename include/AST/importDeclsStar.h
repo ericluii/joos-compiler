@@ -6,6 +6,6 @@ class ImportDeclsStar
 {
     public:
         ImportDeclsStar();
-}
+};
 
 #endif

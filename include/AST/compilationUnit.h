@@ -1,9 +1,9 @@
 #ifndef __COMPILATIONUNIT_H__
 #define __COMPILATIONUNIT_H__
 
-#include packageDelc.h
-#include importDeclsStar.h
-#include typeDecl.h
+#include "packageDecl.h"
+#include "importDeclsStar.h"
+#include "typeDecl.h"
 
 class CompilationUnit
 {
@@ -16,6 +16,6 @@ class CompilationUnit
         PackageDecl *GetPackageDecl();
         ImportDeclsStar *GetImportDeclsStar();
         TypeDecl *GetTypeDecl();
-}
+};
 
 #endif

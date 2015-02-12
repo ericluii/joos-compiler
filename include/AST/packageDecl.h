@@ -6,6 +6,6 @@ class PackageDecl
 {
     public:
         PackageDecl();
-}
+};
 
 #endif

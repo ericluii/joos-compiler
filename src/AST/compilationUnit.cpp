@@ -7,14 +7,14 @@ CompilationUnit::CompilationUnit(PackageDecl *package, ImportDeclsStar *import, 
     this->typeDecl = typeDecl;
 }
 
-CompilationUnit::PackageDecl *GetPackageDecl(){
+PackageDecl *CompilationUnit::GetPackageDecl(){
     return this->packageDecl;
 }
 
-CompilationUnit::ImportDeclsStar *GetImportDeclsStar(){
+ImportDeclsStar *CompilationUnit::GetImportDeclsStar(){
     return this->importDecls;
 }
 
-CompilationUnit::TypeDecl *GetTypeDecl(){
+TypeDecl *CompilationUnit::GetTypeDecl(){
     return this->typeDecl;
 }

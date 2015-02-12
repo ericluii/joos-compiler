@@ -1,4 +1,4 @@
-#include interfaceDecl.h
+#include "interfaceDecl.h"
 
 InterfaceDecl::InterfaceDecl(){
 

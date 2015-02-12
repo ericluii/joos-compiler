@@ -1,7 +1,7 @@
 #ifndef __INTERFACEDECL_H__
 #define __INTERFACEDECL_H__
 
-#include typeDecl.h
+#include "typeDecl.h"
 
 class InterfaceDecl : public TypeDecl
 {
@@ -10,6 +10,6 @@ class InterfaceDecl : public TypeDecl
         InterfaceDecl(/*parameters*/); 
 
         //get fields
-}
+};
 
 #endif

@@ -1,4 +1,4 @@
-#include classDecl.h
+#include "classDecl.h"
 
 ClassDecl::ClassDecl(){
 
