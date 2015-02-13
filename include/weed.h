@@ -12,6 +12,8 @@ class Weed
         Token* token;
     public:
         int rule;
+        static std::string className;
+        static std::string interfaceName;
         virtual void check(ParseTree* node) = 0;
         virtual bool checkRule(int check) {
             return rule == check;
@@ -19,5 +21,6 @@ class Weed
 
         virtual ~Weed() {}
 };
+
 
 #endif

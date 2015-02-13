@@ -2,8 +2,8 @@
 #define __PARSERACTIONS_H__
 
 #include <string>
-#define NUM_STATES 347
-#define NUM_ACTIONS 4844
+#define NUM_STATES 348
+#define NUM_ACTIONS 4856
 
 extern std::string parserActions[];
 

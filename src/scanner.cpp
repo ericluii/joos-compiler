@@ -10,6 +10,7 @@
 #include "dfas/multiCommentDfa.h"
 #include "dfas/whitespaceAndControlDfa.h"
 #include "dfas/bannedKeywordDfa.h"
+#include "dfas/bannedOperatorDfa.h"
 
 #include <iostream>
 #include <cassert>
@@ -29,6 +30,7 @@ Scanner::Scanner()
     dfas.push_back(new CharStringLiteralDfa());
     dfas.push_back(new KeywordDfa());
     dfas.push_back(new BannedKeywordDfa());
+    dfas.push_back(new BannedOperatorDfa());
 }
 
 int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
@@ -75,6 +77,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
         // Dfas must be ordered in reverse priority.
         // Dfas that are later in the list will have priority over earlier Dfas
         for (int i = 0; i < numDfas; i++) {
+            std::stringstream ss;
             if (errorFlags[i] == 0) {
                 result = dfas[i]->transition((char)c);
                 switch (result.first) {
@@ -86,7 +89,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                         errorCount++;
                         break;
                     case DS_ABORT:
-                        return SCANNER_ABORT;
+                        goto reportError;
                     default:
                         break;
                 }
@@ -98,6 +101,7 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
 
         if (errorCount == numDfas) {
             if(type == TT_INVALID){
+reportError:
                 std::stringstream ss;
                 ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Invalid token with lexime: " << lexime << (char)c << ".";
 

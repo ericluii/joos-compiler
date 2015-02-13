@@ -155,7 +155,7 @@ std::string parserRules [] = {
 	"BlockStatement LocalVariableDeclarationStatement",
 	"BlockStatement Statement",
 	"LocalVariableDeclarationStatement LocalVariableDeclaration ;",
-	"LocalVariableDeclaration Type VariableDeclarator",
+	"LocalVariableDeclaration Type Identifier = Expression",
 	"Statement StatementWithoutTrailingSubstatement",
 	"Statement IfThenStatement",
 	"Statement IfThenElseStatement",
@@ -210,6 +210,6 @@ std::string parserRules [] = {
 	"TypeDeclaration",
 	"MemberModifiers* MemberModifiers",
 	"MemberModifiers*",
-	"AbstractMethodHeader MemberModifiers* Type MethodBody",
-	"AbstractMethodHeader MemberModifiers* void MethodBody"
+	"AbstractMethodHeader MemberModifiers* Type MethodDeclarator",
+	"AbstractMethodHeader MemberModifiers* void MethodDeclarator"
 };

@@ -29,6 +29,10 @@ void Parser::createNonTerminalNode(int ruleToReduce) {
     pushSymbolStack(newTree);
 }
 
+bool Parser::isTerminal(char c) {
+    return (!('A' <= c && c <= 'Z') && c != '$');
+}
+
 void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     int counter = 1;
     int entrySize = parserTable[state].size();
@@ -36,6 +40,16 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     std::map<std::string, std::pair<std::string, int> >::iterator it;
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
         std::string token = it->first;
+        if(counter != entrySize && counter != 1) {
+            if(isTerminal(token[0])) { 
+                ss << ", ";
+                if(counter == entrySize - 1) {
+                    ss << "and ";
+                }
+            }
+        }
+        counter++;
+        
         if(token == "ID") {
             ss << "an identifier";
         } else if(token == "CHAR") {
@@ -46,21 +60,13 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
             ss << "an integer";
         } else {
             // checks if it isn't a non-terminal i.e a terminal
-            if(!('A' <= token[0] && token[0] <= 'Z') && token != "$") {
+            if(isTerminal(token[0])) {
                 ss << '"' << token << '"';
             } else {
                 counter++;
                 continue;
             }
         }
-
-        if(counter != entrySize) {
-            ss << ", ";
-            if(counter == entrySize - 1) {
-                ss << "and ";
-            }
-        }
-        counter++;
     }
 }
 
@@ -78,8 +84,9 @@ bool Parser::checkParsingCompletion(int lastState, std::string& fileName) {
                (secondNodeRule != IMPORT_STAR_DECLS && secondNodeRule != IMPORT_STAR_EPSILON) ||
                (thirdNodeRule != TYPE_CLASS && thirdNodeRule != TYPE_INTERFACE && thirdNodeRule != TYPE_EPSILON)) {
                 std::stringstream ss;
-                ss << "Unexpected token appeared while parsing.";
+                ss << "COULD NOT GENERATE PARSE TREE DUE TO PARSER MALFUNCTION. TELL DEVELOPERS";
                 getExpectedTokens(lastState, ss);
+                cleanSymbolStack();
 
                 Error(E_DEFAULT, NULL, ss.str());
                 return false;
@@ -144,6 +151,12 @@ void Parser::resetParser(bool success) {
     }
 }
 
+void Parser::cleanSymbolStack() {
+    for(unsigned int i = 0; i < curLocStack; i++) {
+        delete symbolStack[i];
+    }
+}
+
 ParseTree* Parser::Parse(std::string& parseFile) {
     std::vector<Token*>* fileTokens = tokens[parseFile];
     std::string nonTerminal;
@@ -171,6 +184,7 @@ ParseTree* Parser::Parse(std::string& parseFile) {
             std::stringstream ss;
             getErrorMessage(token, curState, ss);
             resetParser(false);
+            cleanSymbolStack();
 
             Error(E_PARSER, token, ss.str());
             return NULL;
@@ -193,11 +207,12 @@ ParseTree* Parser::Parse(std::string& parseFile) {
                     std::stringstream ss;
                     getErrorMessage(token, curState, ss);
                     resetParser(false);
+                    cleanSymbolStack();
 
                     Error(E_PARSER, token, ss.str());
                     return NULL;
                 }
-
+                
                 curState = parserTable[curState][nonTerminal].second;
                 stateStack.push(curState);
             } while(parserTable[curState][toParse].first == "reduce");

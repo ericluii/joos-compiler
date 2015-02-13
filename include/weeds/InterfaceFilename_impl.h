@@ -37,7 +37,7 @@ class InterfaceFilename : public Weed
 
         void check(ParseTree* node)
         {
-            std::string interfacename = getInterfaceName(node);
+            interfaceName = getInterfaceName(node);
             std::string filename = getFileName(node);
 
             size_t last_slash = filename.find_last_of('/');
@@ -50,7 +50,7 @@ class InterfaceFilename : public Weed
                 filename.erase(last_dot);
             }
 
-            if (filename != interfacename) {
+            if (filename != interfaceName) {
                 std::stringstream ss;
                 ss << "Interface named '" << getInterfaceName(node) << "' does not match the filename '" << getFileName(node) << "'.";
 
