@@ -7,8 +7,9 @@ class InterfaceDecl : public TypeDecl
 {
         //fields
     public:
-        InterfaceDecl(/*parameters*/); 
+        InterfaceDecl(/*parameters*/) {} 
 
+        bool isEpsilon() { return false; }
         //get fields
 };
 

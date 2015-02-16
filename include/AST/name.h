@@ -1,19 +1,21 @@
 #ifndef __NAMEDECL_H__
 #define __NAMEDECL_H__
 
-#include "packageDecl.h"
+#include "ast.h"
 #include "identifier.h"
 
-class Name : public PackageDecl
+class Name : public Ast
 {
-        Name *qualifier;
+        Name *nextName;
         Identifier *id;
     public:
-        Name(Name *qualifier, Identifier *id);
-        Name(Identifier *id); 
+        Name(Name *nextName, Identifier *id) : nextName(nextName), id(id) {}
+        Name(Identifier *id): nextName(NULL), id(id) {}
 
-        Identifier *GetId();
-        Name *GetQualifier();
+        Identifier *GetId() { return id; }
+        Name *GetNextName() { return nextName; }
+
+        void setNextName(Name* set) { nextName = set; }
 };
 
 #endif

@@ -7,7 +7,8 @@
 #include "scanner.h"
 #include "weeder.h"
 #include "parser.h"
-#include "AST/ast.h"
+#include "ast.h"
+#include "buildAst.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -85,7 +86,7 @@ int main(int argc, char *argv[])
     }
     
     std::cout << "starting\n";
-    CompilationUnit *unit = ast::makeCompilationUnit(completeParseTrees[argv[1]]);
+    Ast *unit = BuildAst::build(completeParseTrees[argv[1]]);
     
     cleanUpTokens(tokens);
     cleanUpParseTrees(completeParseTrees);

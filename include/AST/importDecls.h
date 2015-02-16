@@ -1,21 +1,22 @@
 #ifndef __IMPORTDECLS_H__
 #define __IMPORTDECLS_H__
 
-#include "importDeclsStar.h"
+#include "ast.h"
 #include "name.h"
 
 //interface definition for import declarations
-class ImportDecls : public ImportDeclsStar
+class ImportDecls : public Ast
 {
+    private:
+        ImportDecls* nextImport;
     protected:
-        Name *name;
-        ImportDecls *nextImport;
-        
+        Name *import;
     public:
-        ImportDecls(){}
+        ImportDecls(Name* import) : nextImport(NULL), import(import) {}
         
-        virtual Name *GetName() = 0;
-        virtual ImportDecls *GetNextImport() = 0;
+        Name *GetImport() { return import; }
+        ImportDecls *GetNextImport() { return nextImport; }
+        void setNextImport(ImportDecls* set) { nextImport = set; }
 };
 
 #endif

@@ -44,7 +44,7 @@ compiler: init $(OUT_FILE)
 tests: init $(TEST_OUT_FILE)
 
 init:
-	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas build/tests build/lib
+	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST build/tests build/lib
 	@$(foreach TEST_CASE, $(TEST_CASES), @python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
 

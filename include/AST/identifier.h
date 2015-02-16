@@ -3,16 +3,14 @@
 
 #include <string>
 #include "../token.h"
+#include "ast.h"
 
-class Identifier
+class Identifier : public Ast
 {
         Token *token;
-        std::string id;
     public:
-        
-        Identifier(Token *token);
-        
-        std::string GetId();
+        Identifier(Token *token) : token(token) {}
+        std::string GetId() { return token->getString(); }
 };
 
 #endif
