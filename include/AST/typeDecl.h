@@ -8,6 +8,7 @@ class TypeDecl : public Ast
 {
     public:
         TypeDecl() {}
+        virtual ~TypeDecl() {}
         virtual bool isEpsilon() { return true; }
 };
 

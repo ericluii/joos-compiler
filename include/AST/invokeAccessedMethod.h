@@ -1,0 +1,20 @@
+#ifndef __INVOKEACCESSEDMETHOD_H__
+#define __INVOKEACCESSEDMETHOD_H__
+
+#include "methodInvoke.h"
+#include "fieldAccess.h"
+
+class InvokeAccessedMethod : public MethodInvoke {
+    private:
+        FieldAccess* accessedMethod;
+    public:
+        InvokeAccessedMethod(FieldAccess* accessedMethod, ArgumentsStar* args) :
+                             MethodInvoke(args), accessedMethod(accessedMethod) {}
+        ~InvokeAccessedMethod() {
+            delete accessedMethod;
+        }
+
+        FieldAccess* getAccessedMethod() { return accessedMethod; }
+};
+
+#endif

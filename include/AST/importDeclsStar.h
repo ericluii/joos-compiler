@@ -11,6 +11,9 @@ class ImportDeclsStar : public Ast
         ImportDecls* imports;
     public:
         ImportDeclsStar(ImportDecls* imports) : imports(imports) {}
+        ~ImportDeclsStar() {
+            delete imports;
+        }
         bool isEpsilon() { return imports == NULL; }
 };
 

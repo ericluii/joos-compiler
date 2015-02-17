@@ -9,6 +9,10 @@ class Implements : public Ast {
         Name* implements;
     public:
         Implements(Name* implements) : implements(implements) {}
+        ~Implements() {
+            delete implements;
+        }
+
         bool isEpsilon() { return implements == NULL; }
 
         Name* getImplement() { return implements; }

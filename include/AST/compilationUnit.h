@@ -14,7 +14,12 @@ class CompilationUnit : public Ast
     public:      
         CompilationUnit(PackageDecl *package, ImportDeclsStar *import,
                         TypeDecl *typeDecl) : packageDecl(package), importDecls(import), typeDecl(typeDecl) {}
-        
+        ~CompilationUnit() {
+            delete packageDecl;
+            delete importDecls;
+            delete typeDecl;
+        }
+
         PackageDecl *GetPackageDecl() { return packageDecl; }
         ImportDeclsStar *GetImportDeclsStar() { return importDecls; }
         TypeDecl *GetTypeDecl() { return typeDecl; }

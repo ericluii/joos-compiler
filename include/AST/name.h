@@ -9,8 +9,11 @@ class Name : public Ast
         Name *nextName;
         Identifier *id;
     public:
-        Name(Name *nextName, Identifier *id) : nextName(nextName), id(id) {}
         Name(Identifier *id): nextName(NULL), id(id) {}
+        ~Name() {
+            delete id;
+            delete nextName;
+        }
 
         Identifier *GetId() { return id; }
         Name *GetNextName() { return nextName; }

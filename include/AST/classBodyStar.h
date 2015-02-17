@@ -9,6 +9,12 @@ class ClassBodyStar : public Ast {
         ClassBodyDecls* body;
     public:
         ClassBodyStar(ClassBodyDecls* body) : body(body) {}
+        ~ClassBodyStar() {
+            if(body != NULL) {
+                delete body;
+            }
+        }
+
         bool isEpsilon() { return body == NULL; }
         ClassBodyDecls* getBody() { return body; }
 };

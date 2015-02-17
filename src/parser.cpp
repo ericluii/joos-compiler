@@ -232,5 +232,7 @@ ParseTree* Parser::Parse(std::string& parseFile) {
     }
 
     resetParser(false);
+    cleanSymbolStack();
+    std::cout << "GOT HERE" << std::endl;
     return NULL;
 }

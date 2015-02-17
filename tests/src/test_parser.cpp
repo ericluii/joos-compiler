@@ -4,6 +4,7 @@
 #include "token.h"
 #include "parseTree.h"
 #include "weeder.h"
+#include "buildAst.h"
 #include <vector>
 #include <map>
 
@@ -20,7 +21,7 @@ void Test_Parser::test() {
     std::string fileName;
     std::string fileContent;
     std::string buffer;
-    ParseTree* parseTree;
+    ParseTree* parseTree = NULL;
     Weeder weeder;
 
     std::cout << test_name << ": " << test_description << std::endl;
@@ -74,9 +75,7 @@ void Test_Parser::test() {
 
             delete tokens;
             delete parser;
-            if(parseTree != NULL) {
-                delete parseTree;
-            }
+            delete parseTree;
         } else {
             // Unscannable file is being tested - quietely skip
         }

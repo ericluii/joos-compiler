@@ -4,15 +4,18 @@
 #include <string>
 #include "ast.h"
 #include "token.h"
-#include "modifiersStar.h"
 
-class Modifiers : public ModifiersStar {
+class Modifiers : public Ast {
     private:
         Modifiers* nextModifier;
         Token* mod;
     public:
         Modifiers(Token* mod) : nextModifier(NULL), mod(mod) {}
-        std::string getModifier() { return mod->getString(); }
+        ~Modifiers() {
+            delete nextModifier;
+        }
+
+        std::string getCurrentModifier() { return mod->getString(); }
         Modifiers* getNextModifier() { return nextModifier; }
 
         void setNextModifier(Modifiers* set) { nextModifier = set; }

@@ -9,11 +9,14 @@ class ImportDecls : public Ast
 {
     private:
         ImportDecls* nextImport;
-    protected:
         Name *import;
     public:
         ImportDecls(Name* import) : nextImport(NULL), import(import) {}
-        
+        ~ImportDecls() {
+            delete import;
+            delete nextImport;
+        }
+
         Name *GetImport() { return import; }
         ImportDecls *GetNextImport() { return nextImport; }
         void setNextImport(ImportDecls* set) { nextImport = set; }

@@ -21,9 +21,9 @@ void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
     }
 }
 
-void cleanUpParseTrees(std::map<std::string, ParseTree*>& parseTrees) {
-    std::map<std::string, ParseTree*>::iterator it;
-    for(it = parseTrees.begin(); it != parseTrees.end(); it++) {
+void cleanUpASTs(std::map<std::string, Ast*>& ASTs) {
+    std::map<std::string, Ast*>::iterator it;
+    for(it = ASTs.begin(); it != ASTs.end(); it++) {
         delete it->second;
     }
 }
@@ -41,13 +41,13 @@ int main(int argc, char *argv[])
 
     // Parsing
     Parser parser(tokens);
-    std::map<std::string, ParseTree*> completeParseTrees;
+    std::map<std::string, Ast*> completeASTs;
 
     // Weeding
     Weeder weeder = Weeder();
-
+    ParseTree* newParseTrees = NULL;
+    
     try {
-
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
 
@@ -72,24 +72,24 @@ int main(int argc, char *argv[])
         for(int i = 1; i < argc; i++) {
             filename = argv[i];
 
-            ParseTree* newParseTrees = parser.Parse(filename);
+            newParseTrees = parser.Parse(filename);
             CHECK_ERROR();
 
             weeder.weedParseTree(newParseTrees);
             CHECK_ERROR();
 
-            completeParseTrees[filename] = newParseTrees;
+            completeASTs[filename] = BuildAst::build(newParseTrees);
+            delete newParseTrees;
+            newParseTrees = NULL;
         }
     } catch (std::exception &e) {
         Error::print();
+        delete newParseTrees;
         rc = 42;
     }
     
-    std::cout << "starting\n";
-    Ast *unit = BuildAst::build(completeParseTrees[argv[1]]);
-    
     cleanUpTokens(tokens);
-    cleanUpParseTrees(completeParseTrees);
+    cleanUpASTs(completeASTs);
 
     exit(rc);
 }

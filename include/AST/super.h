@@ -9,6 +9,10 @@ class Super : public Ast {
         Name* superClass;
     public:
         Super(Name* superClass) : superClass(superClass) {}
+        ~Super() {
+            delete superClass;
+        }
+
         bool isEpsilon() { return superClass == NULL; }
 
         Name* getSuper() { return superClass; }

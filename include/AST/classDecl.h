@@ -20,6 +20,13 @@ class ClassDecl : public TypeDecl
     public:
         ClassDecl(Modifiers* mods, Identifier* id, Super* super, Implements* implements, ClassBodyStar* body) 
             : mods(mods), id(id), super(super), implementInterfaces(implements), body(body) {}
+        ~ClassDecl() {
+            delete mods;
+            delete id;
+            delete super;
+            delete implementInterfaces;
+            delete body;
+        }
 
         Modifiers* getModifiers() { return mods; }
         Identifier* getIdentifier() { return id; }
