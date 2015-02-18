@@ -63,6 +63,20 @@ class Ast {
         // Method invocation
         bool isNormalMethodCall() { return rule == INVOKE_METHOD_NORM; }
         bool isAccessedMethodCall() { return rule == INVOKE_METHOD_ACCESS; }
+        // Block statements
+        bool isLastBlock() { return rule == BLOCK_STMT; }
+        bool isMoreBlocksComing() { return rule == BLOCK_STMT_LIST; }
+        bool isLocalVarDecl() { return rule == LOCAL_VAR_DECL; }
+        bool isIfStmt() { return rule == IF_STMT_UNROLL; }
+        bool isIfThenElseStmt() { return rule == IF_STMT || rule == IF_THEN_STMT || rule == NO_SHORT_IF_THEN; }
+        bool isWhileStmt() { return rule == WHILE_STMT || rule == NO_SHORT_WHILE; }
+        bool isForStmt() { return rule == FOR_STMT || rule == NO_SHORT_FOR; }
+        bool isAssignStmt() { return rule == STMTEXPR_TO_ASSIGN; }
+        bool isClassCreationStmt() { return rule == STMTEXPR_MAKE_CLASS; }
+        bool isMethodInvokeStmt() { return rule == STMTEXPR_INVOKE; }
+        bool isNestedBlock() { return rule == STMT_NON_TRAILING_BLOCK; }
+        bool isReturnStmt() { return rule == STMT_NON_TRAILING_RETURN; }
+        bool isEmptyStmt() { return rule == STMT_NON_TRAILING_EMPTY; }
 };
 
 #endif

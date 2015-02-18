@@ -21,8 +21,8 @@ class FieldDecl : public ClassBodyDecls {
         }
 
         Type* getFieldType() { return fieldType; }
-        Identifier* getFieldID() { return fieldId; }
-        Expression* getFieldExpression() { return fieldExpression; }
+        Identifier* getFieldId() { return fieldId; }
+        Expression* getFieldInitExpr() { return fieldExpression; }
 
         bool isInitialized() { return fieldExpression != NULL; }
 };

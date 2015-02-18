@@ -6,16 +6,18 @@
 
 class Implements : public Ast {
     private:
-        Name* implements;
+        Name* interface;
+        Implements* nextImplement;
     public:
-        Implements(Name* implements) : implements(implements) {}
+        Implements(Name* interface) : interface(interface), nextImplement(NULL) {}
         ~Implements() {
-            delete implements;
+            delete interface;
+            delete nextImplement;
         }
 
-        bool isEpsilon() { return implements == NULL; }
-
-        Name* getImplement() { return implements; }
+        Name* getInterface() { return interface; }
+        Implements* getNextImplementedInterface() { return nextImplement; }
+        void setNextImplement(Implements* set) { nextImplement = set; }
 };
 
 #endif

@@ -6,14 +6,14 @@
 
 class MethodNormalInvoke : public MethodInvoke {
     private:
-        Name* methodName;
+        Name* methodInvoked;
     public:
-        MethodNormalInvoke(Name* methodName, ArgumentsStar* args) : MethodInvoke(args), methodName(methodName) {}
+        MethodNormalInvoke(Name* methodInvoked, ArgumentsStar* args) : MethodInvoke(args), methodInvoked(methodInvoked) {}
         ~MethodNormalInvoke() {
-            delete methodName;
+            delete methodInvoked;
         }
 
-        Name* getMethodName() { return methodName; }
+        Name* getInvokedMethod() { return methodInvoked; }
 };
 
 #endif

@@ -15,6 +15,7 @@
 #include "typeDecl.h"
 #include "modifiers.h"
 #include "super.h"
+#include "interfaceList.h"
 #include "implements.h"
 // Imports
 #include "importDecls.h"
@@ -51,6 +52,7 @@ class BuildAst
         static Identifier *makeIdentifier(ParseTree *tree);
         static Modifiers* makeModifiers(ParseTree* tree);
         static Super* makeSuper(ParseTree* tree);
+        static InterfaceList* makeInterfaceList(ParseTree* tree);
         static Implements* makeImplements(ParseTree* tree);
         static ClassBodyStar* makeClassBodyStar(ParseTree* tree);
         static ClassBodyDecls* makeClassBodyDecls(ParseTree* tree);

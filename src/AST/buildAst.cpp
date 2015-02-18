@@ -233,19 +233,24 @@ Super* BuildAst::makeSuper(ParseTree* tree) {
     return NULL;
 }
 
-Implements* BuildAst::makeImplements(ParseTree* tree) {
-    if(debug) std::cout << "Implements\n";
-    Implements* returnImplements;
-
+InterfaceList* BuildAst::makeInterfaceList(ParseTree* tree) {
+    if(debug) std::cout << "InterfaceList\n";
+    InterfaceList* returnInterfaces = NULL;
+    
     if(tree->rule == IMPLEMENT_EPSILON) {
-        returnImplements = new Implements(NULL);
-        returnImplements->setRule(tree->rule);
-        return returnImplements;
+        returnInterfaces = new InterfaceList(NULL);
+        returnInterfaces->setRule(tree->rule);
+        return returnInterfaces;
     }
     assert(tree->rule == IMPLEMENTING);
+    returnInterfaces = new InterfaceList(makeImplements(tree->children[1]));
+    returnInterfaces->setRule(tree->rule);
+    return returnInterfaces;
+}
 
-    tree = tree->children[1];
-
+Implements* BuildAst::makeImplements(ParseTree* tree) {
+    if(debug) std::cout << "Implements\n";
+    Implements* returnImplements = NULL;
     if(tree->rule == INTERFACE_TYPE_LIST_END) {
         returnImplements = new Implements(makeName(tree->children[0]->children[0]->children[0]));
         returnImplements->setRule(tree->rule);
@@ -253,22 +258,21 @@ Implements* BuildAst::makeImplements(ParseTree* tree) {
     }
 
     assert(tree->rule == INTERFACE_TYPE_LIST);
-    Name* rightMostName = makeName(tree->children[2]->children[0]->children[0]);
-    Name* currentImplement = rightMostName;
-    Name* nextImplement;
+    returnImplements = new Implements(makeName(tree->children[2]->children[0]->children[0]));
+    returnImplements->setRule(tree->rule);
+    Implements* currentImplement = returnImplements;
+    Implements* nextImplement;
     tree = tree->children[0];
     while(true) {
         switch(tree->rule) {
             case INTERFACE_TYPE_LIST:
-                nextImplement = makeName(tree->children[2]->children[0]->children[0]);
-                currentImplement->setNextName(nextImplement);
+                nextImplement = new Implements(makeName(tree->children[2]->children[0]->children[0]));
+                nextImplement->setNextImplement(nextImplement);
                 currentImplement = nextImplement;
                 tree = tree->children[0];
                 break;
             case INTERFACE_TYPE_LIST_END:
-                currentImplement->setNextName(makeName(tree->children[0]->children[0]->children[0]));
-                returnImplements = new Implements(rightMostName);
-                returnImplements->setRule(INTERFACE_TYPE_LIST);
+                currentImplement->setNextImplement(makeImplements(tree));
                 return returnImplements;
             default:
                 std::cerr << "None of the rules apply" << std::endl;
@@ -287,7 +291,7 @@ ClassDecl *BuildAst::makeClassDecl(ParseTree *tree){
     return new ClassDecl(makeModifiers(tree->children[0]),
                          makeIdentifier(tree->children[2]),
                          makeSuper(tree->children[3]),
-                         makeImplements(tree->children[4]),
+                         makeInterfaceList(tree->children[4]),
                          makeClassBodyStar(tree->children[5]->children[1]));
 }
 

@@ -19,7 +19,7 @@ class Modifiers : public Ast {
         Modifiers* getNextModifier() { return nextModifier; }
 
         void setNextModifier(Modifiers* set) { nextModifier = set; }
-        bool isEpsilon() { return true; }
+        bool isEpsilon() { return false; }
 };
 
 #endif
