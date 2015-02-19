@@ -12,7 +12,7 @@ class Identifier : public Ast
         Token *token;
     public:
         Identifier(Token *token) : token(token) {}
-        std::string GetId() { return token->getString(); }
+        std::string getId() { return token->getString(); }
 };
 
 #endif

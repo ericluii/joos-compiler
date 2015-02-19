@@ -3,30 +3,24 @@
 
 #include <string>
 #include "classBodyDecls.h"
-#include "identifier.h"
-#include "type.h"
+#include "methodHeader.h"
 #include "methodBody.h"
 
 class ClassMethod : public ClassBodyDecls {
-    // Rule: METHOD_TYPE and METHOD_VOID
+    // Rule: METHOD_HEADER_AND_BODY
     private:
-        Identifier* name;
-        Type* retType;
+        MethodHeader* header;
         MethodBody* body;
     public:
-        ClassMethod(Modifiers* mod, Type* retType, Identifier* name, MethodBody* body) : ClassBodyDecls(mod),
-                    name(name), retType(retType), body(body) {}
+        ClassMethod(Modifiers* mod, MethodHeader* header, MethodBody* body) : ClassBodyDecls(mod),
+                    header(header), body(body) {}
         ~ClassMethod() {
-            delete name;
-            delete retType;
+            delete header;
             delete body;
         }
 
-        std::string getMethodName() { return name->token->getString(); }
-        Type* getReturnType() { return retType; }
+        MethodHeader* getMethodHeader() { return header; }
         MethodBody* getMethodBody() { return body; }
-
-        bool isVoidReturnType() { return retType == NULL; }
 };
 
 #endif

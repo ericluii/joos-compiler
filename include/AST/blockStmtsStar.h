@@ -9,11 +9,12 @@ class BlockStmtsStar : public Ast {
     private:
         BlockStmts* stmts;
     public:
-        BlockStmts(BlockStmts* stmts) : stmts(stmts) {}
-        ~BlockStmts() {
+        BlockStmtsStar(BlockStmts* stmts) : stmts(stmts) {}
+        ~BlockStmtsStar() {
             delete stmts;
         }
 
+        BlockStmts* getStatements() { return stmts; }
         bool emptyBlock() { return stmts == NULL; }
 };
 

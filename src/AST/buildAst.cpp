@@ -1,6 +1,7 @@
 #include "buildAst.h"
 // Class members
 #include "fieldDecl.h"
+#include "classMethod.h"
 // Types
 #include "primitiveType.h"
 #include "referenceType.h"
@@ -374,10 +375,87 @@ ClassBodyDecls* BuildAst::makeClassMember(ParseTree* tree) {
                                           expr);
     } else {
         assert(tree->rule == CLASS_METHOD);
-        returnClassMember = new ClassBodyDecls(NULL);
+        tree = tree->children[0];
+        returnClassMember = new ClassMethod(makeModifiers(tree->children[0]->children[0]),
+                                            makeMethodHeader(tree->children[0]),
+                                            makeMethodBody(tree->children[1]));
     }
     returnClassMember->setRule(tree->rule);
     return returnClassMember;
+}
+
+MethodHeader* BuildAst::makeMethodHeader(ParseTree* tree) {
+    if(debug) std::cout << "MethodHeader\n";
+    assert(tree->rule == METHOD_TYPE || tree->rule == METHOD_VOID);
+    MethodHeader* header = NULL;
+    Type* type = NULL;
+    
+    Identifier* id = makeIdentifier(tree->children[2]->children[0]);
+    FormalParamStar* params = makeFormalParamStar(tree->children[2]->children[2]);
+    if(tree->rule == METHOD_TYPE) {
+        type = makeType(tree->children[1]);
+    }
+
+    header = new MethodHeader(id, type, params);
+    header->setRule(tree->rule);
+    return header;
+}
+
+FormalParamStar* BuildAst::makeFormalParamStar(ParseTree* tree) {
+    if(debug) std::cout << "FormalParamStar\n";
+    assert(tree->rule == FORMAL_PARAMSTAR || tree->rule == FORMAL_PARAMSTAR_EPSILON);
+    FormalParamStar* paramStar = NULL;
+    ParamList* paramList = NULL;
+    
+    if(tree->rule == FORMAL_PARAMSTAR) {
+        paramList = makeParamList(tree->children[0]);
+    }
+
+    paramStar = new FormalParamStar(paramList);
+    paramStar->setRule(tree->rule);
+    return paramStar;
+}
+
+ParamList* BuildAst::makeParamList(ParseTree* tree) {
+    if(debug) std::cout << "ParamList\n";
+    ParamList* params = NULL;
+    assert(tree->rule == FORMAL_PARAM || tree->rule == FORMAL_PARAM_LIST);
+
+    if(tree->rule == FORMAL_PARAM) {
+        params = new ParamList(makeType(tree->children[0]->children[0]),
+                               makeIdentifier(tree->children[0]->children[1]));
+        params->setRule(tree->rule);
+        return params;
+    }
+
+    params = new ParamList(makeType(tree->children[1]->children[0]),
+                           makeIdentifier(tree->children[1]->children[1]));
+    params->setRule(tree->rule);
+    ParamList* currentParams = params;
+    ParamList* nextParams;
+    tree = tree->children[0];
+
+    while(true) {
+        switch(tree->rule) {
+            case FORMAL_PARAM_LIST:
+                nextParams = new ParamList(makeType(tree->children[1]->children[0]),
+                                           makeIdentifier(tree->children[1]->children[1]));
+                nextParams->setRule(tree->rule);
+                currentParams->setNextParameter(nextParams);
+                currentParams = nextParams;
+                tree = tree->children[0];
+                break;
+            case FORMAL_PARAM:
+                currentParams->setNextParameter(makeParamList(tree));
+                return params;
+        }
+    }
+    assert(false);
+    return NULL;
+}
+
+MethodBody* BuildAst::makeMethodBody(ParseTree* tree) {
+    return NULL;
 }
 
 Type* BuildAst::makeType(ParseTree* tree) {
@@ -396,6 +474,7 @@ Type* BuildAst::makeType(ParseTree* tree) {
 }
 
 Type* BuildAst::makeReferenceType(ParseTree* tree) {
+    if(debug) std::cout << "ReferenceType\n";
     Type* returnType = NULL;
     switch(tree->rule) {
         case REFERENCE_CLASSINTERFACE:
@@ -431,6 +510,7 @@ Expression* BuildAst::makeExpression(ParseTree* tree) {
 }
 
 Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
+    if(debug) std::cout << "BinaryExpression\n";
     Expression* retBinExpr = NULL;
     while(true) {
         switch(tree->rule) {
@@ -476,6 +556,7 @@ Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
 }
 
 Expression* BuildAst::makeUnaryExpression(ParseTree* tree) {
+    if(debug) std::cout << "UnaryExpression\n";
     Expression* retUnaryExpr = NULL;
     assert(tree->rule == NEG_UNARY || tree->rule == NOT_NEG_UNARY);
     if(tree->rule == NEG_UNARY) {
@@ -489,6 +570,7 @@ Expression* BuildAst::makeUnaryExpression(ParseTree* tree) {
 }
 
 Expression* BuildAst::makeUnaryNotMinusExpr(ParseTree* tree) {
+    if(debug) std::cout << "UnaryNotMinusExpr\n";
     Expression* retUnaryExpr = NULL;
     assert(tree->rule == NOT_UNARY || tree->rule == UNARY_CAST || tree->rule == PRIMARY_UNARY
            || tree->rule == UNARY_NAME);
@@ -509,6 +591,7 @@ Expression* BuildAst::makeUnaryNotMinusExpr(ParseTree* tree) {
 }
 
 Expression* BuildAst::makeCastExpression(ParseTree* tree) {
+    if(debug) std::cout << "CastExpression\n";
     Expression* retCastExpr = NULL;
     assert(tree->rule == CAST_PRIMITIVE || tree->rule == CAST_NONPRIMITIVE ||
            tree->rule == CAST_TO_EXPRESSION);
@@ -586,7 +669,7 @@ FieldAccess* BuildAst::makeFieldAccess(ParseTree* tree) {
                 break;
             default:
                 currentFieldAccess->setPrimaryField(makePrimary(tree));
-                return currentFieldAccess;
+                return returnFieldAccess;
         }
     }
     assert(false);

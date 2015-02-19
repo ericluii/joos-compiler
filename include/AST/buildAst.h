@@ -36,6 +36,12 @@
 // Access and Primary
 #include "fieldAccess.h"
 #include "arrayAccess.h"
+// Class method
+#include "methodHeader.h"
+#include "methodBody.h"
+// Parameters
+#include "formalParamStar.h"
+#include "paramList.h"
 
 class BuildAst
 {
@@ -58,6 +64,11 @@ class BuildAst
         static ClassBodyDecls* makeClassBodyDecls(ParseTree* tree);
         static ClassBodyDecls* makeClassBodyDecl(ParseTree* tree);
         static ClassBodyDecls* makeClassMember(ParseTree* tree);
+        static ClassBodyDecls* makeClassMethod(ParseTree* tree);
+        static MethodHeader* makeMethodHeader(ParseTree* tree);
+        static MethodBody* makeMethodBody(ParseTree* tree);
+        static FormalParamStar* makeFormalParamStar(ParseTree* tree);
+        static ParamList* makeParamList(ParseTree* tree);
         static Type* makeType(ParseTree* tree);
         static Type* makeReferenceType(ParseTree* tree); 
         static Expression* makeExpression(ParseTree* tree);
