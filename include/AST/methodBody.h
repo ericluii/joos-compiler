@@ -5,6 +5,7 @@
 #include "blockStmtsStar.h"
 
 class MethodBody : public Ast {
+    // Rule: METHOD_BODY and METHOD_BODY_EMPTY
     private:
         BlockStmtsStar* stmts;
     public:

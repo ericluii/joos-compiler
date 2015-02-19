@@ -5,6 +5,7 @@
 #include "expression.h"
 
 class ReturnStmt : BlockStmts {
+    // Rule: STMT_NON_TRAILING_RETURN
     private:
         Expression* retExpr;
     public:

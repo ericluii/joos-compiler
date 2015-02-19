@@ -5,6 +5,7 @@
 #include "blockStmtsStar.h"
 
 class NestedBlock : public BlockStmts {
+    // Rule: STMT_NON_TRAILING_BLOCK
     private:
         BlockStmtsStar* nestedBlk;
     public:

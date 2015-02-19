@@ -4,6 +4,7 @@
 #include "blockStmts.h"
 
 class IfStmt : public BlockStmts {
+    // Rule: IF_STMT, IF_THEN_STMT and NO_SHORT_IF_THEN
     private:
         Expression* eval;
         BlockStmts* exTrue;

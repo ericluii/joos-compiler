@@ -5,6 +5,7 @@
 #include "arrayAccess.h"
 
 class AssignArray : public Assignment {
+    // Rule: LVALUE_ARRAY
     private:
         ArrayAccess* LHS;
     public:

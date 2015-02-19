@@ -6,6 +6,7 @@
 #include "argumentsStar.h"
 
 class NewClassCreation : public Primary {
+    // Rule: MAKE_NEW_CLASS
     private:
         Name* classType;
         ArgumentsStar* args;

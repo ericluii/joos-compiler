@@ -7,8 +7,6 @@ class Type : public Ast {
     public:
         Type() {}
         virtual ~Type() {}
-        bool isArrayType() { return rule == ARRAY_PRIMITIVE ||
-                                    rule == ARRAY_NONPRIMITIVE; }
 };
 
 #endif

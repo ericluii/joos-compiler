@@ -5,6 +5,7 @@
 #include "name.h"
 
 class ReferenceType : public Type {
+    // Rule: REFERENCE_CLASSINTERFACE, ARRAY_PRIMITIVE and ARRAY_NONPRIMITIVE
     private:
         Name* referenceType;
     public:

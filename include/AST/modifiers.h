@@ -6,6 +6,7 @@
 #include "token.h"
 
 class Modifiers : public Ast {
+    // Rule: 
     private:
         Modifiers* nextModifier;
         Token* mod;
@@ -19,7 +20,7 @@ class Modifiers : public Ast {
         Modifiers* getNextModifier() { return nextModifier; }
 
         void setNextModifier(Modifiers* set) { nextModifier = set; }
-        bool isEpsilon() { return false; }
+        bool isLastModifier() { return nextModifier == NULL; }
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "blockStmts.h"
 
 class BlockStmtsStar : public Ast {
+    // Rule: BLOCK_STMTS and BLOCK_STMTS_EPSILON
     private:
         BlockStmts* stmts;
     public:

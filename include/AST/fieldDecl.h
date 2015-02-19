@@ -7,6 +7,7 @@
 #include "expression.h"
 
 class FieldDecl : public ClassBodyDecls {
+    // Rule: CLASS_FIELD
     private:
         Type* fieldType;
         Identifier* fieldId;

@@ -5,6 +5,7 @@
 #include "primary.h"
 
 class ArrayAccessPrimary : public ArrayAccess {
+    // Rule: ACCESS_ARRAY_PRIMARY
     private:
         Primary* arrayPrimary;
     public:

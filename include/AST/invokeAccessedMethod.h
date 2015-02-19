@@ -5,6 +5,7 @@
 #include "fieldAccess.h"
 
 class InvokeAccessedMethod : public MethodInvoke {
+    // Rule: INVOKE_METHOD_ACCESS
     private:
         FieldAccess* accessedMethod;
     public:

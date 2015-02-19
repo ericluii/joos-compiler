@@ -5,6 +5,7 @@
 #include "name.h"
 
 class ArrayAccessName : public ArrayAccess {
+    // Rule: ACCESS_ARRAY_NAME
     private:
         Name* arrayName;
     public:

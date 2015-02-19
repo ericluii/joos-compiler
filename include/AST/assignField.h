@@ -5,6 +5,7 @@
 #include "fieldAccess.h"
 
 class AssignField : public Assignment {
+    // Rule: LVALUE_FIELD_ACCESS
     private:
         FieldAccess* LHS;
     public:

@@ -5,6 +5,7 @@
 #include "name.h"
 
 class Implements : public Ast {
+    // Rule: INTERFACE_TYPE_LIST_END and INTERFACE_TYPE_LIST
     private:
         Name* interface;
         Implements* nextImplement;

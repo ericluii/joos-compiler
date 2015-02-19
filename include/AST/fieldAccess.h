@@ -6,6 +6,7 @@
 #include "identifier.h"
 
 class FieldAccess : public Primary {
+    // Rule: FIELD_ACCESS
     private:
         Primary* primary;
         Identifier* id;

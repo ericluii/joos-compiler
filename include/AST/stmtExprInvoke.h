@@ -5,6 +5,7 @@
 #include "methodInvoke.h"
 
 class StmtExprInvoke : public StmtExpr {
+    // Rule: STMTEXPR_INVOKE
     private:
         MethodInvoke* invoke;
     public:

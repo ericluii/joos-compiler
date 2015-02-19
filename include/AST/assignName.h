@@ -5,6 +5,7 @@
 #include "name.h"
 
 class AssignName : public Assignment {
+    // Rule: LVALUE_NAME
     private:
         Name* LHS;
     public:

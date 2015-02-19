@@ -5,6 +5,7 @@
 #include "assignment.h"
 
 class StmtExprAssign : public StmtExpr {
+    // Rule: STMTEXPR_TO_ASSIGN
     private:
         Assignment* assign;
     public:

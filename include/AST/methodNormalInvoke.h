@@ -5,6 +5,7 @@
 #include "name.h"
 
 class MethodNormalInvoke : public MethodInvoke {
+    // Rule: INVOKE_METHOD_NORM
     private:
         Name* methodInvoked;
     public:

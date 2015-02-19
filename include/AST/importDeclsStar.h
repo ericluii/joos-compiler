@@ -7,6 +7,7 @@
 //this class represents an epsilon
 class ImportDeclsStar : public Ast
 {
+    // Rule: IMPORT_STAR_DECLS and IMPORT_STAR_EPSILON
     private:
         ImportDecls* imports;
     public:

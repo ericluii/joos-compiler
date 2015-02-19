@@ -5,6 +5,7 @@
 #include "expression.h"
 
 class WhileStmt : public BlockStmts {
+    // Rule: WHILE_STMT and NO_SHORT_WHILE
     private:
         Expression* eval;
         BlockStmts* loopStmt;

@@ -7,6 +7,7 @@
 //interface definition for import declarations
 class ImportDecls : public Ast
 {
+    // Rule: SINGLE_TYPE_IMPORT and IMPORT_ON_DEMAND
     private:
         ImportDecls* nextImport;
         Name *import;

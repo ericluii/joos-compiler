@@ -7,6 +7,7 @@
 //This class represents an epsilon
 class PackageDecl : public Ast
 {
+    // Rule: PACKAGE_NAME and PACKAGE_EPSILON
     private:
         Name* package;
     public:

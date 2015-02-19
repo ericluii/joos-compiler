@@ -10,6 +10,7 @@
 
 class ClassDecl : public TypeDecl
 {
+    // Rule: TYPE_CLASS
     private:
         Modifiers* mods;
         Identifier* id;

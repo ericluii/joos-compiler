@@ -6,6 +6,7 @@
 #include "type.h"
 
 class PrimaryNewArray : public Primary {
+    // Rule: MAKE_NEW_PRIMITIVE_ARRAY and MAKE_NEW_NONPRIMITIVE_ARRAY
     private:
         Type* type;
         Expression* dimensionExpr;

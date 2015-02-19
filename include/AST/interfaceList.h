@@ -5,6 +5,7 @@
 #include "implements.h"
 
 class InterfaceList : public Ast {
+    // Rule: IMPLEMENTING and IMPLEMENT_EPSILON
     private:
         Implements* implementsList;
     public:

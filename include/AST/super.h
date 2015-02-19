@@ -5,6 +5,7 @@
 #include "name.h"
 
 class Super : public Ast {
+    // Rule: EXTENDS_CLASS || EXTENDS_CLASS_EPSILON
     private:
         Name* superClass;
     public:
@@ -13,9 +14,8 @@ class Super : public Ast {
             delete superClass;
         }
 
-        bool isEpsilon() { return superClass == NULL; }
-
         Name* getSuper() { return superClass; }
+        bool isEpsilon() { return superClass == NULL; }
 };
 
 #endif

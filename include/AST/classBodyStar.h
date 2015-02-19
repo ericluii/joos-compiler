@@ -5,6 +5,7 @@
 #include "classBodyDecls.h"
 
 class ClassBodyStar : public Ast {
+    // Rule: CLASS_BODY_DECLSTAR and CLASS_BODY_DECL_EPSILON
     private:
         ClassBodyDecls* body;
     public:

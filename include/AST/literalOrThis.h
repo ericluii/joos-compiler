@@ -5,6 +5,7 @@
 #include "token.h"
 
 class LiteralOrThis : public Primary {
+    // Rule: PRIMARY_THIS and LITERAL_NUM to LITERAL_NULL
     private:
         Token* litOrThis;
     public:

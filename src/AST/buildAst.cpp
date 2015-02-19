@@ -6,7 +6,7 @@
 #include "referenceType.h"
 // Primary
 #include "literalOrThis.h"
-#include "primaryExpr.h"
+#include "bracketedExpression.h"
 #include "primaryNewArray.h"
 #include "newClassCreation.h"
 // Access and Primary
@@ -377,7 +377,7 @@ Type* BuildAst::makeType(ParseTree* tree) {
     Type* returnType = NULL;
     if(tree->rule == PRIMITIVE_TYPE) {
         returnType = new PrimitiveType(tree->children[0]->children[0]->token);
-        returnType->setRule(tree->rule);
+        returnType->setRule(tree->children[0]->rule);
         return returnType;
     }
 
@@ -501,7 +501,7 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
     } else if(rule == PRIMARY_THIS) {
         primaryNA = new LiteralOrThis(tree->children[0]->token);
     } else if(rule == PRIMARY_EXPRESSION) {
-        primaryNA = new PrimaryExpr(makeExpression(tree->children[1]));
+        primaryNA = new BracketedExpression(makeExpression(tree->children[1]));
     } else if(rule == PRIMARY_MAKECLASS) {
         primaryNA = makeClassCreation(tree->children[0]);
     } else if(rule == PRIMARY_FIELDACCESS) {

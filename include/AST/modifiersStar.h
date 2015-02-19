@@ -5,6 +5,7 @@
 #include "modifiers.h"
 
 class ModifiersStar : public Ast {
+    // Rule: MEMBER_MOD_EXPAND and MEMBER_MOD_EPSILON
     private:
         Modifiers* mods;
     public:

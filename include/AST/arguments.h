@@ -17,7 +17,7 @@ class Arguments : public Ast
         }
 
         Arguments* getNextArgs() { return nextArgs; }
-        Expression* getSelfExpr() { return selfExpr; }
+        Expression* getSelfArgumentExpr() { return selfExpr; }
 
         void setNextArgs(Arguments* set) { nextArgs = set; }
 };

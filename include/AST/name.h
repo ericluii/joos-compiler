@@ -6,6 +6,8 @@
 
 class Name : public Ast
 {
+    // Rule: NAME_SIMPLE and NAME_QUALIFIED
+    private:
         Name *nextName;
         Identifier *id;
     public:

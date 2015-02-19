@@ -4,6 +4,7 @@
 #include "blockStmts.h"
 
 class EmptyStmt : public BlockStmts {
+    // Rule: STMT_NON_TRAILING_EMPTY
     public:
         EmptyStmt() : BlockStmts() {}
         ~EmptyStmt() {}

@@ -8,6 +8,8 @@
 
 class CompilationUnit : public Ast
 {
+    // Rule: COMPILATION_UNIT
+    private:
         PackageDecl *packageDecl;
         ImportDeclsStar *importDecls;
         TypeDecl *typeDecl;

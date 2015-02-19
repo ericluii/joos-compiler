@@ -7,6 +7,8 @@
 
 class Identifier : public Ast
 {
+    // Rule: IDENTIFIER
+    private:
         Token *token;
     public:
         Identifier(Token *token) : token(token) {}

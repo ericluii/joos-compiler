@@ -5,6 +5,7 @@
 #include "newClassCreation.h"
 
 class StmtExprCreation : public StmtExpr {
+    // Rule: STMTEXPR_MAKE_CLASS
     private:
         NewClassCreation* create;
     public:
