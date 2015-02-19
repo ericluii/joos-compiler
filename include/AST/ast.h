@@ -29,7 +29,7 @@ class Ast {
         bool isInterface() { return rule == TYPE_INTERFACE; }
         // Name
         bool isSimpleName() { return rule == NAME_SIMPLE; }
-        bool isQualifiedName() { return rule == NAME_QUALIFED; }
+        bool isQualifiedName() { return rule == NAME_QUALIFIED; }
         // Identifier
         bool isIdentifier() { return rule == IDENTIFIER; }
         // Modifiers
@@ -45,7 +45,7 @@ class Ast {
         bool isLazyAnd() { return rule == CONDAND_TO_CONDANDINCLUOR; }
         bool isEagerOr() { return rule == INCLUOR_TO_INCLUORAND; }
         bool isEagerAnd() { return rule == AND_TO_ANDEQUALITY; }
-        bool isEqual() { return rule == EQUALITY_TO_EQUALITYREALTION; }
+        bool isEqual() { return rule == EQUALITY_TO_EQUALITYRELATION; }
         bool isNotEqual() { return rule == EQUALITY_TO_NOTEQRELATION; }
         bool isLT() { return rule == RELATION_TO_LTRELATIONADD; }
         bool isGT() { return rule == RELATION_TO_GTRELATIONADD; }
@@ -54,7 +54,7 @@ class Ast {
         bool isInstanceOf() { return rule == RELATION_TO_INSTANCEOF; }
         bool isAddition() { return rule == ADD_TO_PLUSMULTI; }
         bool isMinus() { return rule == ADD_TO_MINUSMULTI; }
-        bool isMultiplication() { return rule == MULTI_TO_MULTRUNARY; }
+        bool isMultiplication() { return rule == MULTI_TO_MULTUNARY; }
         bool isDivision() { return rule == MULTI_TO_DIVUNARY; }
         bool isModulo() { return rule == MULTI_TO_MODUNARY; }
         bool isPrimaryExpression() { return rule == PRIMARY_UNARY; }

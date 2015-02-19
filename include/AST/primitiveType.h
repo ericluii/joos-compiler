@@ -6,7 +6,7 @@
 #include "token.h"
 
 class PrimitiveType : public Type {
-    // Rule: all the primitive type derivations
+    // Rule: all the primitive type derivations and ARRAY_PRIMITIVE
     private:
         Token* primitiveType;
     public:

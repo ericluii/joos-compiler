@@ -5,10 +5,10 @@
 
 class BinaryExpression : public Expression {
     // Rule: All expression binary operations i.e ||, &&, |, &, ==, !=, <, <=, >, >=,
-    //       instanceof, +, - (not the one from NEG_UNARY), *, / , % 
+    //       +, - (not the one from NEG_UNARY), *, / , %, except instanceof
     private:
         Expression* leftExpr;
-        Expression* rightArg;
+        Expression* rightExpr;
     public:
         BinaryExpression(Expression* leftExpr, Expression* rightExpr) : leftExpr(leftExpr), rightExpr(rightExpr) {}
         ~BinaryExpression() {

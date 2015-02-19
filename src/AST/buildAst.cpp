@@ -19,6 +19,14 @@
 #include "assignName.h"
 #include "assignArray.h"
 #include "assignField.h"
+// Expression
+#include "binaryExpression.h"
+#include "instanceof.h"
+#include "primaryExpression.h"
+#include "nameExpression.h"
+#include "castName.h"
+#include "castPrimitive.h"
+#include "negationExpression.h"
 
 #include <cassert>
 
@@ -382,8 +390,13 @@ Type* BuildAst::makeType(ParseTree* tree) {
     }
 
     assert(tree->rule == REFERENCE_TYPE);
-    tree = tree->children[0];
+    returnType = makeReferenceType(tree->children[0]);
 
+    return returnType;
+}
+
+Type* BuildAst::makeReferenceType(ParseTree* tree) {
+    Type* returnType = NULL;
     switch(tree->rule) {
         case REFERENCE_CLASSINTERFACE:
             returnType = new ReferenceType(makeName(tree->children[0]->children[0]));
@@ -403,7 +416,6 @@ Type* BuildAst::makeType(ParseTree* tree) {
             std::cerr << "None of the rules apply" << std::endl;
             assert(false);
     }
-
     return returnType;
 }
 
@@ -411,11 +423,128 @@ Expression* BuildAst::makeExpression(ParseTree* tree) {
     std::cout << "Expression\n";
     if(tree->rule == EXPRESSION_COND || tree->rule == ASSIGNEXPR_TO_COND) {
         std::cout << "ConditionalExpression\n";
-        return new Expression();
+        return makeBinaryExpression(tree->children[0]);
     }
 
     assert(tree->rule == EXPRESSION_ASSIGN || tree->rule == ASSIGNEXPR_TO_ASSIGN);
     return makeAssignment(tree->children[0]);
+}
+
+Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
+    Expression* retBinExpr = NULL;
+    while(true) {
+        switch(tree->rule) {
+            case COND_TO_CONDOR:
+            case CONDOR_TO_CONDORAND:
+            case CONDAND_TO_INCLUOR:
+            case INCLUOR_TO_AND:
+            case AND_TO_EQUALITY:
+            case EQUALITY_TO_RELATIONAL:
+            case RELATION_TO_ADDITIVE:
+            case ADD_TO_MULTI:
+                tree = tree->children[0];
+                break;
+            case MULTI_TO_UNARY:
+                return makeUnaryExpression(tree->children[0]);
+            case CONDOR_TO_CONDAND:
+            case CONDAND_TO_CONDANDINCLUOR:
+            case INCLUOR_TO_INCLUORAND:
+            case AND_TO_ANDEQUALITY:
+            case EQUALITY_TO_EQUALITYRELATION:
+            case EQUALITY_TO_NOTEQRELATION:
+            case RELATION_TO_LTRELATIONADD:
+            case RELATION_TO_GTRELATIONADD:
+            case RELATION_TO_LTERELATIONADD:
+            case RELATION_TO_GTERELATIONADD:
+            case ADD_TO_PLUSMULTI:
+            case ADD_TO_MINUSMULTI:
+                retBinExpr = new BinaryExpression(makeBinaryExpression(tree->children[0]),
+                                                  makeBinaryExpression(tree->children[2]));
+                retBinExpr->setRule(tree->rule);
+                return retBinExpr;
+            case RELATION_TO_INSTANCEOF:
+                retBinExpr = new InstanceOf(makeBinaryExpression(tree->children[0]),
+                                            makeReferenceType(tree->children[2]));
+                retBinExpr->setRule(tree->rule);
+                return retBinExpr;
+            default:
+                std::cerr << "None of the rules applied" << std::endl;
+                assert(false);
+        }
+    }
+    return NULL;
+}
+
+Expression* BuildAst::makeUnaryExpression(ParseTree* tree) {
+    Expression* retUnaryExpr = NULL;
+    assert(tree->rule == NEG_UNARY || tree->rule == NOT_NEG_UNARY);
+    if(tree->rule == NEG_UNARY) {
+        retUnaryExpr = new NegationExpression(makeUnaryExpression(tree->children[1]));
+        retUnaryExpr->setRule(tree->rule);
+    } else {
+        retUnaryExpr = makeUnaryNotMinusExpr(tree->children[0]);
+    }
+
+    return retUnaryExpr;
+}
+
+Expression* BuildAst::makeUnaryNotMinusExpr(ParseTree* tree) {
+    Expression* retUnaryExpr = NULL;
+    assert(tree->rule == NOT_UNARY || tree->rule == UNARY_CAST || tree->rule == PRIMARY_UNARY
+           || tree->rule == UNARY_NAME);
+    if(tree->rule == NOT_UNARY) {
+        retUnaryExpr = new NegationExpression(makeUnaryExpression(tree->children[1]));
+    } else if(tree->rule == UNARY_CAST) {
+        retUnaryExpr = makeCastExpression(tree->children[0]);
+    } else if(tree->rule == PRIMARY_UNARY) {
+        retUnaryExpr = new PrimaryExpression(makePrimary(tree->children[0]));
+    } else {
+        retUnaryExpr = new NameExpression(makeName(tree->children[0]));
+    }
+
+    if(tree->rule == UNARY_CAST) {
+        retUnaryExpr->setRule(tree->rule);
+    }
+    return retUnaryExpr;
+}
+
+Expression* BuildAst::makeCastExpression(ParseTree* tree) {
+    Expression* retCastExpr = NULL;
+    assert(tree->rule == CAST_PRIMITIVE || tree->rule == CAST_NONPRIMITIVE ||
+           tree->rule == CAST_TO_EXPRESSION);
+    if(tree->rule == CAST_PRIMITIVE) {
+        PrimitiveType* type = new PrimitiveType(tree->children[1]->children[0]->token);
+        type->setRule(tree->children[1]->rule);
+        retCastExpr = new CastPrimitive(tree->children[2]->rule, type, makeUnaryExpression(tree->children[4]));
+    } else if(tree->rule == CAST_NONPRIMITIVE) {
+        retCastExpr = new CastName(makeName(tree->children[1]), makeUnaryNotMinusExpr(tree->children[5]));
+    } else {
+        Expression* expr = makeUnaryNotMinusExpr(tree->children[3]);
+        tree = tree->children[1];
+        while(true) {
+            switch(tree->rule) {
+                case COND_TO_CONDOR:
+                case CONDOR_TO_CONDORAND:
+                case CONDAND_TO_INCLUOR:
+                case INCLUOR_TO_AND:
+                case AND_TO_EQUALITY:
+                case EQUALITY_TO_RELATIONAL:
+                case RELATION_TO_ADDITIVE:
+                case ADD_TO_MULTI:
+                case MULTI_TO_UNARY:
+                case NOT_NEG_UNARY:
+                    tree = tree->children[0];
+                    break;
+                case UNARY_NAME:
+                    retCastExpr = new CastName(makeName(tree->children[0]), expr);
+                    retCastExpr->setRule(tree->rule);
+                    return retCastExpr;
+            }
+        }
+    }
+
+    retCastExpr->setRule(tree->rule);
+    return retCastExpr;
 }
 
 Assignment* BuildAst::makeAssignment(ParseTree* tree) {

@@ -59,7 +59,12 @@ class BuildAst
         static ClassBodyDecls* makeClassBodyDecl(ParseTree* tree);
         static ClassBodyDecls* makeClassMember(ParseTree* tree);
         static Type* makeType(ParseTree* tree);
+        static Type* makeReferenceType(ParseTree* tree); 
         static Expression* makeExpression(ParseTree* tree);
+        static Expression* makeBinaryExpression(ParseTree* tree);
+        static Expression* makeUnaryExpression(ParseTree* tree);
+        static Expression* makeUnaryNotMinusExpr(ParseTree* tree);
+        static Expression* makeCastExpression(ParseTree* tree);
         static Assignment* makeAssignment(ParseTree* tree);
         static Primary* makePrimary(ParseTree* tree);
         static Primary* makePrimaryNonArray(ParseTree* tree);
