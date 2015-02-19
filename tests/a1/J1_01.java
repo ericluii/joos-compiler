@@ -10,8 +10,14 @@ public class J1_01 {
 	int r6 = J1_01.m1(100);
 
 	int r = 0;
-	if (r1==9) r=r+1;
-	if (r2==6) r=r+1;
+	if (r1==9) {
+		for(int x = 2; x < r1; x = x+1) {
+			r=r+1;
+			x = x+2;
+		}
+		int z = 368/4;
+	}
+	if (r2==6) while(true) r=r+1;
 	if (r3==6) r=r+1;
 
 	if (r4==6) r=r+1;

@@ -26,6 +26,7 @@
 // Type
 #include "type.h"
 // Expression
+#include "expressionStar.h"
 #include "expression.h"
 #include "assignment.h"
 // Arguments
@@ -36,12 +37,18 @@
 // Access and Primary
 #include "fieldAccess.h"
 #include "arrayAccess.h"
+// Class creation
+#include "newClassCreation.h"
 // Class method
 #include "methodHeader.h"
 #include "methodBody.h"
 // Parameters
 #include "formalParamStar.h"
 #include "paramList.h"
+// Block statements
+#include "blockStmtsStar.h"
+#include "blockStmts.h"
+#include "stmtExpr.h"
 
 class BuildAst
 {
@@ -64,13 +71,22 @@ class BuildAst
         static ClassBodyDecls* makeClassBodyDecls(ParseTree* tree);
         static ClassBodyDecls* makeClassBodyDecl(ParseTree* tree);
         static ClassBodyDecls* makeClassMember(ParseTree* tree);
-        static ClassBodyDecls* makeClassMethod(ParseTree* tree);
         static MethodHeader* makeMethodHeader(ParseTree* tree);
         static MethodBody* makeMethodBody(ParseTree* tree);
         static FormalParamStar* makeFormalParamStar(ParseTree* tree);
         static ParamList* makeParamList(ParseTree* tree);
+        static BlockStmtsStar* makeBlockStmtsStar(ParseTree* tree);
+        static BlockStmts* makeBlockStmts(ParseTree* tree);
+        static BlockStmts* makeSingleStmt(ParseTree* tree);
+        static BlockStmts* makeStatement(ParseTree* tree);
+        static BlockStmts* makeIfStmt(ParseTree* tree);
+        static BlockStmts* makeWhileStmt(ParseTree* tree);
+        static BlockStmts* makeForStmt(ParseTree* tree);
+        static BlockStmts* makeNoTrailingSubstatement(ParseTree* tree);
+        static StmtExpr* makeStmtExpr(ParseTree* tree);
         static Type* makeType(ParseTree* tree);
-        static Type* makeReferenceType(ParseTree* tree); 
+        static Type* makeReferenceType(ParseTree* tree);
+        static ExpressionStar* makeExpressionStar(ParseTree* tree);
         static Expression* makeExpression(ParseTree* tree);
         static Expression* makeBinaryExpression(ParseTree* tree);
         static Expression* makeUnaryExpression(ParseTree* tree);
@@ -80,7 +96,7 @@ class BuildAst
         static Primary* makePrimary(ParseTree* tree);
         static Primary* makePrimaryNonArray(ParseTree* tree);
         static Primary* makePrimaryNewArray(ParseTree* tree);
-        static Primary* makeClassCreation(ParseTree* tree);
+        static NewClassCreation* makeClassCreation(ParseTree* tree);
         static ArgumentsStar* makeArgumentsStar(ParseTree* tree);
         static Arguments* makeArguments(ParseTree* tree);
         static MethodInvoke* makeMethodInvoke(ParseTree* tree);

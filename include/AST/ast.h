@@ -41,6 +41,7 @@ class Ast {
         bool isAssignField() { return rule == LVALUE_FIELD_ACCESS; }
         bool isAssignArray() { return rule == LVALUE_ARRAY; }
         // Expression
+        bool isExpressionStar() { return rule == EXPR_STAR || rule == EXPR_STAR_EPSILON; }
         bool isLazyOr() { return rule == CONDOR_TO_CONDORAND; }
         bool isLazyAnd() { return rule == CONDAND_TO_CONDANDINCLUOR; }
         bool isEagerOr() { return rule == INCLUOR_TO_INCLUORAND; }
@@ -118,7 +119,7 @@ class Ast {
         // Block statements
         bool isLastBlock() { return rule == BLOCK_STMT; }
         bool isMoreBlocksComing() { return rule == BLOCK_STMT_LIST; }
-        bool isLocalVarDecl() { return rule == LOCAL_VAR_DECL; }
+        bool isLocalVarDecl() { return rule == LOCAL_VAR_DECL || rule == FOR_INIT_LOCAL_DECL; }
         bool isIfStmt() { return rule == IF_STMT; }
         bool isIfThenElseStmt() { return rule == IF_THEN_STMT || rule == NO_SHORT_IF_THEN; }
         bool isWhileStmt() { return rule == WHILE_STMT || rule == NO_SHORT_WHILE; }

@@ -34,6 +34,9 @@ From Assignment 1 specifications:
 - Keywords in Java 1.3 but not in Joos 1W should be rejected (scanner) : Done
 - Operators in Java 1.3 but not in Joos 1W should be rejected (scanner) : Done
 
+Assignment 2:
+- Only abstract classes can have abstract methods
+
 From https://www.student.cs.uwaterloo.ca/~cs444/joos.html:
 
 Class Structure

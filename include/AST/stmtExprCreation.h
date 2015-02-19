@@ -14,7 +14,7 @@ class StmtExprCreation : public StmtExpr {
             delete create;
         }
 
-        Assignment* getCreatedClass() { return create; }
+        NewClassCreation* getCreatedClass() { return create; }
 };
 
 #endif

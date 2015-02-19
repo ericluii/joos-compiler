@@ -9,7 +9,6 @@
 #include "literalOrThis.h"
 #include "bracketedExpression.h"
 #include "primaryNewArray.h"
-#include "newClassCreation.h"
 // Access and Primary
 #include "arrayAccessName.h"
 #include "arrayAccessPrimary.h"
@@ -28,6 +27,17 @@
 #include "castName.h"
 #include "castPrimitive.h"
 #include "negationExpression.h"
+// Block statements
+#include "localDecl.h"
+#include "ifStmt.h"
+#include "emptyStmt.h"
+#include "forStmt.h"
+#include "nestedBlock.h"
+#include "returnStmt.h"
+#include "stmtExprAssign.h"
+#include "stmtExprCreation.h"
+#include "stmtExprInvoke.h"
+#include "whileStmt.h"
 
 #include <cassert>
 
@@ -455,7 +465,215 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
 }
 
 MethodBody* BuildAst::makeMethodBody(ParseTree* tree) {
-    return NULL;
+    MethodBody* body = NULL;
+    if(debug) std::cout << "MethodBody\n";
+    assert(tree->rule == METHOD_BODY || tree->rule == METHOD_BODY_EMPTY);
+
+    BlockStmtsStar* stmts = NULL;
+    if(tree->rule == METHOD_BODY) {
+        stmts = makeBlockStmtsStar(tree->children[0]->children[1]);
+    }
+
+    body = new MethodBody(stmts);
+    body->setRule(tree->rule);
+    return body;
+}
+
+BlockStmtsStar* BuildAst::makeBlockStmtsStar(ParseTree* tree) {
+    BlockStmtsStar* returnStmts = NULL;
+    if(debug) std::cout << "BlockStmtsStar\n";
+    assert(tree->rule == BLOCK_STMTS || tree->rule == BLOCK_STMTS_EPSILON);
+
+    BlockStmts* blockStmts = NULL;
+    if(tree->rule == BLOCK_STMTS) {
+        blockStmts = makeBlockStmts(tree->children[0]);
+    }
+
+    returnStmts = new BlockStmtsStar(blockStmts);
+    returnStmts->setRule(tree->rule);
+    return returnStmts;
+}
+
+BlockStmts* BuildAst::makeBlockStmts(ParseTree* tree) {
+    BlockStmts* returnStmts = NULL;
+    if(debug) std::cout << "BlockStmts\n";
+    assert(tree->rule == BLOCK_STMT || tree->rule == BLOCK_STMT_LIST);
+
+    if(tree->rule == BLOCK_STMT) {
+        return makeSingleStmt(tree->children[0]);
+    }
+
+    returnStmts = makeSingleStmt(tree->children[1]);
+    BlockStmts* currentStmt = returnStmts;
+    BlockStmts* nextStmt;
+    tree = tree->children[0];
+
+    while(true) {
+        switch(tree->rule) {
+            case BLOCK_STMT_LIST:
+                nextStmt = makeSingleStmt(tree->children[1]);
+                currentStmt->setNextBlockStmt(nextStmt);
+                currentStmt = nextStmt;
+                tree = tree->children[0];
+                break;
+            case BLOCK_STMT:
+                currentStmt->setNextBlockStmt(makeBlockStmts(tree));
+                return returnStmts;
+        }
+    }
+    assert(false);
+    return returnStmts;
+}
+
+BlockStmts* BuildAst::makeSingleStmt(ParseTree* tree) {
+    BlockStmts* singleStmt = NULL;
+    if(debug) std::cout << "SingleStmt\n";
+    assert(tree->rule == LOCAL_VAR_STMT || tree->rule == BLOCK_IS_STMT);
+
+    if(tree->rule == LOCAL_VAR_STMT) {
+        tree = tree->children[0]->children[0];
+        singleStmt = new LocalDecl(makeType(tree->children[0]), makeIdentifier(tree->children[1]),
+                                   makeExpression(tree->children[3]));
+        singleStmt->setRule(LOCAL_VAR_STMT);
+        return singleStmt;
+    }
+
+    singleStmt = makeStatement(tree->children[0]);
+    return singleStmt;
+}
+
+BlockStmts* BuildAst::makeStatement(ParseTree* tree) {
+    BlockStmts* singleStmt = NULL;
+    if(debug) std::cout << "Statement\n";
+    assert(tree->rule == STMT_NO_TRAILING || tree->rule == IF_STMT ||
+           tree->rule == IF_THEN_STMT || tree->rule == WHILE_STMT || tree->rule == FOR_STMT ||
+           tree->rule == NOSHORTIF_STMT_NON_TRAILING || tree->rule == NO_SHORT_IF_THEN ||
+           tree->rule == NO_SHORT_WHILE || tree->rule == NO_SHORT_FOR);
+    switch(tree->rule) {
+        case IF_STMT:
+        case IF_THEN_STMT:
+        case NO_SHORT_IF_THEN:
+            singleStmt = makeIfStmt(tree);
+            break;
+        case STMT_NO_TRAILING:
+        case NOSHORTIF_STMT_NON_TRAILING:
+            singleStmt = makeNoTrailingSubstatement(tree->children[0]);
+            break;
+        case WHILE_STMT:
+        case NO_SHORT_WHILE:
+            singleStmt = makeWhileStmt(tree);
+            break;
+        case FOR_STMT:
+        case NO_SHORT_FOR:
+            singleStmt = makeForStmt(tree);
+            break;
+    }
+
+    return singleStmt;
+
+}
+
+BlockStmts* BuildAst::makeIfStmt(ParseTree* tree) {
+    BlockStmts* ifStmt = NULL;
+    if(debug) std::cout << "IfStmt\n";
+    assert(tree->rule == IF_STMT || tree->rule == IF_THEN_STMT || tree->rule == NO_SHORT_IF_THEN);
+    int rule = tree->rule;
+    tree = tree->children[0];
+
+    if(rule == IF_STMT) {
+        ifStmt = new IfStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]), NULL);
+    } else {
+        ifStmt = new IfStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]),
+                            makeStatement(tree->children[6]));
+    }
+
+    ifStmt->setRule(rule);
+    return ifStmt;
+}
+
+BlockStmts* BuildAst::makeWhileStmt(ParseTree* tree) {
+    BlockStmts* whileStmt = NULL;
+    if(debug) std::cout << "WhileStmt\n";
+    assert(tree->rule == WHILE_STMT || tree->rule == NO_SHORT_WHILE);
+
+    int rule = tree->rule;
+    tree = tree->children[0];
+    whileStmt = new WhileStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]));
+    whileStmt->setRule(rule);
+    return whileStmt;
+}
+
+BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
+    BlockStmts* forStmt = NULL;
+    if(debug) std::cout << "ForStmt\n";
+    assert(tree->rule == FOR_STMT || tree->rule == NO_SHORT_FOR);
+
+    int rule = tree->rule;
+    tree = tree->children[0];
+    BlockStmts* forInit = NULL;
+    ExpressionStar* expr = makeExpressionStar(tree->children[4]);
+    StmtExpr* forUpdate = NULL;
+    BlockStmts* loopStmt = makeStatement(tree->children[8]);
+
+    if(tree->children[2]->rule == FOR_INIT_LOCAL_DECL) {
+        ParseTree* backup = tree->children[2]->children[0];
+        forInit = new LocalDecl(makeType(backup->children[0]), makeIdentifier(backup->children[1]),
+                                makeExpression(backup->children[3]));
+        forInit->setRule(tree->children[1]->rule);
+    } else if(tree->children[2]->rule == FOR_INIT_STMT) {
+        forInit = makeStmtExpr(tree->children[2]->children[0]);
+        forInit->setRule(tree->children[2]->rule);
+    }
+
+    if(tree->children[6]->rule == FOR_UPDATE_STMT) {
+        forUpdate = makeStmtExpr(tree->children[6]->children[0]);
+        forUpdate->setRule(tree->children[6]->rule);
+    }
+
+    forStmt = new ForStmt(forInit, expr, forUpdate, loopStmt);
+    forStmt->setRule(rule);
+    return forStmt;
+}
+
+BlockStmts* BuildAst::makeNoTrailingSubstatement(ParseTree* tree) {
+    BlockStmts* noTrailSubStmt = NULL;
+    if(debug) std::cout << "NoTrailingSubstatement\n";
+    assert(tree->rule == STMT_NON_TRAILING_BLOCK || tree->rule == STMT_NON_TRAILING_EMPTY ||
+           tree->rule == STMT_NON_TRAILING_EXPR || tree->rule == STMT_NON_TRAILING_RETURN);
+
+    int rule = tree->rule;
+    if(rule == STMT_NON_TRAILING_BLOCK) {
+        noTrailSubStmt = new NestedBlock(makeBlockStmtsStar(tree->children[0]->children[1]));
+    } else if(rule == STMT_NON_TRAILING_EMPTY) {
+        noTrailSubStmt = new EmptyStmt();
+    } else if(rule == STMT_NON_TRAILING_EXPR) {
+        noTrailSubStmt = makeStmtExpr(tree->children[0]->children[0]);
+    } else {
+        noTrailSubStmt = new ReturnStmt(makeExpressionStar(tree->children[0]->children[1]));
+    }
+
+    if(tree->rule != STMT_NON_TRAILING_EXPR) {
+        noTrailSubStmt->setRule(rule);
+    }
+    return noTrailSubStmt;
+}
+
+StmtExpr* BuildAst::makeStmtExpr(ParseTree* tree) {
+    StmtExpr* stmtExpr = NULL;
+    if(debug) std::cout << "StmtExpr\n";
+    assert(tree->rule == STMTEXPR_TO_ASSIGN || tree->rule == STMTEXPR_INVOKE ||
+           tree->rule == STMTEXPR_MAKE_CLASS);
+
+    if(tree->rule == STMTEXPR_TO_ASSIGN) {
+        stmtExpr = new StmtExprAssign(makeAssignment(tree->children[0]));
+    } else if(tree->rule == STMTEXPR_INVOKE) {
+        stmtExpr = new StmtExprInvoke(makeMethodInvoke(tree->children[0]));
+    } else {
+        stmtExpr = new StmtExprCreation(makeClassCreation(tree->children[0]));
+    }
+
+    stmtExpr->setRule(tree->rule);
+    return stmtExpr;
 }
 
 Type* BuildAst::makeType(ParseTree* tree) {
@@ -498,6 +716,20 @@ Type* BuildAst::makeReferenceType(ParseTree* tree) {
     return returnType;
 }
 
+ExpressionStar* BuildAst::makeExpressionStar(ParseTree* tree) {
+    ExpressionStar* exprStar = NULL;
+    if(debug) std::cout << "ExpressionStar\n";
+    
+    Expression* expr = NULL;
+    if(tree->rule == EXPR_STAR) {
+        expr = makeExpression(tree->children[0]);
+    }
+
+    exprStar = new ExpressionStar(expr);
+    exprStar->setRule(tree->rule);
+    return exprStar;
+}
+
 Expression* BuildAst::makeExpression(ParseTree* tree) {
     std::cout << "Expression\n";
     if(tree->rule == EXPRESSION_COND || tree->rule == ASSIGNEXPR_TO_COND) {
@@ -515,7 +747,7 @@ Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
     while(true) {
         switch(tree->rule) {
             case COND_TO_CONDOR:
-            case CONDOR_TO_CONDORAND:
+            case CONDOR_TO_CONDAND:
             case CONDAND_TO_INCLUOR:
             case INCLUOR_TO_AND:
             case AND_TO_EQUALITY:
@@ -526,7 +758,7 @@ Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
                 break;
             case MULTI_TO_UNARY:
                 return makeUnaryExpression(tree->children[0]);
-            case CONDOR_TO_CONDAND:
+            case CONDOR_TO_CONDORAND:
             case CONDAND_TO_CONDANDINCLUOR:
             case INCLUOR_TO_INCLUORAND:
             case AND_TO_ANDEQUALITY:
@@ -545,6 +777,13 @@ Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
             case RELATION_TO_INSTANCEOF:
                 retBinExpr = new InstanceOf(makeBinaryExpression(tree->children[0]),
                                             makeReferenceType(tree->children[2]));
+                retBinExpr->setRule(tree->rule);
+                return retBinExpr;
+            case MULTI_TO_MULTUNARY:
+            case MULTI_TO_DIVUNARY:
+            case MULTI_TO_MODUNARY:
+                retBinExpr = new BinaryExpression(makeBinaryExpression(tree->children[0]),
+                                                  makeUnaryExpression(tree->children[2]));
                 retBinExpr->setRule(tree->rule);
                 return retBinExpr;
             default:
@@ -734,7 +973,7 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
     return primaryNA;
 }
 
-Primary* BuildAst::makeClassCreation(ParseTree* tree) {
+NewClassCreation* BuildAst::makeClassCreation(ParseTree* tree) {
     if(debug) std::cout << "ClassCreation\n";
     assert(tree->rule == MAKE_NEW_CLASS);
     Name* classType = makeName(tree->children[1]->children[0]->children[0]);
@@ -762,10 +1001,11 @@ ArgumentsStar* BuildAst::makeArgumentsStar(ParseTree* tree) {
 Arguments* BuildAst::makeArguments(ParseTree* tree) {
     if(debug) std::cout << "Arguments\n";
     Arguments* returnArguments;
-    
+   
     if(tree->rule == ARG_LIST_EXPRESSION) {
         returnArguments = new Arguments(makeExpression(tree->children[0]));
         returnArguments->setRule(ARG_LIST_EXPRESSION);
+        return returnArguments;
     }
     
     assert(tree->rule == ARG_LIST_LIST);
@@ -798,6 +1038,7 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
 }
 
 MethodInvoke* BuildAst::makeMethodInvoke(ParseTree* tree) {
+    if(debug) std::cout << "MethodInvoke\n";
     MethodInvoke* invocation = NULL;
     assert(tree->rule == INVOKE_METHOD_NORM || tree->rule == INVOKE_METHOD_ACCESS);
     ArgumentsStar* args = makeArgumentsStar(tree->children[2]);

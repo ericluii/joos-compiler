@@ -4,18 +4,18 @@
 #include "blockStmts.h"
 #include "expression.h"
 
-class ReturnStmt : BlockStmts {
+class ReturnStmt : public BlockStmts {
     // Rule: STMT_NON_TRAILING_RETURN
     private:
-        Expression* retExpr;
+        ExpressionStar* retExpr;
     public:
-        ReturnStmt(Expression* retExpr) : BlockStmts(), retExpr() {}
+        ReturnStmt(ExpressionStar* retExpr) : BlockStmts(), retExpr() {}
         ~ReturnStmt() {
             delete retExpr;
         }
 
         Expression* getReturnExpr() { return retExpr; }
-        bool isEmptyReturn() { return retExpr == NULL; }
+        bool isEmptyReturn() { return retExpr->isEpsilon(); }
 };
 
 #endif

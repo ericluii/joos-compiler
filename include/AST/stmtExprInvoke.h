@@ -11,10 +11,10 @@ class StmtExprInvoke : public StmtExpr {
     public:
         StmtExprInvoke(MethodInvoke* invoke) : StmtExpr(), invoke(invoke) {}
         ~StmtExprInvoke() {
-            delete invokedMethod;
+            delete invoke;
         }
 
-        MethodInvoke* getInvoke() { return invoke; }
+        MethodInvoke* getMethod() { return invoke; }
 };
 
 #endif

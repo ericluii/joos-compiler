@@ -13,6 +13,7 @@ class BlockStmts : public Ast {
         }
 
         BlockStmts* getNextBlockStmt() { return nextBlockStmt; }
+        void setNextBlockStmt(BlockStmts* set) { nextBlockStmt = set; }
 };
 
 #endif
