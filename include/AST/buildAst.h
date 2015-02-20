@@ -102,6 +102,7 @@ class BuildAst
         static MethodInvoke* makeMethodInvoke(ParseTree* tree);
         static FieldAccess* makeFieldAccess(ParseTree* tree);
         static ArrayAccess* makeArrayAccess(ParseTree* tree);
+        static ClassBodyDecls* makeConstructor(ParseTree* tree);
     public:
         static Ast* build(ParseTree* tree);
         BuildAst() {}

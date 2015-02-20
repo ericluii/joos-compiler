@@ -1,7 +1,9 @@
 #include "buildAst.h"
 // Class members
+// Class body decls
 #include "fieldDecl.h"
 #include "classMethod.h"
+#include "constructor.h"
 // Types
 #include "primitiveType.h"
 #include "referenceType.h"
@@ -365,8 +367,7 @@ ClassBodyDecls* BuildAst::makeClassBodyDecl(ParseTree* tree) {
     }
     
     assert(tree->rule == CLASS_CONSTRUCTOR);
-    std::cout << "Constructor\n";
-    return new ClassBodyDecls(NULL);
+    return makeConstructor(tree->children[0]);
 }
 
 ClassBodyDecls* BuildAst::makeClassMember(ParseTree* tree) {
@@ -1068,6 +1069,21 @@ Primary* BuildAst::makePrimaryNewArray(ParseTree* tree) {
 
     returnPNA->setRule(tree->rule);
     return returnPNA;
+}
+
+ClassBodyDecls* BuildAst::makeConstructor(ParseTree* tree) {
+    ClassBodyDecls* constructor = NULL;
+    if(debug) std::cout << "Constructor\n";
+    assert(tree->rule == CONSTRUCTOR_PARTS);
+
+    Modifiers* mods = makeModifiers(tree->children[0]);
+    Identifier* id = makeIdentifier(tree->children[1]->children[0]->children[0]);
+    FormalParamStar* params = makeFormalParamStar(tree->children[1]->children[2]);
+    BlockStmtsStar* body = makeBlockStmtsStar(tree->children[2]->children[1]);
+
+    constructor = new Constructor(mods, id, params, body);
+    constructor->setRule(CLASS_CONSTRUCTOR);
+    return constructor;
 }
 
 InterfaceDecl *BuildAst::makeInterfaceDecl(ParseTree *tree){
