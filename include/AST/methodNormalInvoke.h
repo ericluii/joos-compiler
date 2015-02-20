@@ -14,7 +14,7 @@ class MethodNormalInvoke : public MethodInvoke {
             delete methodInvoked;
         }
 
-        Name* getInvokedMethod() { return methodInvoked; }
+        Name* getNameOfInvokedMethod() { return methodInvoked; }
 };
 
 #endif

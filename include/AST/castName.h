@@ -15,7 +15,7 @@ class CastName : public CastExpression {
             delete castType;
         }
 
-        Name* getCastName() { return castType; }
+        Name* getNameToCastTo() { return castType; }
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "modifiers.h"
 
 class ClassBodyDecls : public Ast {
+    // Rule: CLASS_BODY_DECL and CLASS_BODY_LIST
     protected:
         Modifiers* mod;
         ClassBodyDecls* nextDeclaration;
@@ -20,6 +21,7 @@ class ClassBodyDecls : public Ast {
         ClassBodyDecls* getNextDeclaration() { return nextDeclaration; }
         Modifiers* getModifiers() { return mod; }
         void setNextDeclaration(ClassBodyDecls* set) { nextDeclaration = set; }
+        bool isLastClassMember() { return nextDeclaration == NULL; }
 };
 
 #endif

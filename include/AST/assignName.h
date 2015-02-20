@@ -14,7 +14,7 @@ class AssignName : public Assignment {
             delete LHS;
         }
 
-        Name* getLHSName() { return LHS; }
+        Name* getNameToAssign() { return LHS; }
 };
 
 #endif

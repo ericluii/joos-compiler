@@ -14,7 +14,7 @@ class StmtExprInvoke : public StmtExpr {
             delete invoke;
         }
 
-        MethodInvoke* getMethod() { return invoke; }
+        MethodInvoke* getMethodInvoked() { return invoke; }
 };
 
 #endif

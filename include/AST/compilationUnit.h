@@ -25,6 +25,10 @@ class CompilationUnit : public Ast
         PackageDecl *GetPackageDecl() { return packageDecl; }
         ImportDeclsStar *GetImportDeclsStar() { return importDecls; }
         TypeDecl *GetTypeDecl() { return typeDecl; }
+
+        bool noTypeDeclared() { return typeDecl->isEpsilon(); }
+        bool noPackageNamed() { return packageDecl->isEpsilon(); }
+        bool noImports() { return importDecls->isEpsilon(); }
 };
 
 #endif

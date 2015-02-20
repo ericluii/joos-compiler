@@ -24,6 +24,8 @@ class Constructor : public ClassBodyDecls {
         Identifier* getConstructorId() { return id; }
         FormalParamStar* getConstructorParameters() { return params; }
         BlockStmtsStar* getConstuctorBody() { return body; }
+
+        bool emptyConstructorBody() { return body->isEpsilon(); }
 };
 
 #endif

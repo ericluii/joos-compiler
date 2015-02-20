@@ -2,17 +2,17 @@
 #define __INTERFACELIST_H__
 
 #include "ast.h"
-#include "implements.h"
+#include "interfaces.h"
 
 class InterfaceList : public Ast {
-    // Rule: IMPLEMENTING and IMPLEMENT_EPSILON
+    // Rule: IMPLEMENTING, IMPLEMENT_EPSILON, EXTENDS_INTERFACE and EXTENDS_INTERFACE_EPSILON
     private:
-        Implements* implementsList;
+        Interfaces* list;
     public:
-        InterfaceList(Implements* implementsList) : implementsList(implementsList) {}
+        InterfaceList(Interfaces* list) : list(list) {}
 
-        Implements* getImplementedInterfaces() { return implementsList; }
-        bool isEpsilon() { return implementsList == NULL; }
+        Interfaces* getListOfInterfaces() { return list; }
+        bool isEpsilon() { return list == NULL; }
 };
 
 #endif

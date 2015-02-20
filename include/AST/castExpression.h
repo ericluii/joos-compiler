@@ -12,7 +12,7 @@ class CastExpression : public Expression {
             delete toCast;
         }
 
-        Expression* getExpressionToCast() { return toCast; }
+        Expression* getExpressionToCastTo() { return toCast; }
 };
 
 #endif

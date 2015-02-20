@@ -13,9 +13,9 @@ class ArgumentsStar : public Ast
         ~ArgumentsStar() {
             delete args;
         }
+        
         bool isEpsilon() { return args == NULL; }
-
-        Arguments* getArgs() { return args; }
+        Arguments* getListOfArguments() { return args; }
 };
 
 #endif

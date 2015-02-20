@@ -14,7 +14,7 @@ class AssignField : public Assignment {
             delete LHS;
         }
 
-        FieldAccess* getLHSField() { return LHS; }
+        FieldAccess* getAssignedField() { return LHS; }
 };
 
 #endif

@@ -15,6 +15,7 @@ class ReferenceType : public Type {
         }
 
         Name* getReferenceName() { return referenceType; }
+        bool isEpsilon() { return false; }
 };
 
 #endif

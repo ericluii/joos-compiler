@@ -5,6 +5,7 @@
 #include "expression.h"
 
 class ExpressionStar : public Expression {
+    // Rule: EXPR_STAR and EXPR_STAR_EPSILON
     private:
         Expression* expr;
     public:
@@ -13,7 +14,7 @@ class ExpressionStar : public Expression {
             delete expr;
         }
 
-        Expression* getExpr() { return expr; }
+        Expression* getExpression() { return expr; }
         bool isEpsilon() { return expr == NULL; }
 };
 

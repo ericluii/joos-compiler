@@ -21,9 +21,9 @@ class MethodHeader : public Ast {
             delete params;
         }
 
-        Identifier* getMethodName() { return name; }
+        Identifier* getClassMethodId() { return name; }
         Type* getReturnType() { return retType; }
-        FormalParamStar* getParameters() { return params; }
+        FormalParamStar* getClassMethodParams() { return params; }
 
         bool isVoidReturnType() { return retType == NULL; }
 };

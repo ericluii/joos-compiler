@@ -361,7 +361,7 @@ ConstructorDeclaration MemberModifiers ConstructorDeclarator ConstructorBody
 ConstructorDeclarator SimpleName ( FormalParameterList* )
 ConstructorBody { BlockStatements* }
 InterfaceDeclaration Modifiers interface Identifier ExtendsInterfaces* InterfaceBody
-ExtendsInterfaces extends InterfaceType
+ExtendsInterfaces InterfaceType
 ExtendsInterfaces ExtendsInterfaces , InterfaceType
 InterfaceBody { InterfaceMemberDeclarations* }
 InterfaceMemberDeclarations* InterfaceMemberDeclarations
@@ -372,7 +372,7 @@ InterfaceMemberDeclaration AbstractMethodDeclaration
 AbstractMethodDeclaration AbstractMethodHeader ;
 RelationalExpression AdditiveExpression
 CastExpression ( Expression ) UnaryExpressionNotMinus
-ExtendsInterfaces* ExtendsInterfaces
+ExtendsInterfaces* extends ExtendsInterfaces
 ExtendsInterfaces*
 TypeDeclaration InterfaceDeclaration
 TypeDeclaration

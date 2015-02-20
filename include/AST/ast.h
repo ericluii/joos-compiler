@@ -23,8 +23,10 @@ class Ast {
         // Extends class
         bool isSuper() { return rule == EXTENDS_CLASS || rule == EXTENDS_CLASS_EPSILON; }
         // Implements interface
-        bool isInterfaceList() { return rule == IMPLEMENTING || rule == IMPLEMENT_EPSILON; }
-        // Class or interface
+        bool isImplementsInterfaces() { return rule == IMPLEMENTING || rule == IMPLEMENT_EPSILON; }
+        // Extends interface
+        bool isExtendsInterfaces() { return rule == EXTENDS_INTERFACE || rule == EXTENDS_INTERFACE_EPSILON; }
+        // Class or interface type
         bool isClass() { return rule == TYPE_CLASS; }
         bool isInterface() { return rule == TYPE_INTERFACE; }
         // Name
@@ -68,6 +70,8 @@ class Ast {
         bool isFieldDecl() { return rule == CLASS_FIELD; }
         bool isClassMethodDecl() { return rule == CLASS_METHOD; }
         bool isConstructorDecl() { return rule == CLASS_CONSTRUCTOR; }
+        // Interface methods
+        bool isInterfaceMethod() { return rule == INTERFACE_MEMBER_DECL || rule == INTERFACE_MEMBER_DECL_LIST; }
         // Literal and this
         bool isThis() { return rule == PRIMARY_THIS; }
         bool isNumber() { return rule == LITERAL_NUM; }

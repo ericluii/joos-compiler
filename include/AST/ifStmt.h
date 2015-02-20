@@ -20,6 +20,8 @@ class IfStmt : public BlockStmts {
         Expression* getExpressionToEvaluate() { return eval; }
         BlockStmts* getExecuteTruePart() { return exTrue; }
         BlockStmts* getExecuteFalsePart() { return exFalse; }
+
+        bool noElsePart() { return exFalse == NULL; }
 };
 
 #endif

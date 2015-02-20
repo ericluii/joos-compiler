@@ -13,7 +13,7 @@ class ArrayAccess : public Primary {
             delete accessExpr;
         }
 
-        Expression* getAccessExpr() { return accessExpr; }
+        Expression* getAccessExpression() { return accessExpr; }
 };
 
 #endif

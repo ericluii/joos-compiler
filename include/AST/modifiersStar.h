@@ -14,8 +14,8 @@ class ModifiersStar : public Ast {
             delete mods;
         }
 
-        virtual bool isEpsilon() { return mods == NULL; }
-        Modifiers* getModifiers() { return mods; }
+        bool isEpsilon() { return mods == NULL; }
+        Modifiers* getListOfModifiers() { return mods; }
 };
 
 #endif

@@ -14,7 +14,7 @@ class ArrayAccessPrimary : public ArrayAccess {
             delete arrayPrimary;
         }
 
-        Primary* getArrayPrimary() { return arrayPrimary; }
+        Primary* getAccessedPrimaryArray() { return arrayPrimary; }
 };
 
 #endif

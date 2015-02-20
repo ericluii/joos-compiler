@@ -18,7 +18,7 @@ class NewClassCreation : public Primary {
         }
 
         Name* getClassType() { return classType; }
-        ArgumentsStar* getArgsStar() { return args; }
+        ArgumentsStar* getArgsToCreateClass() { return args; }
 };
 
 #endif

@@ -18,7 +18,7 @@ class PrimaryNewArray : public Primary {
         }
 
         Type* getArrayType() { return type; }
-        Expression* getDimensionExpr() { return dimensionExpr; }
+        Expression* getTheDimension() { return dimensionExpr; }
 };
 
 #endif

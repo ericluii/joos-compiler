@@ -20,6 +20,7 @@ class Arguments : public Ast
         Expression* getSelfArgumentExpr() { return selfExpr; }
 
         void setNextArgs(Arguments* set) { nextArgs = set; }
+        bool lastArgument() { nextArgs == NULL; }
 };
 
 #endif

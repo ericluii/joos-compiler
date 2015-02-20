@@ -16,7 +16,7 @@ class Modifiers : public Ast {
             delete nextModifier;
         }
 
-        std::string getCurrentModifier() { return mod->getString(); }
+        std::string getCurrentModifierAsString() { return mod->getString(); }
         Modifiers* getNextModifier() { return nextModifier; }
 
         void setNextModifier(Modifiers* set) { nextModifier = set; }

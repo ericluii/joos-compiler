@@ -13,10 +13,11 @@
 #include "interfaceDecl.h"
 #include "name.h"
 #include "typeDecl.h"
+#include "modifiersStar.h"
 #include "modifiers.h"
 #include "super.h"
 #include "interfaceList.h"
-#include "implements.h"
+#include "interfaces.h"
 // Imports
 #include "importDecls.h"
 #include "importDeclsStar.h"
@@ -49,6 +50,9 @@
 #include "blockStmtsStar.h"
 #include "blockStmts.h"
 #include "stmtExpr.h"
+// Interface 
+#include "interfaceBodyStar.h"
+#include "interfaceMethod.h"
 
 class BuildAst
 {
@@ -63,10 +67,11 @@ class BuildAst
         static InterfaceDecl *makeInterfaceDecl(ParseTree *tree);
         static Name *makeName(ParseTree *tree);
         static Identifier *makeIdentifier(ParseTree *tree);
+        static ModifiersStar* makeModifiersStar(ParseTree* tree);
         static Modifiers* makeModifiers(ParseTree* tree);
         static Super* makeSuper(ParseTree* tree);
         static InterfaceList* makeInterfaceList(ParseTree* tree);
-        static Implements* makeImplements(ParseTree* tree);
+        static Interfaces* makeInterfaces(ParseTree* tree);
         static ClassBodyStar* makeClassBodyStar(ParseTree* tree);
         static ClassBodyDecls* makeClassBodyDecls(ParseTree* tree);
         static ClassBodyDecls* makeClassBodyDecl(ParseTree* tree);
@@ -103,6 +108,9 @@ class BuildAst
         static FieldAccess* makeFieldAccess(ParseTree* tree);
         static ArrayAccess* makeArrayAccess(ParseTree* tree);
         static ClassBodyDecls* makeConstructor(ParseTree* tree);
+        static InterfaceBodyStar* makeInterfaceBodyStar(ParseTree* tree);
+        static InterfaceMethod* makeInterfaceMethod(ParseTree* tree);
+        static InterfaceMethod* interfaceMethodSubroutine(ParseTree* tree);
     public:
         static Ast* build(ParseTree* tree);
         BuildAst() {}

@@ -94,7 +94,6 @@ Name *BuildAst::makeName(ParseTree *tree){
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -160,7 +159,6 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -218,7 +216,6 @@ Modifiers* BuildAst::makeModifiers(ParseTree* tree) {
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -250,7 +247,6 @@ Super* BuildAst::makeSuper(ParseTree* tree) {
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -258,49 +254,48 @@ InterfaceList* BuildAst::makeInterfaceList(ParseTree* tree) {
     if(debug) std::cout << "InterfaceList\n";
     InterfaceList* returnInterfaces = NULL;
     
-    if(tree->rule == IMPLEMENT_EPSILON) {
+    if(tree->rule == IMPLEMENT_EPSILON || tree->rule == EXTENDS_INTERFACE_EPSILON) {
         returnInterfaces = new InterfaceList(NULL);
         returnInterfaces->setRule(tree->rule);
         return returnInterfaces;
     }
-    assert(tree->rule == IMPLEMENTING);
-    returnInterfaces = new InterfaceList(makeImplements(tree->children[1]));
+    assert(tree->rule == IMPLEMENTING || tree->rule == EXTENDS_INTERFACE);
+    returnInterfaces = new InterfaceList(makeInterfaces(tree->children[1]));
     returnInterfaces->setRule(tree->rule);
     return returnInterfaces;
 }
 
-Implements* BuildAst::makeImplements(ParseTree* tree) {
-    if(debug) std::cout << "Implements\n";
-    Implements* returnImplements = NULL;
-    if(tree->rule == INTERFACE_TYPE_LIST_END) {
-        returnImplements = new Implements(makeName(tree->children[0]->children[0]->children[0]));
-        returnImplements->setRule(tree->rule);
-        return returnImplements;
+Interfaces* BuildAst::makeInterfaces(ParseTree* tree) {
+    if(debug) std::cout << "Interfaces\n";
+    Interfaces* returnInterfaces = NULL;
+    if(tree->rule == INTERFACE_TYPE_LIST_END || tree->rule == EXTENDING) {
+        returnInterfaces = new Interfaces(makeName(tree->children[0]->children[0]->children[0]));
+        returnInterfaces->setRule(tree->rule);
+        return returnInterfaces;
     }
 
-    assert(tree->rule == INTERFACE_TYPE_LIST);
-    returnImplements = new Implements(makeName(tree->children[2]->children[0]->children[0]));
-    returnImplements->setRule(tree->rule);
-    Implements* currentImplement = returnImplements;
-    Implements* nextImplement;
+    assert(tree->rule == INTERFACE_TYPE_LIST || tree->rule == EXTENDING_LIST);
+    returnInterfaces = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
+    returnInterfaces->setRule(tree->rule);
+    Interfaces* currentInterface = returnInterfaces;
+    Interfaces* nextInterface;
     tree = tree->children[0];
     while(true) {
         switch(tree->rule) {
             case INTERFACE_TYPE_LIST:
-                nextImplement = new Implements(makeName(tree->children[2]->children[0]->children[0]));
-                nextImplement->setNextImplement(nextImplement);
-                currentImplement = nextImplement;
+                nextInterface = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
+                nextInterface->setNextInterface(nextInterface);
+                currentInterface = nextInterface;
                 tree = tree->children[0];
                 break;
             case INTERFACE_TYPE_LIST_END:
-                currentImplement->setNextImplement(makeImplements(tree));
-                return returnImplements;
+                currentInterface->setNextInterface(makeInterfaces(tree));
+                return returnInterfaces;
             default:
                 std::cerr << "None of the rules apply" << std::endl;
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
     
@@ -355,7 +350,6 @@ ClassBodyDecls* BuildAst::makeClassBodyDecls(ParseTree* tree) {
                 assert(false); 
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -439,8 +433,8 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
         return params;
     }
 
-    params = new ParamList(makeType(tree->children[1]->children[0]),
-                           makeIdentifier(tree->children[1]->children[1]));
+    params = new ParamList(makeType(tree->children[2]->children[0]),
+                           makeIdentifier(tree->children[2]->children[1]));
     params->setRule(tree->rule);
     ParamList* currentParams = params;
     ParamList* nextParams;
@@ -449,8 +443,8 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
     while(true) {
         switch(tree->rule) {
             case FORMAL_PARAM_LIST:
-                nextParams = new ParamList(makeType(tree->children[1]->children[0]),
-                                           makeIdentifier(tree->children[1]->children[1]));
+                nextParams = new ParamList(makeType(tree->children[2]->children[0]),
+                                           makeIdentifier(tree->children[2]->children[1]));
                 nextParams->setRule(tree->rule);
                 currentParams->setNextParameter(nextParams);
                 currentParams = nextParams;
@@ -459,9 +453,11 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
             case FORMAL_PARAM:
                 currentParams->setNextParameter(makeParamList(tree));
                 return params;
+            default:
+                std::cerr << "None of the rules apply" << std::endl;
+                assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -520,9 +516,11 @@ BlockStmts* BuildAst::makeBlockStmts(ParseTree* tree) {
             case BLOCK_STMT:
                 currentStmt->setNextBlockStmt(makeBlockStmts(tree));
                 return returnStmts;
+            default:
+                std::cerr << "None of the rules apply" << std::endl;
+                assert(false);
         }
     }
-    assert(false);
     return returnStmts;
 }
 
@@ -568,6 +566,9 @@ BlockStmts* BuildAst::makeStatement(ParseTree* tree) {
         case NO_SHORT_FOR:
             singleStmt = makeForStmt(tree);
             break;
+        default:
+            std::cerr << "None of the rules apply" << std::endl;
+            assert(false);
     }
 
     return singleStmt;
@@ -862,6 +863,9 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
                     retCastExpr = new CastName(makeName(tree->children[0]), expr);
                     retCastExpr->setRule(tree->rule);
                     return retCastExpr;
+                default:
+                    std::cerr << "None of the rules apply" << std::endl;
+                    assert(false);
             }
         }
     }
@@ -912,7 +916,6 @@ FieldAccess* BuildAst::makeFieldAccess(ParseTree* tree) {
                 return returnFieldAccess;
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -1034,7 +1037,6 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
                 assert(false);
         }
     }
-    assert(false);
     return NULL;
 }
 
@@ -1087,10 +1089,95 @@ ClassBodyDecls* BuildAst::makeConstructor(ParseTree* tree) {
 }
 
 InterfaceDecl *BuildAst::makeInterfaceDecl(ParseTree *tree){
-    //TODO actually make a InterfaceDecl
+    InterfaceDecl* interface = NULL;
     if(debug) std::cout << "InterfaceDecl\n";
     assert(tree->rule == INTERFACE_DECL);
-    return new InterfaceDecl();
+    interface = new InterfaceDecl(makeModifiers(tree->children[0]),
+                                  makeIdentifier(tree->children[2]),
+                                  makeInterfaceList(tree->children[3]),
+                                  makeInterfaceBodyStar(tree->children[4]));
+    interface->setRule(tree->rule);
+    return interface;
+}
+
+InterfaceBodyStar* BuildAst::makeInterfaceBodyStar(ParseTree* tree) {
+    InterfaceBodyStar* bodyStar = NULL;
+    if(debug) std::cout << "InterfaceBodyStar\n";
+    assert(tree->rule == INTERFACE_BODY_BLOCK);
+
+    tree = tree->children[1];
+    InterfaceMethod* methods = NULL;
+    if(tree->rule == INTERFACE_MEMBER_DECL_STAR) {
+        methods = makeInterfaceMethod(tree->children[0]);
+    }
+
+   bodyStar = new InterfaceBodyStar(methods);
+   bodyStar->setRule(tree->rule);
+   return bodyStar;
+}
+
+InterfaceMethod* BuildAst::makeInterfaceMethod(ParseTree* tree) {
+    InterfaceMethod* returnMethod = NULL;
+    if(debug) std::cout << "InterfaceMethod\n";
+    
+    if(tree->rule == INTERFACE_MEMBER_DECL) {
+        returnMethod = interfaceMethodSubroutine(tree->children[0]->children[0]->children[0]);
+        returnMethod->setRule(tree->rule);
+        return returnMethod;
+    }
+    assert(tree->rule == INTERFACE_MEMBER_DECL_LIST);
+    
+    returnMethod = interfaceMethodSubroutine(tree->children[1]->children[0]->children[0]);
+    returnMethod->setRule(tree->rule);
+    InterfaceMethod* currentMethod = returnMethod;
+    InterfaceMethod* nextMethod;
+    tree = tree->children[0];
+
+    while(true) {
+        switch(tree->rule) {
+            case INTERFACE_MEMBER_DECL_LIST:
+                nextMethod = interfaceMethodSubroutine(tree->children[1]->children[0]->children[0]);
+                nextMethod->setRule(tree->rule);
+                currentMethod->setNextInterfaceMethod(nextMethod);
+                currentMethod = nextMethod;
+                tree = tree->children[0];
+                break;
+            case INTERFACE_MEMBER_DECL:
+                currentMethod->setNextInterfaceMethod(makeInterfaceMethod(tree));
+                return returnMethod;
+            default:
+                std::cerr << "None of the rules apply" << std::endl;
+                assert(false);
+        }
+    }
+    return NULL;
+}
+
+InterfaceMethod* BuildAst::interfaceMethodSubroutine(ParseTree* tree) {
+    Type* type = NULL;
+    assert(tree->rule == ABSTRACT_METHOD_TYPE || tree->rule == ABSTRACT_METHOD_VOID);
+
+    if(tree->rule == ABSTRACT_METHOD_TYPE) {
+        type = makeType(tree->children[1]);
+    }
+    return new InterfaceMethod(makeModifiersStar(tree->children[0]), type,
+                               makeIdentifier(tree->children[2]->children[0]),
+                               makeFormalParamStar(tree->children[2]->children[2]));
+}
+
+ModifiersStar* BuildAst::makeModifiersStar(ParseTree* tree) {
+    ModifiersStar* modsStar = NULL;
+    if(debug) std::cout << "ModifiersStar\n";
+    assert(tree->rule == MEMBER_MOD_EXPAND || tree->rule == MEMBER_MOD_EPSILON);
+
+    Modifiers* mods = NULL;
+    if(tree->rule == MEMBER_MOD_EXPAND) {
+        mods = makeModifiers(tree->children[0]);
+    }
+
+    modsStar = new ModifiersStar(mods);
+    modsStar->setRule(tree->rule);
+    return modsStar;
 }
 
 Ast* BuildAst::build(ParseTree* tree) {

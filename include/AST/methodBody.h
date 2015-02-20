@@ -15,7 +15,8 @@ class MethodBody : public Ast {
         }
 
         BlockStmtsStar* getBlockStmtsStar() { return stmts; }
-        bool noBody() { return stmts == NULL; }
+        bool noDefinition() { return stmts == NULL; }
+        bool emptyClassMethodBody() { return stmts->isEpsilon(); }
 };
 
 #endif

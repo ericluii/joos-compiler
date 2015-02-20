@@ -12,7 +12,7 @@ class LiteralOrThis : public Primary {
         LiteralOrThis(Token* tok) : litOrThis(tok) {}
         ~LiteralOrThis() {}
 
-        std::string getLiteralValue() { return litOrThis->getString(); }
+        std::string getLiteralAsString() { return litOrThis->getString(); }
 };
 
 

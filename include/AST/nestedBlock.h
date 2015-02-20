@@ -14,7 +14,8 @@ class NestedBlock : public BlockStmts {
             delete nestedBlk;
         }
 
-        BlockStmtsStar* getBlock() { return nestedBlk; }
+        BlockStmtsStar* getNestedBlock() { return nestedBlk; }
+        bool isEmptyNestedBlock() { return nestedBlk->isEpsilon(); }
 };
 
 #endif

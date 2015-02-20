@@ -17,7 +17,6 @@ class ClassDecl : public TypeDecl
         Super* super;
         InterfaceList* interfaces;
         ClassBodyStar* body;
-        //fields
     public:
         ClassDecl(Modifiers* mods, Identifier* id, Super* super, InterfaceList* interfaces, ClassBodyStar* body) 
             : mods(mods), id(id), super(super), interfaces(interfaces), body(body) {}
@@ -33,8 +32,11 @@ class ClassDecl : public TypeDecl
         Identifier* getIdentifier() { return id; }
         Super* getSuper() { return super; }
         InterfaceList* getListOfInterfaces() { return interfaces; }
-        ClassBodyStar* getClassBodyStar() { return body; }
-        //get fields
+        ClassBodyStar* getClassMembers() { return body; }
+
+        bool noSuperClass() { return super->isEpsilon(); }
+        bool noImplementedInterfaces() { return interfaces->isEpsilon(); }
+        bool emptyBody() { return body->isEpsilon(); }
         bool isEpsilon() { return false; }
 };
 

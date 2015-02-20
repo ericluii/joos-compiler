@@ -17,8 +17,8 @@ class CastPrimitive : public CastExpression {
             delete toCast;
         }
 
-        PrimitiveType* getCastPrimitiveType() { return castType; }
-        bool isArrayPrimitiveCast() { return dimsRule == ARRAY_DIMS; }
+        PrimitiveType* getPrimitiveTypeToCastTo() { return castType; }
+        bool isPrimitiveArrayCast() { return dimsRule == ARRAY_DIMS; }
 };
 
 #endif

@@ -12,7 +12,7 @@ class Assignment : public Expression {
             delete RHS;
         }
 
-        Expression* getRHSExpression() { return RHS; }
+        Expression* getExpressionToAssign() { return RHS; }
 };
 
 #endif

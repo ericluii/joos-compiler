@@ -195,7 +195,7 @@ enum RuleNumbers {
     CONSTRUCTOR_DECL,               // 188 ConstructorDeclarator SimpleName ( FormalParameterList* )
     CONSTRUCTOR_BODY_BLOCK,         // 189 ConstructorBody { BlockStatements* }
     INTERFACE_DECL,                 // 190 InterfaceDeclaration Modifiers interface Identifier ExtendsInterfaces* InterfaceBody
-    EXTENDING,                      // 191 ExtendsInterfaces extends InterfaceType
+    EXTENDING,                      // 191 ExtendsInterfaces InterfaceType
     EXTENDING_LIST,                 // 192 ExtendsInterfaces ExtendsInterfaces , InterfaceType
     INTERFACE_BODY_BLOCK,           // 193 InterfaceBody { InterfaceMemberDeclarations* }
     INTERFACE_MEMBER_DECL_STAR,     // 194 InterfaceMemberDeclarations* InterfaceMemberDeclarations
@@ -206,7 +206,7 @@ enum RuleNumbers {
     ABSTRACT_METHOD_UNROLL,         // 199 AbstractMethodDeclaration AbstractMethodHeader ;
     RELATION_TO_ADDITIVE,           // 200 RelationalExpression AdditiveExpression
     CAST_TO_EXPRESSION,             // 201 CastExpression ( Expression ) UnaryExpressionNotMinus
-    EXTENDS_INTERFACE,              // 202 ExtendsInterface* ExtendsInterface
+    EXTENDS_INTERFACE,              // 202 ExtendsInterface* extends ExtendsInterface
     EXTENDS_INTERFACE_EPSILON,      // 203 ExtendsInterface*
     TYPE_INTERFACE,                 // 204 TypeDeclaration InterfaceDeclaration
     TYPE_EPSILON,                   // 205 TypeDeclaration

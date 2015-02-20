@@ -1,8 +1,7 @@
 #ifndef __IDENTIFIER_H__
 #define __IDENTIFIER_H__
 
-#include <string>
-#include "../token.h"
+#include "token.h"
 #include "ast.h"
 
 class Identifier : public Ast
@@ -12,7 +11,7 @@ class Identifier : public Ast
         Token *token;
     public:
         Identifier(Token *token) : token(token) {}
-        std::string getId() { return token->getString(); }
+        std::string getIdAsString() { return token->getString(); }
 };
 
 #endif

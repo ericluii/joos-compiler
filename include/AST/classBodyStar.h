@@ -11,9 +11,7 @@ class ClassBodyStar : public Ast {
     public:
         ClassBodyStar(ClassBodyDecls* body) : body(body) {}
         ~ClassBodyStar() {
-            if(body != NULL) {
-                delete body;
-            }
+            delete body;
         }
 
         bool isEpsilon() { return body == NULL; }

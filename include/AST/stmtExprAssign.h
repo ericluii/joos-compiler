@@ -14,7 +14,7 @@ class StmtExprAssign : public StmtExpr {
             delete assign;
         }
 
-        Assignment* getAssignment() { return assign; }
+        Assignment* getAssignmentExpression() { return assign; }
 };
 
 #endif

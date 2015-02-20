@@ -18,9 +18,10 @@ class ImportDecls : public Ast
             delete nextImport;
         }
 
-        Name *GetImport() { return import; }
-        ImportDecls *GetNextImport() { return nextImport; }
+        Name *getCurrentImport() { return import; }
+        ImportDecls *getNextImport() { return nextImport; }
         void setNextImport(ImportDecls* set) { nextImport = set; }
+        bool lastImport() { return nextImport == NULL; }
 };
 
 #endif

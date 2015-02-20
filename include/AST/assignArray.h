@@ -14,7 +14,7 @@ class AssignArray : public Assignment {
             delete LHS;
         }
 
-        ArrayAccess* getLHSArray() { return LHS; }
+        ArrayAccess* getAssignedArray() { return LHS; }
 };
 
 #endif

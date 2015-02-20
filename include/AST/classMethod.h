@@ -1,7 +1,6 @@
 #ifndef __CLASSMETHOD_H__
 #define __CLASSMETHOD_H__
 
-#include <string>
 #include "classBodyDecls.h"
 #include "methodHeader.h"
 #include "methodBody.h"

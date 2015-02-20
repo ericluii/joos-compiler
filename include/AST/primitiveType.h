@@ -1,7 +1,6 @@
 #ifndef __PRIMITIVETYPE_H__
 #define __PRIMITIVETYPE_H__
 
-#include <string>
 #include "type.h"
 #include "token.h"
 
@@ -13,7 +12,8 @@ class PrimitiveType : public Type {
         PrimitiveType(Token* primitiveType) : primitiveType(primitiveType) {}
         ~PrimitiveType() {}
 
-        std::string getTypeString() { return primitiveType->getString(); }
+        std::string getTypeAsString() { return primitiveType->getString(); }
+        bool isEpsilon() { return false; }
 };
 
 #endif

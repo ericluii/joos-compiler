@@ -15,6 +15,8 @@ class ImportDeclsStar : public Ast
         ~ImportDeclsStar() {
             delete imports;
         }
+        
+        ImportDecls* getImportDeclarations() { return imports; }
         bool isEpsilon() { return imports == NULL; }
 };
 

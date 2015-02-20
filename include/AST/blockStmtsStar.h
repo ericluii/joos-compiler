@@ -15,7 +15,7 @@ class BlockStmtsStar : public Ast {
         }
 
         BlockStmts* getStatements() { return stmts; }
-        bool emptyBlock() { return stmts == NULL; }
+        bool isEpsilon() { return stmts == NULL; }
 };
 
 #endif

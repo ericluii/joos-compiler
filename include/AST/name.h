@@ -17,10 +17,11 @@ class Name : public Ast
             delete nextName;
         }
 
-        Identifier *GetId() { return id; }
-        Name *GetNextName() { return nextName; }
+        Identifier *getNameId() { return id; }
+        Name *getNextName() { return nextName; }
 
         void setNextName(Name* set) { nextName = set; }
+        bool lastPrefix() { return nextName == NULL; }
 };
 
 #endif

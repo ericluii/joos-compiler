@@ -14,7 +14,7 @@ class ArrayAccessName : public ArrayAccess {
             delete arrayName;
         }
 
-        Name* getArrayName() { return arrayName; }
+        Name* getNameOfAccessedArray() { return arrayName; }
 };
 
 #endif

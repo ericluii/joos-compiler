@@ -17,8 +17,8 @@ class FieldAccess : public Primary {
             delete id;
         }
 
-        Primary* getPrimary() { return primary; }
-        Identifier* getId() { return id; }
+        Primary* getAccessedFieldPrimary() { return primary; }
+        Identifier* getAccessedFieldId() { return id; }
 
         void setPrimaryField(Primary* set) { primary = set; }
 };
