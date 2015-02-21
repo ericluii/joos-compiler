@@ -1,0 +1,19 @@
+// REACHABILITY
+public class J1_multipleReturn {
+
+    public J1_multipleReturn () {}
+
+    public static int test() {
+        return new J1_multipleReturn().foo(-1) + new J1_multipleReturn().foo(1);
+    }
+
+
+    public int foo(int j) {
+	if (j <= 0) {
+	    return 27;
+	}
+	else {
+	    return 96;
+	}
+    }
+}
