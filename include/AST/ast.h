@@ -1,16 +1,22 @@
 #ifndef __AST_H__
 #define __AST_H__
 
+#include <string>
 #include "ruleNumbers.h"
 
 class Ast {
     protected:
         int rule;
+        std::string treeLexeme;
     public:
         virtual bool isEpsilon() { return false; }
         virtual ~Ast() {}
-        void setRule(int set) { rule = set; }
+        void setRuleAndLexeme(int setRule, const std::string& setLexeme) { 
+            rule = setRule;
+            treeLexeme = setLexeme;
+        }
         int getRule() { return rule; }
+        std::string& getLexeme() { return treeLexeme; }
 
         // Compilation unit
         bool isCompilationUnit() { return rule == COMPILATION_UNIT; }

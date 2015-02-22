@@ -49,7 +49,7 @@ CompilationUnit *BuildAst::makeCompilationUnit(ParseTree *tree){
     CompilationUnit* returnCompUnit = new CompilationUnit(makePackageDecl(tree->children[0]),
                                                           makeImportDeclsStar(tree->children[1]),
                                                           makeTypeDecl(tree->children[2]));
-    returnCompUnit->setRule(tree->rule);
+    returnCompUnit->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnCompUnit;
 }
 
@@ -57,7 +57,7 @@ Identifier *BuildAst::makeIdentifier(ParseTree *tree){
     if(debug) std::cout << "Identifier\n";
     assert(tree->rule == IDENTIFIER);
     Identifier* returnIdentifier = new Identifier(tree->children[0]->token);
-    returnIdentifier->setRule(tree->rule);
+    returnIdentifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnIdentifier;
 }
 
@@ -66,13 +66,13 @@ Name *BuildAst::makeName(ParseTree *tree){
     if(debug) std::cout << "Name\n";
     if(tree->rule == NAME_SIMPLE){
         returnName = new Name(makeIdentifier(tree->children[0]->children[0]));
-        returnName->setRule(tree->rule);
+        returnName->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnName;
     }
     assert(tree->rule == NAME_QUALIFIED);
 
     returnName = new Name(makeIdentifier(tree->children[0]->children[2]));
-    returnName->setRule(tree->rule);
+    returnName->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     Name* currentName = returnName;
     Name* qualifier;
     tree = tree->children[0]->children[0];
@@ -81,7 +81,7 @@ Name *BuildAst::makeName(ParseTree *tree){
         switch(tree->rule) {
             case NAME_QUALIFIED:
                 qualifier = new Name(makeIdentifier(tree->children[0]->children[2]));
-                qualifier->setRule(tree->rule);
+                qualifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentName->setNextName(qualifier);
                 currentName = qualifier;
                 tree = tree->children[0]->children[0];
@@ -105,7 +105,7 @@ PackageDecl *BuildAst::makePackageDecl(ParseTree *tree){
     }
     assert(tree->rule == PACKAGE_EPSILON);
     package = new PackageDecl(NULL);
-    package->setRule(tree->rule);
+    package->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return package;
 }
 
@@ -114,12 +114,12 @@ ImportDeclsStar *BuildAst::makeImportDeclsStar(ParseTree *tree){
     ImportDeclsStar* returnImportStar;
     if(tree->rule == IMPORT_STAR_DECLS){
         returnImportStar = new ImportDeclsStar(makeImportDecls(tree->children[0]));
-        returnImportStar->setRule(tree->rule);
+        returnImportStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnImportStar;
     }
     assert(tree->rule == IMPORT_STAR_EPSILON);
     returnImportStar = new ImportDeclsStar(NULL);
-    returnImportStar->setRule(tree->rule);
+    returnImportStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnImportStar;
 }
 
@@ -130,14 +130,14 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
         tree = tree->children[0];
         assert(tree->rule == IMPORT_ON_DEMAND || tree->rule == SINGLE_TYPE_IMPORT);
         returnImport = new ImportDecls(makeName(tree->children[0]->children[0]->children[1]));
-        returnImport->setRule(tree->rule);
+        returnImport->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnImport;
     }
     
     assert(tree->rule == IMPORTS_LIST);
     
     returnImport = new ImportDecls(makeName(tree->children[1]->children[0]->children[1]));
-    returnImport->setRule(tree->children[1]->rule);
+    returnImport->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
     ImportDecls* currentImport = returnImport;
     ImportDecls* nextImport;
     tree = tree->children[0];
@@ -146,7 +146,7 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
         switch(tree->rule) {
             case IMPORTS_LIST:
                 nextImport = new ImportDecls(makeName(tree->children[1]->children[0]->children[1]));
-                nextImport->setRule(tree->children[1]->rule);
+                nextImport->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
                 currentImport->setNextImport(nextImport);
                 currentImport = nextImport;
                 tree = tree->children[0];
@@ -175,7 +175,7 @@ TypeDecl *BuildAst::makeTypeDecl(ParseTree *tree) {
         assert(tree->rule == TYPE_EPSILON);
         returnType = new TypeDecl();
     }
-    returnType->setRule(tree->rule);
+    returnType->setRuleAndLexeme(tree->rule, tree->treeLexeme);
 
     return returnType;
 }
@@ -186,14 +186,14 @@ Modifiers* BuildAst::makeModifiers(ParseTree* tree) {
 
     if(tree->rule == MODIFIERS_MOD || tree->rule == MEMBER_MOD) {
         returnModifiers = new Modifiers(tree->children[0]->children[0]->token);
-        returnModifiers->setRule(tree->rule);
+        returnModifiers->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnModifiers;
     }
 
     assert(tree->rule == MODIFIERS_LIST || tree->rule == MEMBER_MOD_LIST);
 
     returnModifiers = new Modifiers(tree->children[1]->children[0]->token);
-    returnModifiers->setRule(tree->rule);
+    returnModifiers->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     Modifiers* currentModifier = returnModifiers;
     Modifiers* nextModifier;
     tree = tree->children[0];
@@ -204,7 +204,7 @@ Modifiers* BuildAst::makeModifiers(ParseTree* tree) {
             case MEMBER_MOD_LIST:
                 nextModifier = new Modifiers(tree->children[1]->children[0]->token);
                 nextModifier->setNextModifier(nextModifier);
-                currentModifier->setRule(tree->rule);
+                currentModifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentModifier = nextModifier;
                 break;
             case MODIFIERS_MOD:
@@ -225,7 +225,7 @@ Super* BuildAst::makeSuper(ParseTree* tree) {
     
     if(tree->rule == EXTENDS_CLASS_EPSILON) {
         returnSuper = new Super(NULL);
-        returnSuper->setRule(tree->rule);
+        returnSuper->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnSuper;
     }
     assert(tree->rule == EXTENDS_CLASS);
@@ -240,7 +240,7 @@ Super* BuildAst::makeSuper(ParseTree* tree) {
                 break;
             case CLASS_OR_INTERFACE_NAME:
                 returnSuper = new Super(makeName(tree->children[0]));
-                returnSuper->setRule(tree->rule);
+                returnSuper->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 return returnSuper;
             default:
                 std::cerr << "None of the rules apply" << std::endl;
@@ -256,12 +256,12 @@ InterfaceList* BuildAst::makeInterfaceList(ParseTree* tree) {
     
     if(tree->rule == IMPLEMENT_EPSILON || tree->rule == EXTENDS_INTERFACE_EPSILON) {
         returnInterfaces = new InterfaceList(NULL);
-        returnInterfaces->setRule(tree->rule);
+        returnInterfaces->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnInterfaces;
     }
     assert(tree->rule == IMPLEMENTING || tree->rule == EXTENDS_INTERFACE);
     returnInterfaces = new InterfaceList(makeInterfaces(tree->children[1]));
-    returnInterfaces->setRule(tree->rule);
+    returnInterfaces->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnInterfaces;
 }
 
@@ -270,13 +270,13 @@ Interfaces* BuildAst::makeInterfaces(ParseTree* tree) {
     Interfaces* returnInterfaces = NULL;
     if(tree->rule == INTERFACE_TYPE_LIST_END || tree->rule == EXTENDING) {
         returnInterfaces = new Interfaces(makeName(tree->children[0]->children[0]->children[0]));
-        returnInterfaces->setRule(tree->rule);
+        returnInterfaces->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnInterfaces;
     }
 
     assert(tree->rule == INTERFACE_TYPE_LIST || tree->rule == EXTENDING_LIST);
     returnInterfaces = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
-    returnInterfaces->setRule(tree->rule);
+    returnInterfaces->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     Interfaces* currentInterface = returnInterfaces;
     Interfaces* nextInterface;
     tree = tree->children[0];
@@ -385,7 +385,7 @@ ClassBodyDecls* BuildAst::makeClassMember(ParseTree* tree) {
                                             makeMethodHeader(tree->children[0]),
                                             makeMethodBody(tree->children[1]));
     }
-    returnClassMember->setRule(tree->rule);
+    returnClassMember->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnClassMember;
 }
 
@@ -402,7 +402,7 @@ MethodHeader* BuildAst::makeMethodHeader(ParseTree* tree) {
     }
 
     header = new MethodHeader(id, type, params);
-    header->setRule(tree->rule);
+    header->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return header;
 }
 
@@ -417,7 +417,7 @@ FormalParamStar* BuildAst::makeFormalParamStar(ParseTree* tree) {
     }
 
     paramStar = new FormalParamStar(paramList);
-    paramStar->setRule(tree->rule);
+    paramStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return paramStar;
 }
 
@@ -429,13 +429,13 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
     if(tree->rule == FORMAL_PARAM) {
         params = new ParamList(makeType(tree->children[0]->children[0]),
                                makeIdentifier(tree->children[0]->children[1]));
-        params->setRule(tree->rule);
+        params->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return params;
     }
 
     params = new ParamList(makeType(tree->children[2]->children[0]),
                            makeIdentifier(tree->children[2]->children[1]));
-    params->setRule(tree->rule);
+    params->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     ParamList* currentParams = params;
     ParamList* nextParams;
     tree = tree->children[0];
@@ -445,7 +445,7 @@ ParamList* BuildAst::makeParamList(ParseTree* tree) {
             case FORMAL_PARAM_LIST:
                 nextParams = new ParamList(makeType(tree->children[2]->children[0]),
                                            makeIdentifier(tree->children[2]->children[1]));
-                nextParams->setRule(tree->rule);
+                nextParams->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentParams->setNextParameter(nextParams);
                 currentParams = nextParams;
                 tree = tree->children[0];
@@ -472,7 +472,7 @@ MethodBody* BuildAst::makeMethodBody(ParseTree* tree) {
     }
 
     body = new MethodBody(stmts);
-    body->setRule(tree->rule);
+    body->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return body;
 }
 
@@ -487,7 +487,7 @@ BlockStmtsStar* BuildAst::makeBlockStmtsStar(ParseTree* tree) {
     }
 
     returnStmts = new BlockStmtsStar(blockStmts);
-    returnStmts->setRule(tree->rule);
+    returnStmts->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnStmts;
 }
 
@@ -530,10 +530,12 @@ BlockStmts* BuildAst::makeSingleStmt(ParseTree* tree) {
     assert(tree->rule == LOCAL_VAR_STMT || tree->rule == BLOCK_IS_STMT);
 
     if(tree->rule == LOCAL_VAR_STMT) {
+        int rule = tree->rule;
+        std::string treeLexeme = tree->treeLexeme;
         tree = tree->children[0]->children[0];
         singleStmt = new LocalDecl(makeType(tree->children[0]), makeIdentifier(tree->children[1]),
                                    makeExpression(tree->children[3]));
-        singleStmt->setRule(LOCAL_VAR_STMT);
+        singleStmt->setRuleAndLexeme(rule, treeLexeme);
         return singleStmt;
     }
 
@@ -580,6 +582,7 @@ BlockStmts* BuildAst::makeIfStmt(ParseTree* tree) {
     if(debug) std::cout << "IfStmt\n";
     assert(tree->rule == IF_STMT || tree->rule == IF_THEN_STMT || tree->rule == NO_SHORT_IF_THEN);
     int rule = tree->rule;
+    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
 
     if(rule == IF_STMT) {
@@ -589,7 +592,7 @@ BlockStmts* BuildAst::makeIfStmt(ParseTree* tree) {
                             makeStatement(tree->children[6]));
     }
 
-    ifStmt->setRule(rule);
+    ifStmt->setRuleAndLexeme(rule, treeLexeme);
     return ifStmt;
 }
 
@@ -599,9 +602,10 @@ BlockStmts* BuildAst::makeWhileStmt(ParseTree* tree) {
     assert(tree->rule == WHILE_STMT || tree->rule == NO_SHORT_WHILE);
 
     int rule = tree->rule;
+    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
     whileStmt = new WhileStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]));
-    whileStmt->setRule(rule);
+    whileStmt->setRuleAndLexeme(rule, treeLexeme);
     return whileStmt;
 }
 
@@ -611,6 +615,7 @@ BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
     assert(tree->rule == FOR_STMT || tree->rule == NO_SHORT_FOR);
 
     int rule = tree->rule;
+    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
     BlockStmts* forInit = NULL;
     ExpressionStar* expr = makeExpressionStar(tree->children[4]);
@@ -621,19 +626,19 @@ BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
         ParseTree* backup = tree->children[2]->children[0];
         forInit = new LocalDecl(makeType(backup->children[0]), makeIdentifier(backup->children[1]),
                                 makeExpression(backup->children[3]));
-        forInit->setRule(tree->children[1]->rule);
+        forInit->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
     } else if(tree->children[2]->rule == FOR_INIT_STMT) {
         forInit = makeStmtExpr(tree->children[2]->children[0]);
-        forInit->setRule(tree->children[2]->rule);
+        forInit->setRuleAndLexeme(tree->children[2]->rule, tree->children[2]->treeLexeme);
     }
 
     if(tree->children[6]->rule == FOR_UPDATE_STMT) {
         forUpdate = makeStmtExpr(tree->children[6]->children[0]);
-        forUpdate->setRule(tree->children[6]->rule);
+        forUpdate->setRuleAndLexeme(tree->children[6]->rule, tree->children[6]->treeLexeme);
     }
 
     forStmt = new ForStmt(forInit, expr, forUpdate, loopStmt);
-    forStmt->setRule(rule);
+    forStmt->setRuleAndLexeme(rule, treeLexeme);
     return forStmt;
 }
 
@@ -644,6 +649,7 @@ BlockStmts* BuildAst::makeNoTrailingSubstatement(ParseTree* tree) {
            tree->rule == STMT_NON_TRAILING_EXPR || tree->rule == STMT_NON_TRAILING_RETURN);
 
     int rule = tree->rule;
+    std::string treeLexeme = tree->treeLexeme;
     if(rule == STMT_NON_TRAILING_BLOCK) {
         noTrailSubStmt = new NestedBlock(makeBlockStmtsStar(tree->children[0]->children[1]));
     } else if(rule == STMT_NON_TRAILING_EMPTY) {
@@ -655,7 +661,7 @@ BlockStmts* BuildAst::makeNoTrailingSubstatement(ParseTree* tree) {
     }
 
     if(tree->rule != STMT_NON_TRAILING_EXPR) {
-        noTrailSubStmt->setRule(rule);
+        noTrailSubStmt->setRuleAndLexeme(rule, treeLexeme);
     }
     return noTrailSubStmt;
 }
@@ -674,7 +680,7 @@ StmtExpr* BuildAst::makeStmtExpr(ParseTree* tree) {
         stmtExpr = new StmtExprCreation(makeClassCreation(tree->children[0]));
     }
 
-    stmtExpr->setRule(tree->rule);
+    stmtExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return stmtExpr;
 }
 
@@ -683,7 +689,7 @@ Type* BuildAst::makeType(ParseTree* tree) {
     Type* returnType = NULL;
     if(tree->rule == PRIMITIVE_TYPE) {
         returnType = new PrimitiveType(tree->children[0]->children[0]->token);
-        returnType->setRule(tree->children[0]->rule);
+        returnType->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
         return returnType;
     }
 
@@ -699,7 +705,7 @@ Type* BuildAst::makeReferenceType(ParseTree* tree) {
     switch(tree->rule) {
         case REFERENCE_CLASSINTERFACE:
             returnType = new ReferenceType(makeName(tree->children[0]->children[0]));
-            returnType->setRule(tree->rule);
+            returnType->setRuleAndLexeme(tree->rule, tree->treeLexeme);
             break;
         case REFERENCE_ARRAY:
             if(tree->children[0]->rule == ARRAY_PRIMITIVE) {
@@ -709,7 +715,7 @@ Type* BuildAst::makeReferenceType(ParseTree* tree) {
                 returnType = new ReferenceType(makeName(tree->children[0]->children[0]));
             }
 
-            returnType->setRule(tree->children[0]->rule);
+            returnType->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
             break;
         default:
             std::cerr << "None of the rules apply" << std::endl;
@@ -728,7 +734,7 @@ ExpressionStar* BuildAst::makeExpressionStar(ParseTree* tree) {
     }
 
     exprStar = new ExpressionStar(expr);
-    exprStar->setRule(tree->rule);
+    exprStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return exprStar;
 }
 
@@ -774,19 +780,19 @@ Expression* BuildAst::makeBinaryExpression(ParseTree* tree) {
             case ADD_TO_MINUSMULTI:
                 retBinExpr = new BinaryExpression(makeBinaryExpression(tree->children[0]),
                                                   makeBinaryExpression(tree->children[2]));
-                retBinExpr->setRule(tree->rule);
+                retBinExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 return retBinExpr;
             case RELATION_TO_INSTANCEOF:
                 retBinExpr = new InstanceOf(makeBinaryExpression(tree->children[0]),
                                             makeReferenceType(tree->children[2]));
-                retBinExpr->setRule(tree->rule);
+                retBinExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 return retBinExpr;
             case MULTI_TO_MULTUNARY:
             case MULTI_TO_DIVUNARY:
             case MULTI_TO_MODUNARY:
                 retBinExpr = new BinaryExpression(makeBinaryExpression(tree->children[0]),
                                                   makeUnaryExpression(tree->children[2]));
-                retBinExpr->setRule(tree->rule);
+                retBinExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 return retBinExpr;
             default:
                 std::cerr << "None of the rules applied" << std::endl;
@@ -802,7 +808,7 @@ Expression* BuildAst::makeUnaryExpression(ParseTree* tree) {
     assert(tree->rule == NEG_UNARY || tree->rule == NOT_NEG_UNARY);
     if(tree->rule == NEG_UNARY) {
         retUnaryExpr = new NegationExpression(makeUnaryExpression(tree->children[1]));
-        retUnaryExpr->setRule(tree->rule);
+        retUnaryExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     } else {
         retUnaryExpr = makeUnaryNotMinusExpr(tree->children[0]);
     }
@@ -826,7 +832,7 @@ Expression* BuildAst::makeUnaryNotMinusExpr(ParseTree* tree) {
     }
 
     if(tree->rule == UNARY_CAST) {
-        retUnaryExpr->setRule(tree->rule);
+        retUnaryExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
     return retUnaryExpr;
 }
@@ -838,7 +844,7 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
            tree->rule == CAST_TO_EXPRESSION);
     if(tree->rule == CAST_PRIMITIVE) {
         PrimitiveType* type = new PrimitiveType(tree->children[1]->children[0]->token);
-        type->setRule(tree->children[1]->rule);
+        type->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
         retCastExpr = new CastPrimitive(tree->children[2]->rule, type, makeUnaryExpression(tree->children[4]));
     } else if(tree->rule == CAST_NONPRIMITIVE) {
         retCastExpr = new CastName(makeName(tree->children[1]), makeUnaryNotMinusExpr(tree->children[5]));
@@ -861,7 +867,7 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
                     break;
                 case UNARY_NAME:
                     retCastExpr = new CastName(makeName(tree->children[0]), expr);
-                    retCastExpr->setRule(tree->rule);
+                    retCastExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                     return retCastExpr;
                 default:
                     std::cerr << "None of the rules apply" << std::endl;
@@ -870,7 +876,7 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
         }
     }
 
-    retCastExpr->setRule(tree->rule);
+    retCastExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return retCastExpr;
 }
 
@@ -889,7 +895,7 @@ Assignment* BuildAst::makeAssignment(ParseTree* tree) {
         returnAssign = new AssignArray(makeArrayAccess(tree->children[0]), expr);
     }
 
-    returnAssign->setRule(rule);
+    returnAssign->setRuleAndLexeme(rule, tree->treeLexeme);
     return returnAssign;
 }
 
@@ -897,7 +903,7 @@ FieldAccess* BuildAst::makeFieldAccess(ParseTree* tree) {
     if(debug) std::cout << "FieldAccess\n";
     assert(tree->rule == FIELD_ACCESS);
     FieldAccess* returnFieldAccess = new FieldAccess(makeIdentifier(tree->children[2]));
-    returnFieldAccess->setRule(tree->rule);
+    returnFieldAccess->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     FieldAccess* currentFieldAccess = returnFieldAccess;
     FieldAccess* newFieldAccess;
     tree = tree->children[0];
@@ -906,7 +912,7 @@ FieldAccess* BuildAst::makeFieldAccess(ParseTree* tree) {
         switch(tree->rule) {
             case PRIMARY_FIELDACCESS:
                 newFieldAccess = new FieldAccess(makeIdentifier(tree->children[0]->children[2]));
-                newFieldAccess->setRule(FIELD_ACCESS);
+                newFieldAccess->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
                 currentFieldAccess->setPrimaryField(newFieldAccess);
                 currentFieldAccess = newFieldAccess;
                 tree = tree->children[0];
@@ -930,7 +936,7 @@ ArrayAccess* BuildAst::makeArrayAccess(ParseTree* tree) {
         returnAAN = new ArrayAccessPrimary(makePrimaryNonArray(tree->children[0]), expr);
     }
 
-    returnAAN->setRule(tree->rule);
+    returnAAN->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnAAN;
 }
 
@@ -968,10 +974,10 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
     }
 
     if(rule == PRIMARY_LITERAL) {
-        primaryNA->setRule(tree->children[0]->rule);
+        primaryNA->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
     } else if(rule != PRIMARY_FIELDACCESS && rule != PRIMARY_ARRAY_ACCESS
               && rule != PRIMARY_MAKECLASS) {
-        primaryNA->setRule(tree->rule);
+        primaryNA->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
     
     return primaryNA;
@@ -983,7 +989,7 @@ NewClassCreation* BuildAst::makeClassCreation(ParseTree* tree) {
     Name* classType = makeName(tree->children[1]->children[0]->children[0]);
     ArgumentsStar* args = makeArgumentsStar(tree->children[3]);
     NewClassCreation* returnNCC = new NewClassCreation(classType, args);
-    returnNCC->setRule(tree->rule);
+    returnNCC->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnNCC;
 }
 
@@ -992,13 +998,13 @@ ArgumentsStar* BuildAst::makeArgumentsStar(ParseTree* tree) {
     ArgumentsStar* returnArgsStar;
     if(tree->rule == ARG_LIST) {
         returnArgsStar = new ArgumentsStar(makeArguments(tree->children[0]));
-        returnArgsStar->setRule(tree->rule);
+        returnArgsStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnArgsStar;
     }
 
     assert(tree->rule == ARG_LIST_EPSILON);
     returnArgsStar = new ArgumentsStar(NULL);
-    returnArgsStar->setRule(tree->rule);
+    returnArgsStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnArgsStar;
 }
 
@@ -1008,14 +1014,14 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
    
     if(tree->rule == ARG_LIST_EXPRESSION) {
         returnArguments = new Arguments(makeExpression(tree->children[0]));
-        returnArguments->setRule(ARG_LIST_EXPRESSION);
+        returnArguments->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnArguments;
     }
     
     assert(tree->rule == ARG_LIST_LIST);
 
     returnArguments = new Arguments(makeExpression(tree->children[1]));
-    returnArguments->setRule(tree->rule);
+    returnArguments->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     Arguments* currentArgs = returnArguments;
     Arguments* nextArgs;
     tree = tree->children[0];
@@ -1024,7 +1030,7 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
         switch(tree->rule) {
             case ARG_LIST_LIST:
                 nextArgs = new Arguments(makeExpression(tree->children[1]));
-                nextArgs->setRule(tree->rule);
+                nextArgs->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentArgs->setNextArgs(nextArgs);
                 currentArgs = nextArgs;
                 tree = tree->children[0];
@@ -1051,7 +1057,7 @@ MethodInvoke* BuildAst::makeMethodInvoke(ParseTree* tree) {
         invocation = new InvokeAccessedMethod(makeFieldAccess(tree->children[0]), args);
     }
 
-    invocation->setRule(tree->rule);
+    invocation->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return invocation;
 }
 
@@ -1065,11 +1071,11 @@ Primary* BuildAst::makePrimaryNewArray(ParseTree* tree) {
     } else {
         if(debug) std::cout << "Type\n";
         Type* type = new ReferenceType(makeName(tree->children[1]->children[0]));
-        type->setRule(REFERENCE_CLASSINTERFACE);
+        type->setRuleAndLexeme(REFERENCE_CLASSINTERFACE, "ReferenceType");
         returnPNA = new PrimaryNewArray(type, expr);
     }
 
-    returnPNA->setRule(tree->rule);
+    returnPNA->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return returnPNA;
 }
 
@@ -1084,7 +1090,7 @@ ClassBodyDecls* BuildAst::makeConstructor(ParseTree* tree) {
     BlockStmtsStar* body = makeBlockStmtsStar(tree->children[2]->children[1]);
 
     constructor = new Constructor(mods, id, params, body);
-    constructor->setRule(CLASS_CONSTRUCTOR);
+    constructor->setRuleAndLexeme(CLASS_CONSTRUCTOR, "ConstructorDeclaration");
     return constructor;
 }
 
@@ -1096,7 +1102,7 @@ InterfaceDecl *BuildAst::makeInterfaceDecl(ParseTree *tree){
                                   makeIdentifier(tree->children[2]),
                                   makeInterfaceList(tree->children[3]),
                                   makeInterfaceBodyStar(tree->children[4]));
-    interface->setRule(tree->rule);
+    interface->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return interface;
 }
 
@@ -1112,7 +1118,7 @@ InterfaceBodyStar* BuildAst::makeInterfaceBodyStar(ParseTree* tree) {
     }
 
    bodyStar = new InterfaceBodyStar(methods);
-   bodyStar->setRule(tree->rule);
+   bodyStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
    return bodyStar;
 }
 
@@ -1122,13 +1128,13 @@ InterfaceMethod* BuildAst::makeInterfaceMethod(ParseTree* tree) {
     
     if(tree->rule == INTERFACE_MEMBER_DECL) {
         returnMethod = interfaceMethodSubroutine(tree->children[0]->children[0]->children[0]);
-        returnMethod->setRule(tree->rule);
+        returnMethod->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnMethod;
     }
     assert(tree->rule == INTERFACE_MEMBER_DECL_LIST);
     
     returnMethod = interfaceMethodSubroutine(tree->children[1]->children[0]->children[0]);
-    returnMethod->setRule(tree->rule);
+    returnMethod->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     InterfaceMethod* currentMethod = returnMethod;
     InterfaceMethod* nextMethod;
     tree = tree->children[0];
@@ -1137,7 +1143,7 @@ InterfaceMethod* BuildAst::makeInterfaceMethod(ParseTree* tree) {
         switch(tree->rule) {
             case INTERFACE_MEMBER_DECL_LIST:
                 nextMethod = interfaceMethodSubroutine(tree->children[1]->children[0]->children[0]);
-                nextMethod->setRule(tree->rule);
+                nextMethod->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentMethod->setNextInterfaceMethod(nextMethod);
                 currentMethod = nextMethod;
                 tree = tree->children[0];
@@ -1176,7 +1182,7 @@ ModifiersStar* BuildAst::makeModifiersStar(ParseTree* tree) {
     }
 
     modsStar = new ModifiersStar(mods);
-    modsStar->setRule(tree->rule);
+    modsStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return modsStar;
 }
 
