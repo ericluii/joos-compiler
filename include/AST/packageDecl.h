@@ -16,6 +16,7 @@ class PackageDecl : public Ast
             delete package;
         }
 
+        Name* getPackageName() { return package; }
         bool isEpsilon() { return package == NULL; }
 };
 

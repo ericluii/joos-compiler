@@ -22,9 +22,9 @@ class CompilationUnit : public Ast
             delete typeDecl;
         }
 
-        PackageDecl *GetPackageDecl() { return packageDecl; }
-        ImportDeclsStar *GetImportDeclsStar() { return importDecls; }
-        TypeDecl *GetTypeDecl() { return typeDecl; }
+        PackageDecl *getPackageDecl() { return packageDecl; }
+        ImportDeclsStar *getImportDeclsStar() { return importDecls; }
+        TypeDecl *getTypeDecl() { return typeDecl; }
 
         bool noTypeDeclared() { return typeDecl->isEpsilon(); }
         bool noPackageNamed() { return packageDecl->isEpsilon(); }
