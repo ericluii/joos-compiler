@@ -51,6 +51,23 @@ int main(int argc, char *argv[])
     try {
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
+            if(filename.find_last_of(".java") == std::string::npos) {
+                std::stringstream ss;
+                ss << "File '" << filename << "' must end with .java extension.";
+                Error(E_DEFAULT, NULL, ss.str());
+            } else {
+                std::stringstream ss;
+                if(filename.length() <= 5) {
+                    ss << "File '" << filename << "' cannot fit both a .java extension and a filename.";
+                    Error(E_DEFAULT, NULL, ss.str());
+                } else {
+                    if(filename.compare(filename.length() - 5, 5, ".java") != 0) {
+                        ss << "File '" << filename << "' must end with .java extension.";
+                        Error(E_DEFAULT, NULL, ss.str());
+                    }
+                }
+            }
+            CHECK_ERROR();
 
             file.open(filename, std::ifstream::in);
             if(!file.is_open()){
