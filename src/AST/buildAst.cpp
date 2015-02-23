@@ -584,18 +584,16 @@ BlockStmts* BuildAst::makeIfStmt(ParseTree* tree) {
     BlockStmts* ifStmt = NULL;
     if(debug) std::cout << "IfStmt\n";
     assert(tree->rule == IF_STMT || tree->rule == IF_THEN_STMT || tree->rule == NO_SHORT_IF_THEN);
-    int rule = tree->rule;
-    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
 
-    if(rule == IF_STMT) {
+    if(tree->rule == IF_STMT_UNROLL) {
         ifStmt = new IfStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]), NULL);
     } else {
         ifStmt = new IfStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]),
                             makeStatement(tree->children[6]));
     }
 
-    ifStmt->setRuleAndLexeme(rule, treeLexeme);
+    ifStmt->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return ifStmt;
 }
 
@@ -604,11 +602,9 @@ BlockStmts* BuildAst::makeWhileStmt(ParseTree* tree) {
     if(debug) std::cout << "WhileStmt\n";
     assert(tree->rule == WHILE_STMT || tree->rule == NO_SHORT_WHILE);
 
-    int rule = tree->rule;
-    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
     whileStmt = new WhileStmt(makeExpression(tree->children[2]), makeStatement(tree->children[4]));
-    whileStmt->setRuleAndLexeme(rule, treeLexeme);
+    whileStmt->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return whileStmt;
 }
 
@@ -617,8 +613,6 @@ BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
     if(debug) std::cout << "ForStmt\n";
     assert(tree->rule == FOR_STMT || tree->rule == NO_SHORT_FOR);
 
-    int rule = tree->rule;
-    std::string treeLexeme = tree->treeLexeme;
     tree = tree->children[0];
     BlockStmts* forInit = NULL;
     ExpressionStar* expr = makeExpressionStar(tree->children[4]);
@@ -641,7 +635,7 @@ BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
     }
 
     forStmt = new ForStmt(forInit, expr, forUpdate, loopStmt);
-    forStmt->setRuleAndLexeme(rule, treeLexeme);
+    forStmt->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return forStmt;
 }
 

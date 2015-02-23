@@ -127,10 +127,10 @@ class Ast {
         bool isBlockStmtsStar() { return rule == BLOCK_STMTS || rule == BLOCK_STMTS_EPSILON; }
         // Block statements
         bool isLocalVarDecl() { return rule == TYPE_VAR; }
-        bool isIfStmt() { return rule == IF_STMT; }
-        bool isIfThenElseStmt() { return rule == IF_THEN_STMT || rule == NO_SHORT_IF_THEN; }
-        bool isWhileStmt() { return rule == WHILE_STMT || rule == NO_SHORT_WHILE; }
-        bool isForStmt() { return rule == FOR_STMT || rule == NO_SHORT_FOR; }
+        bool isIfStmt() { return rule == IF_STMT_UNROLL; }
+        bool isIfThenElseStmt() { return rule == IF_THEN_STMT_UNROLL || rule == NO_SHORT_IF_THEN_UNROLL; }
+        bool isWhileStmt() { return rule == WHILE_UNROLL || rule == NO_SHORT_WHILE_UNROLL; }
+        bool isForStmt() { return rule == FOR_UNROLL || rule == NO_SHORT_FOR_UNROLL; }
         bool isAssignStmt() { return rule == STMTEXPR_TO_ASSIGN; }
         bool isClassCreationStmt() { return rule == STMTEXPR_MAKE_CLASS; }
         bool isMethodInvokeStmt() { return rule == STMTEXPR_INVOKE; }

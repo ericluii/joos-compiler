@@ -6,7 +6,7 @@
 #include "stmtExpr.h"
 
 class ForStmt : public BlockStmts {
-    // Rule: FOR_STMT and NO_SHORT_FOR
+    // Rule: FOR_UNROLL and NO_SHORT_FOR_UNROLL
     private:
         BlockStmts* forInit;
         ExpressionStar* eval;
