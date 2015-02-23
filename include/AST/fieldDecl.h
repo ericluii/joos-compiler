@@ -22,7 +22,7 @@ class FieldDecl : public ClassBodyDecls {
         }
 
         Type* getFieldType() { return fieldType; }
-        Identifier* getFieldInitialized() { return fieldId; }
+        Identifier* getFieldDeclared() { return fieldId; }
         Expression* getInitializingExpression() { return fieldExpression; }
 
         bool isInitialized() { return fieldExpression != NULL; }

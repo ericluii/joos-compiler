@@ -14,6 +14,7 @@ class BlockStmts : public Ast {
 
         BlockStmts* getNextBlockStmt() { return nextBlockStmt; }
         void setNextBlockStmt(BlockStmts* set) { nextBlockStmt = set; }
+        bool isLastStatement() { return nextBlockStmt == NULL; }
 };
 
 #endif

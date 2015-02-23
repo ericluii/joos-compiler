@@ -70,6 +70,7 @@ class Ast {
         bool isNameExpression() { return rule == UNARY_NAME; }
         bool isNumericNegation() { return rule == NEG_UNARY; }
         bool isBooleanNegation() { return rule == NOT_UNARY; }
+        bool isCastToReferenceType() { return rule == CAST_NONPRIMITIVE; }
         bool isCastToArrayName() { return rule == CAST_TO_EXPRESSION; }
         bool isCastToPrimitiveType() { return rule == CAST_PRIMITIVE; }
         // Class declarations
@@ -90,8 +91,6 @@ class Ast {
         bool isBracketedExpression() { return rule == PRIMARY_EXPRESSION; }
         // Class creation
         bool isNewClassCreation() { return rule == MAKE_NEW_CLASS; }
-        // Method invocation
-        bool isMethodInvoke() { return rule == PRIMARY_INVOKE; }
         // Variable accessing
         bool isNameAccess() { return rule == UNARY_NAME; }
         bool isFieldAccess() { return rule == FIELD_ACCESS; }
@@ -117,7 +116,7 @@ class Ast {
         bool isClassBodyStar() { return rule == CLASS_BODY_DECLSTAR || rule == CLASS_BODY_DECL_EPSILON; }
         // Class member
         bool isField() { return rule == CLASS_FIELD; }
-        bool isMethod() { return rule == CLASS_METHOD; }
+        bool isClassMethod() { return rule == METHOD_HEADER_AND_BODY; }
         bool isConstructor() { return rule == CLASS_CONSTRUCTOR; }
         // Method invocation
         bool isNormalMethodCall() { return rule == INVOKE_METHOD_NORM; }
@@ -127,9 +126,7 @@ class Ast {
         // Block statements star
         bool isBlockStmtsStar() { return rule == BLOCK_STMTS || rule == BLOCK_STMTS_EPSILON; }
         // Block statements
-        bool isLastBlock() { return rule == BLOCK_STMT; }
-        bool isMoreBlocksComing() { return rule == BLOCK_STMT_LIST; }
-        bool isLocalVarDecl() { return rule == LOCAL_VAR_DECL || rule == FOR_INIT_LOCAL_DECL; }
+        bool isLocalVarDecl() { return rule == TYPE_VAR; }
         bool isIfStmt() { return rule == IF_STMT; }
         bool isIfThenElseStmt() { return rule == IF_THEN_STMT || rule == NO_SHORT_IF_THEN; }
         bool isWhileStmt() { return rule == WHILE_STMT || rule == NO_SHORT_WHILE; }

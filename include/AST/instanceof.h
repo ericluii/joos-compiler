@@ -5,6 +5,7 @@
 #include "type.h"
 
 class InstanceOf : public Expression {
+    // Rule: RELATION_TO_INSTANCEOF
     private:
         Expression* expr;
         Type* instanceType;

@@ -23,7 +23,7 @@ class Constructor : public ClassBodyDecls {
 
         Identifier* getConstructorId() { return id; }
         FormalParamStar* getConstructorParameters() { return params; }
-        BlockStmtsStar* getConstuctorBody() { return body; }
+        BlockStmtsStar* getConstructorBody() { return body; }
 
         bool emptyConstructorBody() { return body->isEpsilon(); }
 };

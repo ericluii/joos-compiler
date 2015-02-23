@@ -25,7 +25,7 @@ class InterfaceMethod : public Ast {
             delete nextMethod;
         }
 
-        ModifiersStar* getListOfModifiers() { return mods; }
+        ModifiersStar* getModifiersStar() { return mods; }
         Type* getReturnType() { return retType; }
         Identifier* getInterfaceMethodId() { return id; }
         FormalParamStar* getParametersList() { return params; }

@@ -17,6 +17,13 @@ public class J1_01 {
 		}
 		int z = 368/4;
 	}
+	{
+		int x = 5;
+		int j = 6;
+		int y = x+j;
+		for(new J1_01(); y < x+j; y = y+1);
+	}
+
 	if (r2==6) while(true) r=r+1;
 	if (r3==6) r=r+1;
 

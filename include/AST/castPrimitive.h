@@ -19,6 +19,7 @@ class CastPrimitive : public CastExpression {
 
         PrimitiveType* getPrimitiveTypeToCastTo() { return castType; }
         bool isPrimitiveArrayCast() { return dimsRule == ARRAY_DIMS; }
+        int getDimensionRule() { return dimsRule; }
 };
 
 #endif

@@ -57,7 +57,7 @@
 class BuildAst
 {
     private:
-        static const bool debug = true;
+        static const bool debug = false;
         static CompilationUnit *makeCompilationUnit(ParseTree *tree);
         static PackageDecl *makePackageDecl(ParseTree *tree);
         static ImportDeclsStar *makeImportDeclsStar(ParseTree *tree);
@@ -112,8 +112,7 @@ class BuildAst
         static InterfaceMethod* makeInterfaceMethod(ParseTree* tree);
         static InterfaceMethod* interfaceMethodSubroutine(ParseTree* tree);
     public:
-        static Ast* build(ParseTree* tree);
-        BuildAst() {}
+        static CompilationUnit* build(ParseTree* tree);
 };
 
 

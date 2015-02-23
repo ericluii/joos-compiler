@@ -17,7 +17,7 @@ class NewClassCreation : public Primary {
             delete args;
         }
 
-        Name* getClassType() { return classType; }
+        Name* getClassName() { return classType; }
         ArgumentsStar* getArgsToCreateClass() { return args; }
 };
 

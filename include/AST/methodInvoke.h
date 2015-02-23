@@ -13,7 +13,7 @@ class MethodInvoke : public Primary {
             delete args;
         }
 
-        ArgumentsStar* getArsForInvokedMethod() { return args; }
+        ArgumentsStar* getArgsForInvokedMethod() { return args; }
         bool noArgumentsGiven() { return args->isEpsilon(); }
 };
 

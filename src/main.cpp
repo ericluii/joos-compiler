@@ -7,8 +7,9 @@
 #include "scanner.h"
 #include "weeder.h"
 #include "parser.h"
-#include "ast.h"
+#include "compilationUnit.h"
 #include "buildAst.h"
+#include "astPrinter.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -21,8 +22,8 @@ void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
     }
 }
 
-void cleanUpASTs(std::map<std::string, Ast*>& ASTs) {
-    std::map<std::string, Ast*>::iterator it;
+void cleanUpASTs(std::map<std::string, CompilationUnit*>& ASTs) {
+    std::map<std::string, CompilationUnit*>::iterator it;
     for(it = ASTs.begin(); it != ASTs.end(); it++) {
         delete it->second;
     }
@@ -41,7 +42,7 @@ int main(int argc, char *argv[])
 
     // Parsing
     Parser parser(tokens);
-    std::map<std::string, Ast*> completeASTs;
+    std::map<std::string, CompilationUnit*> completeASTs;
 
     // Weeding
     Weeder weeder = Weeder();
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
 
             completeASTs[filename] = BuildAst::build(newParseTrees);
+            AstPrinter::print(*completeASTs[filename]);
             delete newParseTrees;
             newParseTrees = NULL;
         }

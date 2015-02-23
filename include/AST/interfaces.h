@@ -19,6 +19,7 @@ class Interfaces : public Ast {
         Name* getCurrentInterface() { return interface; }
         Interfaces* getNextInterface() { return nextInterface; }
         void setNextInterface(Interfaces* set) { nextInterface = set; }
+        bool lastInterface() { return nextInterface == NULL; }
 };
 
 #endif

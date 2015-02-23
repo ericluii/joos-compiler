@@ -29,7 +29,7 @@ class ForStmt : public BlockStmts {
 
         bool emptyForInit() { return forInit == NULL; }
         bool emptyExpression() { return eval->isEpsilon(); }
-        bool emptyUpdate() { return forUpdate == NULL; }
+        bool emptyForUpdate() { return forUpdate == NULL; }
 };
 
 #endif

@@ -28,10 +28,10 @@ class ClassDecl : public TypeDecl
             delete body;
         }
 
-        Modifiers* getModifiers() { return mods; }
-        Identifier* getIdentifier() { return id; }
+        Modifiers* getClassModifiers() { return mods; }
+        Identifier* getClassId() { return id; }
         Super* getSuper() { return super; }
-        InterfaceList* getListOfInterfaces() { return interfaces; }
+        InterfaceList* getImplementInterfaces() { return interfaces; }
         ClassBodyStar* getClassMembers() { return body; }
 
         bool noSuperClass() { return super->isEpsilon(); }

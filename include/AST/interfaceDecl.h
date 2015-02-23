@@ -27,7 +27,7 @@ class InterfaceDecl : public TypeDecl
         Modifiers* getInterfaceModifiers() { return mods; }
         Identifier* getInterfaceId() { return id; }
         InterfaceList* getExtendedInterfaces() { return extends; }
-        InterfaceBodyStar* getInterfaceBody() { return body; }
+        InterfaceBodyStar* getInterfaceBodyStar() { return body; }
 
         bool noExtendedInterfaces() { return extends->isEpsilon(); }
         bool emptyInterfaceBody() { return body->isEpsilon(); }

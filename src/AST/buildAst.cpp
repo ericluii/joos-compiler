@@ -313,12 +313,17 @@ ClassDecl *BuildAst::makeClassDecl(ParseTree *tree){
 
 ClassBodyStar* BuildAst::makeClassBodyStar(ParseTree* tree) {
     if(debug) std::cout << "ClassBodyStar\n";
+    ClassBodyStar* retBodyStar = NULL;
     if(tree->rule == CLASS_BODY_DECL_EPSILON) {
-        return new ClassBodyStar(NULL);
+        retBodyStar = new ClassBodyStar(NULL);
+        retBodyStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+        return retBodyStar;
     }
 
     assert(tree->rule == CLASS_BODY_DECLSTAR);
-    return new ClassBodyStar(makeClassBodyDecls(tree->children[0]));
+    retBodyStar = new ClassBodyStar(makeClassBodyDecls(tree->children[0]));
+    retBodyStar->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+    return retBodyStar;
 }
 
 ClassBodyDecls* BuildAst::makeClassBodyDecls(ParseTree* tree) {
@@ -530,12 +535,10 @@ BlockStmts* BuildAst::makeSingleStmt(ParseTree* tree) {
     assert(tree->rule == LOCAL_VAR_STMT || tree->rule == BLOCK_IS_STMT);
 
     if(tree->rule == LOCAL_VAR_STMT) {
-        int rule = tree->rule;
-        std::string treeLexeme = tree->treeLexeme;
         tree = tree->children[0]->children[0];
         singleStmt = new LocalDecl(makeType(tree->children[0]), makeIdentifier(tree->children[1]),
                                    makeExpression(tree->children[3]));
-        singleStmt->setRuleAndLexeme(rule, treeLexeme);
+        singleStmt->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return singleStmt;
     }
 
@@ -626,15 +629,15 @@ BlockStmts* BuildAst::makeForStmt(ParseTree* tree) {
         ParseTree* backup = tree->children[2]->children[0];
         forInit = new LocalDecl(makeType(backup->children[0]), makeIdentifier(backup->children[1]),
                                 makeExpression(backup->children[3]));
-        forInit->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
+        forInit->setRuleAndLexeme(backup->rule, backup->treeLexeme);
     } else if(tree->children[2]->rule == FOR_INIT_STMT) {
         forInit = makeStmtExpr(tree->children[2]->children[0]);
-        forInit->setRuleAndLexeme(tree->children[2]->rule, tree->children[2]->treeLexeme);
+    } else {
+        assert(tree->children[2]->rule == FOR_INIT_EMPTY);
     }
 
     if(tree->children[6]->rule == FOR_UPDATE_STMT) {
         forUpdate = makeStmtExpr(tree->children[6]->children[0]);
-        forUpdate->setRuleAndLexeme(tree->children[6]->rule, tree->children[6]->treeLexeme);
     }
 
     forStmt = new ForStmt(forInit, expr, forUpdate, loopStmt);
@@ -739,9 +742,8 @@ ExpressionStar* BuildAst::makeExpressionStar(ParseTree* tree) {
 }
 
 Expression* BuildAst::makeExpression(ParseTree* tree) {
-    std::cout << "Expression\n";
+    if(debug) std::cout << "Expression\n";
     if(tree->rule == EXPRESSION_COND || tree->rule == ASSIGNEXPR_TO_COND) {
-        std::cout << "ConditionalExpression\n";
         return makeBinaryExpression(tree->children[0]);
     }
 
@@ -831,7 +833,7 @@ Expression* BuildAst::makeUnaryNotMinusExpr(ParseTree* tree) {
         retUnaryExpr = new NameExpression(makeName(tree->children[0]));
     }
 
-    if(tree->rule == UNARY_CAST) {
+    if(tree->rule != UNARY_CAST) {
         retUnaryExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
     return retUnaryExpr;
@@ -975,8 +977,7 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
 
     if(rule == PRIMARY_LITERAL) {
         primaryNA->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
-    } else if(rule != PRIMARY_FIELDACCESS && rule != PRIMARY_ARRAY_ACCESS
-              && rule != PRIMARY_MAKECLASS) {
+    } else if(rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION) {
         primaryNA->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
     
@@ -1186,6 +1187,6 @@ ModifiersStar* BuildAst::makeModifiersStar(ParseTree* tree) {
     return modsStar;
 }
 
-Ast* BuildAst::build(ParseTree* tree) {
+CompilationUnit* BuildAst::build(ParseTree* tree) {
     return makeCompilationUnit(tree);
 }

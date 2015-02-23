@@ -4,7 +4,7 @@
 #include "ast.h"
 #include "expression.h"
 
-class ExpressionStar : public Expression {
+class ExpressionStar : public Ast {
     // Rule: EXPR_STAR and EXPR_STAR_EPSILON
     private:
         Expression* expr;

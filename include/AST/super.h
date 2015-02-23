@@ -14,7 +14,7 @@ class Super : public Ast {
             delete superClass;
         }
 
-        Name* getSuper() { return superClass; }
+        Name* getSuperName() { return superClass; }
         bool isEpsilon() { return superClass == NULL; }
 };
 
