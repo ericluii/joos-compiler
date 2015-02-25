@@ -36,6 +36,14 @@ class InterfaceMethod : public Ast {
         bool noModifiers() { return mods->isEpsilon(); }
         bool isVoidReturnType() { return retType == NULL; }
         bool noParameters() { return params->isEpsilon(); }
+
+        std::string methodSignatureAsString() {
+            std::string signature = id->getIdAsString() + '(';
+            if(!params->isEpsilon()) {
+                signature+= params->getListOfParameters()->parametersAsString();
+            }
+            return signature + ')';
+        }
 };
 
 #endif

@@ -137,9 +137,9 @@ int main(int argc, char *argv[])
             // AstPrinter::print(*completeASTs[filename]);
             compilationTables[filename] = compilationBuilder.build(*completeASTs[filename]);
 
-            if(compilationTables[filename]->getSymbolTable() != NULL) {
+            /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
-            }
+            }*/ 
 
             delete newParseTrees;
             newParseTrees = NULL;

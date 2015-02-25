@@ -26,6 +26,13 @@ class Constructor : public ClassBodyDecls {
         BlockStmtsStar* getConstructorBody() { return body; }
 
         bool emptyConstructorBody() { return body->isEpsilon(); }
+        std::string constructorSignatureAsString() {
+            std::string signature = "(";
+            if(!params->isEpsilon()) {
+                signature+= params->getListOfParameters()->parametersAsString();
+            }
+            return signature + ')';
+        }
 };
 
 #endif

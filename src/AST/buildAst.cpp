@@ -685,7 +685,7 @@ Type* BuildAst::makeType(ParseTree* tree) {
     if(debug) std::cout << "Type\n";
     Type* returnType = NULL;
     if(tree->rule == PRIMITIVE_TYPE) {
-        returnType = new PrimitiveType(tree->children[0]->children[0]->token);
+        returnType = new PrimitiveType(tree->children[0]->children[0]->token, false);
         returnType->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
         return returnType;
     }
@@ -706,13 +706,17 @@ Type* BuildAst::makeReferenceType(ParseTree* tree) {
             break;
         case REFERENCE_ARRAY:
             if(tree->children[0]->rule == ARRAY_PRIMITIVE) {
-                returnType = new PrimitiveType(tree->children[0]->children[0]->children[0]->token);
+                returnType = new PrimitiveType(tree->children[0]->children[0]->children[0]->token, true);
             } else {
                 assert(tree->children[0]->rule == ARRAY_NONPRIMITIVE);
                 returnType = new ReferenceType(makeName(tree->children[0]->children[0]));
             }
 
-            returnType->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
+            if(tree->children[0]->rule == ARRAY_PRIMITIVE) {
+                returnType->setRuleAndLexeme(tree->children[0]->children[0]->rule, tree->children[0]->children[0]->treeLexeme);
+            } else {
+                returnType->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
+            }
             break;
         default:
             std::cerr << "None of the rules apply" << std::endl;
@@ -839,9 +843,13 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
     assert(tree->rule == CAST_PRIMITIVE || tree->rule == CAST_NONPRIMITIVE ||
            tree->rule == CAST_TO_EXPRESSION);
     if(tree->rule == CAST_PRIMITIVE) {
-        PrimitiveType* type = new PrimitiveType(tree->children[1]->children[0]->token);
+        bool isArray = false;
+        if(tree->children[2]->rule == ARRAY_DIMS) {
+            isArray = true;
+        }
+        PrimitiveType* type = new PrimitiveType(tree->children[1]->children[0]->token, isArray);
         type->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
-        retCastExpr = new CastPrimitive(tree->children[2]->rule, type, makeUnaryExpression(tree->children[4]));
+        retCastExpr = new CastPrimitive(type, makeUnaryExpression(tree->children[4]));
     } else if(tree->rule == CAST_NONPRIMITIVE) {
         retCastExpr = new CastName(makeName(tree->children[1]), makeUnaryNotMinusExpr(tree->children[5]));
     } else {

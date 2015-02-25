@@ -214,7 +214,7 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
     if(!node.isLastMethod()) {
         build(*node.getNextInterfaceMethod());
     }
-
+    
     InterfaceMethodTable* table = new InterfaceMethodTable(&node);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);

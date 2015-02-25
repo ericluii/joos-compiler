@@ -8,12 +8,21 @@ class PrimitiveType : public Type {
     // Rule: all the primitive type derivations and ARRAY_PRIMITIVE
     private:
         Token* primitiveType;
+        bool isArray;
     public:
-        PrimitiveType(Token* primitiveType) : primitiveType(primitiveType) {}
+        PrimitiveType(Token* primitiveType, bool isArray) : primitiveType(primitiveType), isArray(isArray) {}
         ~PrimitiveType() {}
 
-        std::string getTypeAsString() { return primitiveType->getString(); }
+        std::string getTypeAsString() {
+            std::string type = primitiveType->getString();
+            if(isArray) {
+                return type + "[]";
+            }
+            return type;
+        }
+
         bool isEpsilon() { return false; }
+        bool isPrimitiveArray() { return isArray; }
 };
 
 #endif

@@ -12,6 +12,15 @@ class MethodHeader : public Ast {
         Identifier* name;
         Type* retType;
         FormalParamStar* params;
+
+        std::string parametersAsString(ParamList* parameters) {
+            std::string res = "";
+            if(!parameters->isLastParameter()) {
+                res+= ',' + parametersAsString(parameters->getNextParameter());
+            }
+
+            return res + ',' + parameters->getParameterType()->getTypeAsString();
+        }
     public:
         MethodHeader(Identifier* name, Type* retType, FormalParamStar* params) : name(name),
                      retType(retType), params(params) {}
@@ -26,6 +35,14 @@ class MethodHeader : public Ast {
         FormalParamStar* getClassMethodParams() { return params; }
 
         bool isVoidReturnType() { return retType == NULL; }
+        std::string methodSignatureAsString() {
+            std::string signature = name->getIdAsString() + '(';
+            if(!params->isEpsilon()) {
+                signature+= params->getListOfParameters()->parametersAsString();
+            }
+            return signature + ')';
+        }
+
 };
 
 #endif
