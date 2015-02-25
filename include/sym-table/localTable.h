@@ -13,6 +13,9 @@ class LocalTable : public SymbolTable {
         ~LocalTable() {}
 
         LocalDecl* getLocalDecl() { return local; }
+        void printSelf() { 
+            std::cout << "LocalTable: " << local << std::endl;
+        }
 };
 
 #endif

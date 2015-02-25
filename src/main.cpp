@@ -10,6 +10,7 @@
 #include "compilationUnit.h"
 #include "buildAst.h"
 #include "astPrinter.h"
+#include "buildCompilationTable.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -26,6 +27,38 @@ void cleanUpASTs(std::map<std::string, CompilationUnit*>& ASTs) {
     std::map<std::string, CompilationUnit*>::iterator it;
     for(it = ASTs.begin(); it != ASTs.end(); it++) {
         delete it->second;
+    }
+}
+
+void cleanUpCompilationTable(std::map<std::string, CompilationTable*>& compilationTables) {
+    std::map<std::string, CompilationTable*>::iterator it;
+    for(it = compilationTables.begin(); it != compilationTables.end(); it++) {
+        delete it->second;
+    }
+}
+
+void printSymbolTable(SymbolTable* table, int depth = 0) {
+    if(table == NULL) return;
+    for(int i = 0; i < depth; i++) {
+        std::cout << ' ';
+    }
+    table->printSelf();
+    if(table->isClassMethodTable()) {
+        printSymbolTable(((ClassMethodTable*)table)->getSymbolTableOfMethod(), depth+1);
+    } else if(table->isConstructorTable()) {
+        printSymbolTable(((ConstructorTable*)table)->getSymbolTableOfConstructor(), depth+1);
+    } else if(table->isNestedBlockTable()) {
+        printSymbolTable(((NestedBlockTable*)table)->getSymbolTableOfBlock(), depth+1);
+    } else if(table->isForTable()) {
+        if(((ForTable*)table)->getForInitTable() != NULL) {
+            printSymbolTable(((ForTable*)table)->getForInitTable(), depth+1);
+        } else {
+            printSymbolTable(((ForTable*)table)->getLoopTable(), depth+1);
+        }
+    }
+
+    if(!table->isBottomMostEntry()) {
+        printSymbolTable(table->getNextTable(), depth);
     }
 }
 
@@ -48,6 +81,10 @@ int main(int argc, char *argv[])
     Weeder weeder = Weeder();
     ParseTree* newParseTrees = NULL;
     
+    // Symbol table
+    BuildCompilationTable compilationBuilder;
+    std::map<std::string, CompilationTable*> compilationTables;
+
     try {
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
@@ -97,7 +134,13 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
 
             completeASTs[filename] = BuildAst::build(newParseTrees);
-            AstPrinter::print(*completeASTs[filename]);
+            // AstPrinter::print(*completeASTs[filename]);
+            compilationTables[filename] = compilationBuilder.build(*completeASTs[filename]);
+
+            /* if(compilationTables[filename]->getSymbolTable() != NULL) {
+                printSymbolTable(compilationTables[filename]->getSymbolTable());
+            } */
+
             delete newParseTrees;
             newParseTrees = NULL;
         }
@@ -109,6 +152,7 @@ int main(int argc, char *argv[])
     
     cleanUpTokens(tokens);
     cleanUpASTs(completeASTs);
+    cleanUpCompilationTable(compilationTables);
 
     exit(rc);
 }

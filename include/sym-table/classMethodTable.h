@@ -16,6 +16,10 @@ class ClassMethodTable : public SymbolTable {
         ClassMethod* getClassMethod() { return method; }
         SymbolTable* getSymbolTableOfMethod() { return bodyTable; }
         void setSymTableOfMethod(SymbolTable* set) { bodyTable = set; }
+
+        void printSelf() { 
+            std::cout << "ClassMethodTable: " << method << std::endl;
+        }
 };
 
 #endif

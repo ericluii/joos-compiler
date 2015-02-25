@@ -13,6 +13,9 @@ class FieldTable : public SymbolTable {
         ~FieldTable() {}
         
         FieldDecl* getField() { return field; }
+        void printSelf() { 
+            std::cout << "FieldTable: " << field << std::endl;
+        }
 };
 
 #endif

@@ -13,6 +13,9 @@ class InterfaceMethodTable : public SymbolTable {
         ~InterfaceMethodTable() {}
 
         InterfaceMethod* getInterfaceMethod() { return method; }
+        void printSelf() { 
+            std::cout << "InterfaceMethodTable: " << method << std::endl;
+        }
 };
 
 #endif

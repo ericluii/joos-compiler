@@ -10,15 +10,24 @@ void BuildCompilationTable::attachSymbolTable(SymbolTable* table) {
         // if this was the class method table, then set the symbol table for the method
         ((ClassMethodTable*) curSymTable)->setSymTableOfMethod(table);
     } else if(curSymTable->isNestedBlockTable()) {
-        ((NestedBlockTable*) curSymTable)->setSymTableOfBlock(table);
+        if(!((NestedBlockTable*) curSymTable)->isTableSet()) {
+            // if the nested block table has not been set
+            ((NestedBlockTable*) curSymTable)->setSymTableOfBlock(table);
+        } else {
+            curSymTable->setNextTable(table);
+        }
     } else if(curSymTable->isConstructorTable()) {
         ((ConstructorTable*) curSymTable)->setSymTableOfConstructor(table);
     } else if(curSymTable->isForTable()) {
-        // If it ever reaches here then it means that the forInit of the previously seen
-        // for statement wasn't a local variable declaration and the current table
-        // is a NestedBlockTable
-        assert(table->isNestedBlockTable());
-        ((ForTable*) curSymTable)->setLoopTable((NestedBlockTable*) table);
+        // If it ever reaches here, then it must mean that the loop statement
+        // of the previously seen for statement is a nested block
+        if(!((ForTable*) curSymTable)->isTableSet()) {
+            // if the for table has not been set
+            assert(table->isNestedBlockTable());
+            ((ForTable*) curSymTable)->setLoopTable((NestedBlockTable*) table);
+        } else {
+            curSymTable->setNextTable(table);
+        }
     } else {
         curSymTable->setNextTable(table);
     }
@@ -120,7 +129,7 @@ void BuildCompilationTable::build(ClassMethod& node) {
 
 void BuildCompilationTable::build(LocalDecl& node) {
     LocalTable* table = new LocalTable(&node);
-    attachSymbolTable(table);    
+    attachSymbolTable(table);
 }
 
 void BuildCompilationTable::build(NestedBlock& node) {
@@ -129,6 +138,7 @@ void BuildCompilationTable::build(NestedBlock& node) {
     // temporary store
     SymbolTable* tempTable = curSymTable;
     build(*node.getNestedBlock());
+    table->indicateTableIsSet();
     curSymTable = tempTable;
 }
 
@@ -147,21 +157,30 @@ void BuildCompilationTable::build(ForStmt& node) {
     ForTable* table = new ForTable(&node);
     attachSymbolTable(table);
     LocalTable* localTable = NULL;
-    SymbolTable* tempTable = curSymTable;
-    if((node.getForInit())->isLocalVarDecl()) {
-        // If the forInit is a local variable declaration
-        localTable = new LocalTable((LocalDecl*) node.getForInit());
-        curSymTable->setNextTable(localTable);
-        localTable->setPrevTable(curSymTable);
-        curSymTable = tempTable;
+    
+    if(!node.emptyForInit()) {
+        if((node.getForInit())->isLocalVarDecl()) {
+            // If the forInit is a local variable declaration
+            localTable = new LocalTable((LocalDecl*) node.getForInit());
+            ((ForTable*)curSymTable)->setForInitTable(localTable);
+            localTable->setPrevTable(curSymTable);
+            // curSymTable = localTable;
+        }
     }
 
     build(*node.getLoopStmt());
-    curSymTable = tempTable;
-    if(((ForTable*)curSymTable)->getForInitTable() != NULL) {
-        // if the forInit was actually a local variable declaration
-        // set the loop table in the for table
-        ((ForTable*)curSymTable)->setLoopTable((NestedBlockTable*) localTable->getNextTable());
+    table->indicateTableIsSet();
+    curSymTable = table;
+    if(table->getForInitTable() != NULL) {
+        // If forInit was a local variable declaration, then link them together
+        table->getForInitTable()->setNextTable(table->getLoopTable());
+        if(table->getLoopTable() != NULL) {
+            table->getLoopTable()->setPrevTable(table->getForInitTable());
+        }
+    } else if(table->getLoopTable() != NULL) {
+        // If the forInit wasn't a local variable declaration, then link the loop table
+        // with the for table if the loop table isn't NULL
+        table->getLoopTable()->setPrevTable(table);
     }
 }
 

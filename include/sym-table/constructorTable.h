@@ -16,6 +16,10 @@ class ConstructorTable : public SymbolTable {
         Constructor* getConstructor() { return constructor; }
         SymbolTable* getSymbolTableOfConstructor() { return bodyTable; } 
         void setSymTableOfConstructor(SymbolTable* set) { bodyTable = set; }
+
+        void printSelf() { 
+            std::cout << "ConstructorTable: " << constructor << std::endl;
+        }
 };
 
 #endif
