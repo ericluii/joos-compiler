@@ -1,18 +1,17 @@
 #ifndef __IDENTIFIER_H__
 #define __IDENTIFIER_H__
 
-#include <string>
-#include "../token.h"
+#include "token.h"
+#include "ast.h"
 
-class Identifier
+class Identifier : public Ast
 {
+    // Rule: IDENTIFIER
+    private:
         Token *token;
-        std::string id;
     public:
-        
-        Identifier(Token *token);
-        
-        std::string GetId();
+        Identifier(Token *token) : token(token) {}
+        std::string getIdAsString() { return token->getString(); }
 };
 
 #endif

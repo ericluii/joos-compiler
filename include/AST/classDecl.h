@@ -2,14 +2,42 @@
 #define __CLASSDECL_H__
 
 #include "typeDecl.h"
+#include "modifiers.h"
+#include "identifier.h"
+#include "super.h"
+#include "interfaceList.h"
+#include "classBodyStar.h"
 
 class ClassDecl : public TypeDecl
 {
-        //fields
+    // Rule: TYPE_CLASS
+    private:
+        Modifiers* mods;
+        Identifier* id;
+        Super* super;
+        InterfaceList* interfaces;
+        ClassBodyStar* body;
     public:
-        ClassDecl(/*parameters*/); 
+        ClassDecl(Modifiers* mods, Identifier* id, Super* super, InterfaceList* interfaces, ClassBodyStar* body) 
+            : mods(mods), id(id), super(super), interfaces(interfaces), body(body) {}
+        ~ClassDecl() {
+            delete mods;
+            delete id;
+            delete super;
+            delete interfaces;
+            delete body;
+        }
 
-        //get fields
+        Modifiers* getClassModifiers() { return mods; }
+        Identifier* getClassId() { return id; }
+        Super* getSuper() { return super; }
+        InterfaceList* getImplementInterfaces() { return interfaces; }
+        ClassBodyStar* getClassMembers() { return body; }
+
+        bool noSuperClass() { return super->isEpsilon(); }
+        bool noImplementedInterfaces() { return interfaces->isEpsilon(); }
+        bool emptyBody() { return body->isEpsilon(); }
+        bool isEpsilon() { return false; }
 };
 
 #endif

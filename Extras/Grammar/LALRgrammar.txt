@@ -69,7 +69,7 @@ Literal -> A Number i.e 1234 | true | false | a char literal i.e 'a' | a string 
 ClassInstanceCreationExpression -> new ClassType ( ArgumentList* )
 ArgumentList* -> ArgumentList | epsilon
 ArgumentList -> Expression | ArgumentList , Expression
-MethodInvocation -> Name ( ArgumentList* ) | Primary . Identifier ( ArgumentList* )
+MethodInvocation -> Name ( ArgumentList* ) | FieldAccess ( ArgumentList* )
 ArrayAccess -> Name [ Expression ] | PrimaryNoNewArray [ Expression ]
 ArrayCreationExpression -> new PrimitiveType DimExpr | new ClassOrInterfaceType DimExpr
 DimExpr -> [ Expression ]

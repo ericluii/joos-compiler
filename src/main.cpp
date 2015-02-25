@@ -7,7 +7,9 @@
 #include "scanner.h"
 #include "weeder.h"
 #include "parser.h"
-#include "AST/ast.h"
+#include "compilationUnit.h"
+#include "buildAst.h"
+#include "astPrinter.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -20,9 +22,9 @@ void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
     }
 }
 
-void cleanUpParseTrees(std::map<std::string, ParseTree*>& parseTrees) {
-    std::map<std::string, ParseTree*>::iterator it;
-    for(it = parseTrees.begin(); it != parseTrees.end(); it++) {
+void cleanUpASTs(std::map<std::string, CompilationUnit*>& ASTs) {
+    std::map<std::string, CompilationUnit*>::iterator it;
+    for(it = ASTs.begin(); it != ASTs.end(); it++) {
         delete it->second;
     }
 }
@@ -40,15 +42,32 @@ int main(int argc, char *argv[])
 
     // Parsing
     Parser parser(tokens);
-    std::map<std::string, ParseTree*> completeParseTrees;
+    std::map<std::string, CompilationUnit*> completeASTs;
 
     // Weeding
     Weeder weeder = Weeder();
-
+    ParseTree* newParseTrees = NULL;
+    
     try {
-
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
+            if(filename.find_last_of(".java") == std::string::npos) {
+                std::stringstream ss;
+                ss << "File '" << filename << "' must end with .java extension.";
+                Error(E_DEFAULT, NULL, ss.str());
+            } else {
+                std::stringstream ss;
+                if(filename.length() <= 5) {
+                    ss << "File '" << filename << "' cannot fit both a .java extension and a filename.";
+                    Error(E_DEFAULT, NULL, ss.str());
+                } else {
+                    if(filename.compare(filename.length() - 5, 5, ".java") != 0) {
+                        ss << "File '" << filename << "' must end with .java extension.";
+                        Error(E_DEFAULT, NULL, ss.str());
+                    }
+                }
+            }
+            CHECK_ERROR();
 
             file.open(filename, std::ifstream::in);
             if(!file.is_open()){
@@ -71,24 +90,25 @@ int main(int argc, char *argv[])
         for(int i = 1; i < argc; i++) {
             filename = argv[i];
 
-            ParseTree* newParseTrees = parser.Parse(filename);
+            newParseTrees = parser.Parse(filename);
             CHECK_ERROR();
 
             weeder.weedParseTree(newParseTrees);
             CHECK_ERROR();
 
-            completeParseTrees[filename] = newParseTrees;
+            completeASTs[filename] = BuildAst::build(newParseTrees);
+            AstPrinter::print(*completeASTs[filename]);
+            delete newParseTrees;
+            newParseTrees = NULL;
         }
     } catch (std::exception &e) {
         Error::print();
+        delete newParseTrees;
         rc = 42;
     }
     
-    std::cout << "starting\n";
-    CompilationUnit *unit = ast::makeCompilationUnit(completeParseTrees[argv[1]]);
-    
     cleanUpTokens(tokens);
-    cleanUpParseTrees(completeParseTrees);
+    cleanUpASTs(completeASTs);
 
     exit(rc);
 }

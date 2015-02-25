@@ -27,6 +27,7 @@
 #include "NoClassMethodRepeatModifiers_impl.h"
 #include "NoInterfaceMethodRepeatModifiers_impl.h"
 #include "NoConstructorRepeatModifiers_impl.h"
+#include "NoMultiArrayAccess_impl.h"
 
 std::string Weed::className = "";
 std::string Weed::interfaceName = "";
@@ -64,6 +65,7 @@ Weeder::Weeder()
     weeds.push_back(new NoClassMethodRepeatModifiers());
     weeds.push_back(new NoInterfaceMethodRepeatModifiers());
     weeds.push_back(new NoConstructorRepeatModifiers());
+    weeds.push_back(new NoMultiArrayAccess());
 }
 
 

@@ -10,8 +10,30 @@ public class J1_01 {
 	int r6 = J1_01.m1(100);
 
 	int r = 0;
-	if (r1==9) r=r+1;
-	if (r2==6) r=r+1;
+	if (r1==9) {
+		for(int x = 2; x < r1; x = x+1) {
+			r=r+1;
+			x = x+2;
+		}
+		int z = 368/4;
+	}
+	{
+		int x = 5;
+		int j = 6;
+		int y = x+j;
+		for(new J1_01(); y < x; x = x+y);
+	}
+
+	if(true)
+		for(;;) 
+			if (true) 
+				r = 2;
+			else
+				r6 = 3;
+	else {}
+			
+
+	if (r2==6) while(true) r=r+1;
 	if (r3==6) r=r+1;
 
 	if (r4==6) r=r+1;
