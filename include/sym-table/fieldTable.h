@@ -6,7 +6,7 @@
 class FieldDecl;
 
 class FieldTable : public SymbolTable {
-    private;
+    private:
         FieldDecl* field;
     public:
         FieldTable(FieldDecl* field) : SymbolTable(STT_FIELD), field(field) {}

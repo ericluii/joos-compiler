@@ -5,17 +5,18 @@
 
 class NestedBlock;
 
+// Represents the block of an if stmt, while stmt and a nested block
 class NestedBlockTable : public SymbolTable {
     private:
         NestedBlock* block;
         SymbolTable* blockTable;
     public:
         NestedBlockTable(NestedBlock* block) : SymbolTable(STT_NESTEDBLOCK), block(block), blockTable(NULL) {}
-        ~NestedBlock() {}
+        ~NestedBlockTable() {}
 
         NestedBlock* getNestedBlock() { return block; }
         SymbolTable* getSymbolTableOfBlock() { return blockTable; }
-        void setSymTableofBlock(SymbolTable* set) { blockTable = set; }
+        void setSymTableOfBlock(SymbolTable* set) { blockTable = set; }
 };
 
 #endif

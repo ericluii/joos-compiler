@@ -8,11 +8,14 @@ class Constructor;
 class ConstructorTable : public SymbolTable {
     private:
         Constructor* constructor;
+        SymbolTable* bodyTable;
     public:
         ConstructorTable(Constructor* constructor) : SymbolTable(STT_CONSTRUCTOR), constructor(constructor) {}
         ~ConstructorTable() {}
 
         Constructor* getConstructor() { return constructor; }
+        SymbolTable* getSymbolTableOfConstructor() { return bodyTable; } 
+        void setSymTableOfConstructor(SymbolTable* set) { bodyTable = set; }
 };
 
 #endif

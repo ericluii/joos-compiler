@@ -9,10 +9,10 @@ class LocalTable : public SymbolTable {
     private:
         LocalDecl* local;
     public:
-        LocalTable(LocalDel* local) : SymbolTable(STT_LOCAL), local(local) {}
+        LocalTable(LocalDecl* local) : SymbolTable(STT_LOCAL), local(local) {}
         ~LocalTable() {}
 
-        LocalDel* getLocalDecl() { return local; }
+        LocalDecl* getLocalDecl() { return local; }
 };
 
 #endif

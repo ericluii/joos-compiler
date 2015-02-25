@@ -8,15 +8,16 @@
 class CompilationTable {
     private:
         PackageDecl* package;
-        SymbolTable* typeTable;
+        SymbolTable* symTable;
     public:
-        CompilationTable(PackageDecl* package) : package(package), typeTable(NULL) {}
+        CompilationTable(PackageDecl* package) : package(package), symTable(NULL) {}
         ~CompilationTable() {
-            delete typeTable;
+            delete symTable;
         }
 
-        Symboltable* getTableOfType() { return typeTable; }
+        SymbolTable* getSymbolTable() { return symTable; }
         std::string getPackageName() { return package->getPackageName()->getFullName(); }
-}
+        void setSymbolTable(SymbolTable* set) { symTable = set; }
+};
 
 #endif

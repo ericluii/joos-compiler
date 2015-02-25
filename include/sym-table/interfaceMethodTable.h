@@ -10,7 +10,7 @@ class InterfaceMethodTable : public SymbolTable {
         InterfaceMethod* method;
     public:
         InterfaceMethodTable(InterfaceMethod* method) : SymbolTable(STT_INTERFACEMETHOD), method(method) {}
-        ~InterfaceMethod() {}
+        ~InterfaceMethodTable() {}
 
         InterfaceMethod* getInterfaceMethod() { return method; }
 };
