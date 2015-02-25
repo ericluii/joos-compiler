@@ -13,8 +13,9 @@ class ClassTable : public SymbolTable {
         ~ClassTable() {}
 
         ClassDecl* getClass() { return declaration; }
-        void printSelf() { 
-            std::cout << "ClassTable: " << declaration << std::endl;
+        void printSelf() {
+            std::cout << "ClassTable: " << this << "| AST node: " << declaration
+                      << "| Next: " << nextTable << std::endl;
         }
 };
 

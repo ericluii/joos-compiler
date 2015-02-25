@@ -13,8 +13,9 @@ class FieldTable : public SymbolTable {
         ~FieldTable() {}
         
         FieldDecl* getField() { return field; }
-        void printSelf() { 
-            std::cout << "FieldTable: " << field << std::endl;
+        void printSelf() {
+            std::cout << "Previous: " << prevTable << "| FieldTable: " << this << "| AST node: " << field 
+                      << "| Next: " << nextTable << std::endl;
         }
 };
 

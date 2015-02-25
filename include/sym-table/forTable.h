@@ -23,8 +23,9 @@ class ForTable : public SymbolTable {
         NestedBlockTable* getLoopTable() { return loopTable; }
         void setForInitTable(LocalTable* set) { forInitTable = set; }
         void setLoopTable(NestedBlockTable* set) { loopTable = set; }
-        void printSelf() { 
-            std::cout << "ForTable: " << stmt << std::endl;
+        void printSelf() {
+            std::cout << "Previous: " << prevTable << "| ForTable: " << this << "| AST node: " << stmt
+                      << "| Next: " << nextTable << std::endl;
         }
         void indicateTableIsSet() { setTable = true; }
         bool isTableSet() { return setTable; }

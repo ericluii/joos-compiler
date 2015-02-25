@@ -13,8 +13,9 @@ class InterfaceTable : public SymbolTable {
         ~InterfaceTable() {}
 
         InterfaceDecl* getInterface() { return declaration; }
-        void printSelf() { 
-            std::cout << "InterfaceTable: " << declaration << std::endl;
+        void printSelf() {
+            std::cout << "InterfaceTable: " << this << "| AST node: " << declaration
+                      << "| Next: " << nextTable << std::endl;
         }
 };
 

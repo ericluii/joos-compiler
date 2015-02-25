@@ -19,7 +19,8 @@ class NestedBlockTable : public SymbolTable {
         SymbolTable* getSymbolTableOfBlock() { return blockTable; }
         void setSymTableOfBlock(SymbolTable* set) { blockTable = set; }
         void printSelf() {
-            std::cout << "NestedBlockTable: " << block << std::endl;
+            std::cout << "Previous: " << prevTable << "| NestedBlockTable: " << this << "| AST node: " << block
+                      << "| Next: " << nextTable << std::endl;
         }
 
         void indicateTableIsSet() { setTable = true; }

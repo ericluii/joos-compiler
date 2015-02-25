@@ -18,7 +18,8 @@ class ConstructorTable : public SymbolTable {
         void setSymTableOfConstructor(SymbolTable* set) { bodyTable = set; }
 
         void printSelf() { 
-            std::cout << "ConstructorTable: " << constructor << std::endl;
+            std::cout << "Previous: " << prevTable << "| ConstructorTable: " << this << "| AST node: " << constructor
+                      << "| Next: " << nextTable << std::endl;
         }
 };
 

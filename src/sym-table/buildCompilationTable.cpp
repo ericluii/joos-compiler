@@ -225,6 +225,8 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
 
 CompilationTable* BuildCompilationTable::build(CompilationUnit& node) {
     curCompTable = new CompilationTable(node.getPackageDecl());
-    build(*node.getTypeDecl());
+    if(!node.getTypeDecl()->isEpsilon()) {
+        build(*node.getTypeDecl());
+    }
     return curCompTable;
 }

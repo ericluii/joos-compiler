@@ -17,8 +17,9 @@ class ClassMethodTable : public SymbolTable {
         SymbolTable* getSymbolTableOfMethod() { return bodyTable; }
         void setSymTableOfMethod(SymbolTable* set) { bodyTable = set; }
 
-        void printSelf() { 
-            std::cout << "ClassMethodTable: " << method << std::endl;
+        void printSelf() {
+            std::cout << "Previous: " << prevTable << "| ClassMethodTable: " << this << "| AST node: " << method 
+                      << "| Next: " << nextTable << std::endl;
         }
 };
 
