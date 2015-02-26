@@ -23,11 +23,12 @@ void BuildCompilationTable::attachSymbolTable(SymbolTable* table) {
         ((ConstructorTable*) curSymTable)->setSymTableOfConstructor(table);
     } else if(curSymTable->isForTable()) {
         // If it ever reaches here, then it must mean that the loop statement
-        // of the previously seen for statement is a nested block
+        // of the previously seen for statement is something with a nested block
+        // OR another for statement itself
         if(!((ForTable*) curSymTable)->isTableSet()) {
             // if the for table has not been set
-            assert(table->isNestedBlockTable());
-            ((ForTable*) curSymTable)->setLoopTable((NestedBlockTable*) table);
+            assert(table->isNestedBlockTable() || table->isForTable());
+            ((ForTable*) curSymTable)->setLoopTable(table);
         } else {
             curSymTable->setNextTable(table);
         }
@@ -125,7 +126,7 @@ void BuildCompilationTable::build(FieldDecl& node) {
     } else {
         std::stringstream ss;
         Token* prevField = curCompTable->fields[field]->getField()->getFieldDeclared()->getToken();
-        ss << "Field '" << field << "' was previously defined here '"
+        ss << "Field '" << field << "' was previously defined here: "
            << prevField->getFile() << ":" << prevField->getLocation().first << ":" << prevField->getLocation().second;
         Error(E_SYMTABLE, node.getFieldDeclared()->getToken(), ss.str());
     }
@@ -151,7 +152,7 @@ void BuildCompilationTable::build(ClassMethod& node) {
         std::stringstream ss;
         Token* prevMethod = curCompTable->classMethods[methodSignature]
                             ->getClassMethod()->getMethodHeader()->getClassMethodId()->getToken();
-        ss << "Class method '" << methodSignature << "' was previously defined here '"
+        ss << "Class method '" << methodSignature << "' was previously defined here: "
            << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
         Error(E_SYMTABLE, node.getMethodHeader()->getClassMethodId()->getToken(), ss.str());
     }
@@ -235,7 +236,7 @@ void BuildCompilationTable::build(Constructor& node) {
     } else {
         std::stringstream ss;
         Token* prevCtor = curCompTable->constructors[constructorSignature]->getConstructor()->getConstructorId()->getToken();
-        ss << "Constructor '" << constructorSignature << "' was previously defined here '"
+        ss << "Constructor '" << constructorSignature << "' was previously defined here: "
            << prevCtor->getFile() << ":" << prevCtor->getLocation().first << ":" << prevCtor->getLocation().second;
         Error(E_SYMTABLE, node.getConstructorId()->getToken(), ss.str());
     }
@@ -275,7 +276,7 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
     } else {
         std::stringstream ss;
         Token* prevMethod = curCompTable->interfaceMethods[methodSignature]->getInterfaceMethod()->getInterfaceMethodId()->getToken();
-        ss << "Interface method '" << methodSignature << "' was previously defined here '"
+        ss << "Interface method '" << methodSignature << "' was previously defined here: "
            << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
         Error(E_SYMTABLE, node.getInterfaceMethodId()->getToken(), ss.str());
     }

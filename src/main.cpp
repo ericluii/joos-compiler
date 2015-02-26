@@ -138,9 +138,9 @@ int main(int argc, char *argv[])
             compilationTables[filename] = compilationBuilder.build(*completeASTs[filename]);
             CHECK_ERROR();
 
-            /* if(compilationTables[filename]->getSymbolTable() != NULL) {
+            if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
-            }*/ 
+            }
 
             delete newParseTrees;
             newParseTrees = NULL;

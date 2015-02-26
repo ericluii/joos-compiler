@@ -14,15 +14,15 @@ class ForTable : public SymbolTable {
         // NULL if forInit is not a local variable declaration or does not exist
         LocalTable* forInitTable;
         // NULL if loop statement does not contain a nested block or empty nested block
-        NestedBlockTable* loopTable;
+        SymbolTable* loopTable;
     public:
         ForTable(ForStmt* stmt);
         ~ForTable();
 
         LocalTable* getForInitTable();
-        NestedBlockTable* getLoopTable();
+        SymbolTable* getLoopTable();
         void setForInitTable(LocalTable* set);
-        void setLoopTable(NestedBlockTable* set);
+        void setLoopTable(SymbolTable* set);
         void printSelf();
         void indicateTableIsSet();
         bool isTableSet();
