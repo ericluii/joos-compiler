@@ -5,6 +5,7 @@
 #include "identifier.h"
 #include "formalParamStar.h"
 #include "blockStmtsStar.h"
+#include "constructorTable.h"
 
 class Constructor : public ClassBodyDecls {
     // Rule: CLASS_CONSTRUCTOR
@@ -12,9 +13,10 @@ class Constructor : public ClassBodyDecls {
         Identifier* id;
         FormalParamStar* params;
         BlockStmtsStar* body;
+        ConstructorTable* table;
     public:
         Constructor(Modifiers* mod, Identifier* id, FormalParamStar* params, BlockStmtsStar* body) :
-                ClassBodyDecls(mod), id(id), params(params), body(body) {}
+                ClassBodyDecls(mod), id(id), params(params), body(body), table(NULL) {}
         ~Constructor() {
             delete id;
             delete params;
@@ -33,6 +35,9 @@ class Constructor : public ClassBodyDecls {
             }
             return signature + ')';
         }
+
+        void setConstructorTable(ConstructorTable* set) { table = set; }
+        ConstructorTable* getConstructorTable() { return table; }
 };
 
 #endif

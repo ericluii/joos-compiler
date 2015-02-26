@@ -12,19 +12,16 @@ class NestedBlockTable : public SymbolTable {
         NestedBlock* block;
         SymbolTable* blockTable;
     public:
-        NestedBlockTable(NestedBlock* block) : SymbolTable(STT_NESTEDBLOCK), setTable(false), block(block), blockTable(NULL) {}
-        ~NestedBlockTable() {}
+        NestedBlockTable(NestedBlock* block);
+        ~NestedBlockTable(); 
 
-        NestedBlock* getNestedBlock() { return block; }
-        SymbolTable* getSymbolTableOfBlock() { return blockTable; }
-        void setSymTableOfBlock(SymbolTable* set) { blockTable = set; }
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| NestedBlockTable: " << this << "| AST node: " << block
-                      << "| Next: " << nextTable << std::endl;
-        }
+        NestedBlock* getNestedBlock(); 
+        SymbolTable* getSymbolTableOfBlock();
+        void setSymTableOfBlock(SymbolTable* set);
+        void printSelf(); 
 
-        void indicateTableIsSet() { setTable = true; }
-        bool isTableSet() { return setTable; }
+        void indicateTableIsSet();
+        bool isTableSet();
 };
 
 #endif

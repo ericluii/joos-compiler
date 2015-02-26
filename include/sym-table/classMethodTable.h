@@ -10,17 +10,14 @@ class ClassMethodTable : public SymbolTable {
         ClassMethod* method;
         SymbolTable* bodyTable;
     public:
-        ClassMethodTable(ClassMethod* method) : SymbolTable(STT_CLASSMETHOD), method(method), bodyTable(NULL) {}
-        ~ClassMethodTable() {}
+        ClassMethodTable(ClassMethod* method); 
+        ~ClassMethodTable(); 
 
-        ClassMethod* getClassMethod() { return method; }
-        SymbolTable* getSymbolTableOfMethod() { return bodyTable; }
-        void setSymTableOfMethod(SymbolTable* set) { bodyTable = set; }
+        ClassMethod* getClassMethod();
+        SymbolTable* getSymbolTableOfMethod();
+        void setSymTableOfMethod(SymbolTable* set);
 
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| ClassMethodTable: " << this << "| AST node: " << method 
-                      << "| Next: " << nextTable << std::endl;
-        }
+        void printSelf();
 };
 
 #endif

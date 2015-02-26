@@ -16,19 +16,16 @@ class ForTable : public SymbolTable {
         // NULL if loop statement does not contain a nested block or empty nested block
         NestedBlockTable* loopTable;
     public:
-        ForTable(ForStmt* stmt) : SymbolTable(STT_FOR), setTable(false), stmt(stmt), forInitTable(NULL), loopTable(NULL) {}
-        ~ForTable() {}
+        ForTable(ForStmt* stmt);
+        ~ForTable();
 
-        LocalTable* getForInitTable() { return forInitTable; }
-        NestedBlockTable* getLoopTable() { return loopTable; }
-        void setForInitTable(LocalTable* set) { forInitTable = set; }
-        void setLoopTable(NestedBlockTable* set) { loopTable = set; }
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| ForTable: " << this << "| AST node: " << stmt
-                      << "| Next: " << nextTable << std::endl;
-        }
-        void indicateTableIsSet() { setTable = true; }
-        bool isTableSet() { return setTable; }
+        LocalTable* getForInitTable();
+        NestedBlockTable* getLoopTable();
+        void setForInitTable(LocalTable* set);
+        void setLoopTable(NestedBlockTable* set);
+        void printSelf();
+        void indicateTableIsSet();
+        bool isTableSet();
 };
 
 #endif

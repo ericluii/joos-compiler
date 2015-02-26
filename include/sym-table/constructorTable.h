@@ -10,17 +10,14 @@ class ConstructorTable : public SymbolTable {
         Constructor* constructor;
         SymbolTable* bodyTable;
     public:
-        ConstructorTable(Constructor* constructor) : SymbolTable(STT_CONSTRUCTOR), constructor(constructor) {}
-        ~ConstructorTable() {}
+        ConstructorTable(Constructor* constructor); 
+        ~ConstructorTable(); 
 
-        Constructor* getConstructor() { return constructor; }
-        SymbolTable* getSymbolTableOfConstructor() { return bodyTable; } 
-        void setSymTableOfConstructor(SymbolTable* set) { bodyTable = set; }
+        Constructor* getConstructor(); 
+        SymbolTable* getSymbolTableOfConstructor(); 
+        void setSymTableOfConstructor(SymbolTable* set); 
 
-        void printSelf() { 
-            std::cout << "Previous: " << prevTable << "| ConstructorTable: " << this << "| AST node: " << constructor
-                      << "| Next: " << nextTable << std::endl;
-        }
+        void printSelf(); 
 };
 
 #endif

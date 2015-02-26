@@ -13,7 +13,6 @@
 #include "interfaceMethodTable.h"
 #include "localTable.h"
 #include "compilationTable.h"
-
 // Base classes
 #include "typeDecl.h"
 #include "classBodyDecls.h"

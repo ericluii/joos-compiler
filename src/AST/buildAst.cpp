@@ -102,9 +102,10 @@ PackageDecl *BuildAst::makePackageDecl(ParseTree *tree){
     PackageDecl* package;
     if(tree->rule == PACKAGE_NAME) {
         package = new PackageDecl(makeName(tree->children[1]));
+    } else {
+        assert(tree->rule == PACKAGE_EPSILON);
+        package = new PackageDecl(NULL);
     }
-    assert(tree->rule == PACKAGE_EPSILON);
-    package = new PackageDecl(NULL);
     package->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     return package;
 }
@@ -127,8 +128,7 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
     if(debug) std::cout << "ImportDecls\n";
     ImportDecls* returnImport;
     if(tree->rule == IMPORTS_DECL){
-        tree = tree->children[0];
-        assert(tree->rule == IMPORT_ON_DEMAND || tree->rule == SINGLE_TYPE_IMPORT);
+        assert(tree->children[0]->rule == IMPORT_ON_DEMAND || tree->children[0]->rule == SINGLE_TYPE_IMPORT);
         returnImport = new ImportDecls(makeName(tree->children[0]->children[0]->children[1]));
         returnImport->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnImport;
@@ -206,6 +206,7 @@ Modifiers* BuildAst::makeModifiers(ParseTree* tree) {
                 nextModifier->setNextModifier(nextModifier);
                 currentModifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentModifier = nextModifier;
+                tree = tree->children[0];
                 break;
             case MODIFIERS_MOD:
             case MEMBER_MOD:
@@ -857,8 +858,9 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
         tree = tree->children[1];
         while(true) {
             switch(tree->rule) {
+                case EXPRESSION_COND:
                 case COND_TO_CONDOR:
-                case CONDOR_TO_CONDORAND:
+                case CONDOR_TO_CONDAND:
                 case CONDAND_TO_INCLUOR:
                 case INCLUOR_TO_AND:
                 case AND_TO_EQUALITY:
@@ -1020,10 +1022,10 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
         returnArguments->setRuleAndLexeme(tree->rule, tree->treeLexeme);
         return returnArguments;
     }
-    
+   
     assert(tree->rule == ARG_LIST_LIST);
 
-    returnArguments = new Arguments(makeExpression(tree->children[1]));
+    returnArguments = new Arguments(makeExpression(tree->children[2]));
     returnArguments->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     Arguments* currentArgs = returnArguments;
     Arguments* nextArgs;
@@ -1032,7 +1034,7 @@ Arguments* BuildAst::makeArguments(ParseTree* tree) {
     while(true) {
         switch(tree->rule) {
             case ARG_LIST_LIST:
-                nextArgs = new Arguments(makeExpression(tree->children[1]));
+                nextArgs = new Arguments(makeExpression(tree->children[2]));
                 nextArgs->setRuleAndLexeme(tree->rule, tree->treeLexeme);
                 currentArgs->setNextArgs(nextArgs);
                 currentArgs = nextArgs;
@@ -1070,7 +1072,9 @@ Primary* BuildAst::makePrimaryNewArray(ParseTree* tree) {
     assert(tree->rule == MAKE_NEW_PRIMITIVE_ARRAY || tree->rule == MAKE_NEW_NONPRIMITIVE_ARRAY);
     Expression* expr = makeExpression(tree->children[2]->children[1]);
     if(tree->rule == MAKE_NEW_PRIMITIVE_ARRAY) {
-        returnPNA = new PrimaryNewArray(makeType(tree->children[1]), expr);
+        PrimitiveType* type = new PrimitiveType(tree->children[1]->children[0]->token, false);
+        type->setRuleAndLexeme(tree->children[1]->rule, tree->children[1]->treeLexeme);
+        returnPNA = new PrimaryNewArray(type, expr);
     } else {
         if(debug) std::cout << "Type\n";
         Type* type = new ReferenceType(makeName(tree->children[1]->children[0]));

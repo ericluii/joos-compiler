@@ -10,6 +10,7 @@ class InterfaceList : public Ast {
         Interfaces* list;
     public:
         InterfaceList(Interfaces* list) : list(list) {}
+        ~InterfaceList() {}
 
         Interfaces* getListOfInterfaces() { return list; }
         bool isEpsilon() { return list == NULL; }

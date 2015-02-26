@@ -31,6 +31,7 @@ void Error::print()
                 break;
             case E_PARSER:
             case E_WEEDER:
+            case E_SYMTABLE:
                 std::cerr << all_errors[i].token->getFile() << ":"
                           << all_errors[i].token->getLocation().first << ":"
                           << all_errors[i].token->getLocation().second << ": error: "

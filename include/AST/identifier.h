@@ -11,6 +11,7 @@ class Identifier : public Ast
         Token *token;
     public:
         Identifier(Token *token) : token(token) {}
+        ~Identifier() {}
 
         Token* getToken() { return token; }
         std::string getIdAsString() { return token->getString(); }

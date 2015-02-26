@@ -9,14 +9,11 @@ class InterfaceMethodTable : public SymbolTable {
     private:
         InterfaceMethod* method;
     public:
-        InterfaceMethodTable(InterfaceMethod* method) : SymbolTable(STT_INTERFACEMETHOD), method(method) {}
-        ~InterfaceMethodTable() {}
+        InterfaceMethodTable(InterfaceMethod* method); 
+        ~InterfaceMethodTable();
 
-        InterfaceMethod* getInterfaceMethod() { return method; }
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| InterfaceMethodTable: " << this << "| AST node: " << method 
-                      << "| Next: " << nextTable << std::endl;
-        }
+        InterfaceMethod* getInterfaceMethod();
+        void printSelf();
 };
 
 #endif

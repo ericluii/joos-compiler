@@ -6,6 +6,7 @@
 #include "type.h"
 #include "identifier.h"
 #include "formalParamStar.h"
+#include "interfaceMethodTable.h"
 
 class InterfaceMethod : public Ast {
     // Rule: INTERFACE_MEMBER_DECL and INTERFACE_MEMBER_DECL_LIST
@@ -15,11 +16,13 @@ class InterfaceMethod : public Ast {
         Identifier* id;
         FormalParamStar* params;
         InterfaceMethod* nextMethod;
+        InterfaceMethodTable* table;
     public:
         InterfaceMethod(ModifiersStar* mods, Type* retType, Identifier* id, FormalParamStar* params) :
-            mods(mods), retType(retType), id(id), params(params), nextMethod(NULL) {}
+            mods(mods), retType(retType), id(id), params(params), nextMethod(NULL), table(NULL) {}
         ~InterfaceMethod() {
             delete mods;
+            delete retType;
             delete id;
             delete params;
             delete nextMethod;
@@ -44,6 +47,9 @@ class InterfaceMethod : public Ast {
             }
             return signature + ')';
         }
+
+        void setInterfaceMethodTable(InterfaceMethodTable* set) { table = set; }
+        InterfaceMethodTable* getInterfaceMethodTable() { return table; }
 };
 
 #endif

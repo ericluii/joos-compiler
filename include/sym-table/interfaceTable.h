@@ -9,14 +9,11 @@ class InterfaceTable : public SymbolTable {
     private:
         InterfaceDecl* declaration;
     public:
-        InterfaceTable(InterfaceDecl* declaration) : SymbolTable(STT_INTERFACE), declaration(declaration) {}
-        ~InterfaceTable() {}
+        InterfaceTable(InterfaceDecl* declaration);
+        ~InterfaceTable();
 
-        InterfaceDecl* getInterface() { return declaration; }
-        void printSelf() {
-            std::cout << "InterfaceTable: " << this << "| AST node: " << declaration
-                      << "| Next: " << nextTable << std::endl;
-        }
+        InterfaceDecl* getInterface();
+        void printSelf(); 
 };
 
 #endif

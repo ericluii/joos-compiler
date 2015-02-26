@@ -9,14 +9,11 @@ class ClassTable : public SymbolTable {
     private:
         ClassDecl* declaration;
     public:
-        ClassTable(ClassDecl* declaration) : SymbolTable(STT_CLASS), declaration(declaration) {}
-        ~ClassTable() {}
+        ClassTable(ClassDecl* declaration);
+        ~ClassTable();
 
-        ClassDecl* getClass() { return declaration; }
-        void printSelf() {
-            std::cout << "ClassTable: " << this << "| AST node: " << declaration
-                      << "| Next: " << nextTable << std::endl;
-        }
+        ClassDecl* getClass();
+        void printSelf();
 };
 
 #endif

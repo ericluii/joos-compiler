@@ -12,7 +12,6 @@ class CastPrimitive : public CastExpression {
         CastPrimitive(PrimitiveType* castType, Expression* toCast) : CastExpression(toCast), castType(castType) {}
         ~CastPrimitive() {
             delete castType;
-            delete toCast;
         }
 
         PrimitiveType* getPrimitiveTypeToCastTo() { return castType; }

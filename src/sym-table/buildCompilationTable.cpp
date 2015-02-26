@@ -1,5 +1,8 @@
-#include "buildCompilationTable.h"
+#include <sstream>
 #include <cassert>
+#include "buildCompilationTable.h"
+#include "token.h"
+#include "error.h"
 
 BuildCompilationTable::BuildCompilationTable() : curSymTable(NULL), curCompTable(NULL) {}
 
@@ -106,6 +109,7 @@ void BuildCompilationTable::build(BlockStmts& node) {
 void BuildCompilationTable::build(ClassDecl& node) {
     curSymTable = new ClassTable(&node);
     curCompTable->setSymbolTable(curSymTable);
+    node.setClassTable((ClassTable*)curSymTable);
     build(*node.getClassMembers());
 }
 
@@ -113,6 +117,18 @@ void BuildCompilationTable::build(FieldDecl& node) {
     FieldTable* table = new FieldTable(&node);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
+    
+    node.setFieldTable(table);
+    std::string field = node.getFieldDeclared()->getIdAsString();
+    if(curCompTable->fields.count(field) == 0) {
+        curCompTable->fields[field] = table;
+    } else {
+        std::stringstream ss;
+        Token* prevField = curCompTable->fields[field]->getField()->getFieldDeclared()->getToken();
+        ss << "Field '" << field << "' was previously defined here '"
+           << prevField->getFile() << ":" << prevField->getLocation().first << ":" << prevField->getLocation().second;
+        Error(E_SYMTABLE, node.getFieldDeclared()->getToken(), ss.str());
+    }
     curSymTable = table;
 }
 
@@ -124,11 +140,27 @@ void BuildCompilationTable::build(ClassMethod& node) {
     // temporary store
     SymbolTable* tempTable = curSymTable;
     build(*node.getMethodBody());
+    
+    node.setClassMethodTable(table);
+    std::string methodSignature = node.getMethodHeader()->methodSignatureAsString();
+    if(curCompTable->classMethods.count(methodSignature) == 0) {
+        // if a method with this particular signature is not registered yet
+        curCompTable->classMethods[methodSignature] = table;
+    } else {
+        // error out
+        std::stringstream ss;
+        Token* prevMethod = curCompTable->classMethods[methodSignature]
+                            ->getClassMethod()->getMethodHeader()->getClassMethodId()->getToken();
+        ss << "Class method '" << methodSignature << "' was previously defined here '"
+           << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
+        Error(E_SYMTABLE, node.getMethodHeader()->getClassMethodId()->getToken(), ss.str());
+    }
     curSymTable = tempTable;
 }
 
 void BuildCompilationTable::build(LocalDecl& node) {
     LocalTable* table = new LocalTable(&node);
+    node.setLocalTable(table);
     attachSymbolTable(table);
 }
 
@@ -139,6 +171,8 @@ void BuildCompilationTable::build(NestedBlock& node) {
     SymbolTable* tempTable = curSymTable;
     build(*node.getNestedBlock());
     table->indicateTableIsSet();
+    
+    node.setNestedBlockTable(table);
     curSymTable = tempTable;
 }
 
@@ -164,12 +198,12 @@ void BuildCompilationTable::build(ForStmt& node) {
             localTable = new LocalTable((LocalDecl*) node.getForInit());
             ((ForTable*)curSymTable)->setForInitTable(localTable);
             localTable->setPrevTable(curSymTable);
-            // curSymTable = localTable;
         }
     }
 
     build(*node.getLoopStmt());
     table->indicateTableIsSet();
+    node.setForTable(table);
     curSymTable = table;
     if(table->getForInitTable() != NULL) {
         // If forInit was a local variable declaration, then link them together
@@ -192,6 +226,20 @@ void BuildCompilationTable::build(Constructor& node) {
     // temporary store
     SymbolTable* tempTable = curSymTable;
     build(*node.getConstructorBody());
+    
+    node.setConstructorTable(table);
+    std::string constructorSignature = node.constructorSignatureAsString();
+    if(curCompTable->constructors.count(constructorSignature) == 0) {
+        // if a constructor with this signature is not registered yet
+        curCompTable->constructors[constructorSignature] = table;
+    } else {
+        std::stringstream ss;
+        Token* prevCtor = curCompTable->constructors[constructorSignature]->getConstructor()->getConstructorId()->getToken();
+        ss << "Constructor '" << constructorSignature << "' was previously defined here '"
+           << prevCtor->getFile() << ":" << prevCtor->getLocation().first << ":" << prevCtor->getLocation().second;
+        Error(E_SYMTABLE, node.getConstructorId()->getToken(), ss.str());
+    }
+
     curSymTable = tempTable;
 }
 
@@ -201,6 +249,7 @@ void BuildCompilationTable::build(Constructor& node) {
 void BuildCompilationTable::build(InterfaceDecl& node) {
     curSymTable = new InterfaceTable(&node);
     curCompTable->setSymbolTable(curSymTable);
+    node.setInterfaceTable((InterfaceTable*) curSymTable);
     build(*node.getInterfaceBodyStar());
 }
 
@@ -218,6 +267,18 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
     InterfaceMethodTable* table = new InterfaceMethodTable(&node);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
+    
+    node.setInterfaceMethodTable(table);
+    std::string methodSignature = node.methodSignatureAsString();
+    if(curCompTable->interfaceMethods.count(methodSignature) == 0) {
+        curCompTable->interfaceMethods[methodSignature] = table;
+    } else {
+        std::stringstream ss;
+        Token* prevMethod = curCompTable->interfaceMethods[methodSignature]->getInterfaceMethod()->getInterfaceMethodId()->getToken();
+        ss << "Interface method '" << methodSignature << "' was previously defined here '"
+           << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
+        Error(E_SYMTABLE, node.getInterfaceMethodId()->getToken(), ss.str());
+    }
     curSymTable = table;
 }
 
@@ -225,7 +286,7 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
 
 CompilationTable* BuildCompilationTable::build(CompilationUnit& node) {
     curCompTable = new CompilationTable(node.getPackageDecl());
-    if(!node.getTypeDecl()->isEpsilon()) {
+    if(!(node.getTypeDecl()->isEpsilon())) {
         build(*node.getTypeDecl());
     }
     return curCompTable;

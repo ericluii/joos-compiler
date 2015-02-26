@@ -136,6 +136,7 @@ int main(int argc, char *argv[])
             completeASTs[filename] = BuildAst::build(newParseTrees);
             // AstPrinter::print(*completeASTs[filename]);
             compilationTables[filename] = compilationBuilder.build(*completeASTs[filename]);
+            CHECK_ERROR();
 
             /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());

@@ -9,14 +9,11 @@ class LocalTable : public SymbolTable {
     private:
         LocalDecl* local;
     public:
-        LocalTable(LocalDecl* local) : SymbolTable(STT_LOCAL), local(local) {}
-        ~LocalTable() {}
+        LocalTable(LocalDecl* local); 
+        ~LocalTable();
 
-        LocalDecl* getLocalDecl() { return local; }
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| LocalTable: " << this << "| AST node: " << local 
-                      << "| Next: " << nextTable << std::endl;
-        }
+        LocalDecl* getLocalDecl();
+        void printSelf(); 
 };
 
 #endif

@@ -7,6 +7,7 @@
 #include "super.h"
 #include "interfaceList.h"
 #include "classBodyStar.h"
+#include "classTable.h"
 
 class ClassDecl : public TypeDecl
 {
@@ -17,9 +18,10 @@ class ClassDecl : public TypeDecl
         Super* super;
         InterfaceList* interfaces;
         ClassBodyStar* body;
+        ClassTable* table;
     public:
         ClassDecl(Modifiers* mods, Identifier* id, Super* super, InterfaceList* interfaces, ClassBodyStar* body) 
-            : mods(mods), id(id), super(super), interfaces(interfaces), body(body) {}
+            : mods(mods), id(id), super(super), interfaces(interfaces), body(body), table(NULL) {}
         ~ClassDecl() {
             delete mods;
             delete id;
@@ -38,6 +40,8 @@ class ClassDecl : public TypeDecl
         bool noImplementedInterfaces() { return interfaces->isEpsilon(); }
         bool emptyBody() { return body->isEpsilon(); }
         bool isEpsilon() { return false; }
+        void setClassTable(ClassTable* set) { table = set; }
+        ClassTable* getClassTable() { return table; }
 };
 
 #endif

@@ -9,14 +9,11 @@ class FieldTable : public SymbolTable {
     private:
         FieldDecl* field;
     public:
-        FieldTable(FieldDecl* field) : SymbolTable(STT_FIELD), field(field) {}
-        ~FieldTable() {}
+        FieldTable(FieldDecl* field);
+        ~FieldTable();
         
-        FieldDecl* getField() { return field; }
-        void printSelf() {
-            std::cout << "Previous: " << prevTable << "| FieldTable: " << this << "| AST node: " << field 
-                      << "| Next: " << nextTable << std::endl;
-        }
+        FieldDecl* getField();
+        void printSelf(); 
 };
 
 #endif
