@@ -22,9 +22,19 @@ class ParamList : public Ast {
         Type* getParameterType() { return paramType; }
         Identifier* getParameterId() { return paramId; }
         ParamList* getNextParameter() { return nextParam; }
-        
         void setNextParameter(ParamList* set) { nextParam = set; }
         bool isLastParameter() { return nextParam == NULL; }
+
+        std::string parametersAsString() {
+            std::string res = "";
+            if(!isLastParameter()) {
+                res+= nextParam->parametersAsString() + ',';
+            } else {
+                return paramType->getTypeAsString();
+            }
+
+            return res + paramType->getTypeAsString();
+        }
 };
 
 #endif

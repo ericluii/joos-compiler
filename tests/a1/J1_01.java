@@ -52,6 +52,8 @@ public class J1_01 {
 	return r;
     }
 
+    public int[] z;
+
     public static int m1(int a) {
 	int r = 0;
 	if (a==1) r=r+1;
@@ -60,4 +62,7 @@ public class J1_01 {
 	if (!(a!=1)) r=r+8;
 	return r;
     }
+
+    public char x;
+    protected int zyyy;
 }

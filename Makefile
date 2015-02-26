@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -15,19 +15,23 @@ AST_O = $(addprefix build/src/AST/, $(notdir $(AST_C:.cpp=.o)))
 DFA_C = $(wildcard src/dfas/*.cpp)
 DFA_O = $(addprefix build/src/dfas/, $(notdir $(DFA_C:.cpp=.o)))
 
+# Symbol table code
+SYMTABLE_C = $(wildcard src/sym-table/*.cpp)
+SYMTABLE_O = $(addprefix build/src/sym-table/, $(notdir $(SYMTABLE_C:.cpp=.o)))
+
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
-SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O)
+SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
 # Include
-SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h)
+SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h)
 TEST_INC = $(wildcard tests/include/*.h)
 
 # Static Lib for Tests
@@ -44,7 +48,7 @@ compiler: init $(OUT_FILE)
 tests: init $(TEST_OUT_FILE)
 
 init:
-	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST build/tests build/lib
+	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table build/tests build/lib
 	@$(foreach TEST_CASE, $(TEST_CASES), @python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
 
@@ -54,6 +58,9 @@ build/src/AST/%.o: src/AST/%.cpp $(SRC_INC)
 
 build/src/dfas/%.o: src/dfas/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/dfas/$(notdir $(@:.cpp=.o))
+
+build/src/sym-table/%.o: src/sym-table/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/sym-table/$(notdir $(@:.cpp=.o))
 
 build/src/%.o: src/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/$(notdir $(@:.cpp=.o))

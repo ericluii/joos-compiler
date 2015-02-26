@@ -15,6 +15,14 @@ class ReferenceType : public Type {
         }
 
         Name* getReferenceName() { return referenceType; }
+        std::string getTypeAsString() {
+            std::string typeName = referenceType->getFullName();
+            if(isReferenceArrayType()) {
+                return typeName + "[]";
+            }
+            return typeName;
+        }
+
         bool isEpsilon() { return false; }
 };
 

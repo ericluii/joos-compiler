@@ -102,10 +102,8 @@ class Ast {
         // Type
         bool isPrimitiveType() { return rule == TYPE_INT || rule == TYPE_SHORT || rule == TYPE_BYTE ||
                                         rule == TYPE_CHAR || rule == TYPE_BOOLEAN; }
-        bool isReferenceType() { return rule == REFERENCE_CLASSINTERFACE || rule == ARRAY_PRIMITIVE ||
-                                        rule == ARRAY_NONPRIMITIVE; }
+        bool isReferenceType() { return rule == REFERENCE_CLASSINTERFACE || rule == ARRAY_NONPRIMITIVE; }
         bool isClassOrInterfaceType() { return rule == REFERENCE_CLASSINTERFACE; }
-        bool isPrimitiveArrayType() { return rule == ARRAY_PRIMITIVE; }
         bool isReferenceArrayType() { return rule == ARRAY_NONPRIMITIVE; }
         bool isTypeInt() { return rule == TYPE_INT; }
         bool isTypeShort() { return rule == TYPE_SHORT; }

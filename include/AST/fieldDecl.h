@@ -5,6 +5,7 @@
 #include "type.h"
 #include "identifier.h"
 #include "expression.h"
+#include "fieldTable.h"
 
 class FieldDecl : public ClassBodyDecls {
     // Rule: CLASS_FIELD
@@ -12,9 +13,10 @@ class FieldDecl : public ClassBodyDecls {
         Type* fieldType;
         Identifier* fieldId;
         Expression* fieldExpression;
+        FieldTable* table;
     public:
         FieldDecl(Modifiers* mod, Type* fieldType, Identifier* fieldId, Expression* fieldExpression) :
-                  ClassBodyDecls(mod), fieldType(fieldType), fieldId(fieldId), fieldExpression(fieldExpression) {}
+                  ClassBodyDecls(mod), fieldType(fieldType), fieldId(fieldId), fieldExpression(fieldExpression), table(NULL) {}
         ~FieldDecl() {
             delete fieldType;
             delete fieldId;
@@ -26,6 +28,8 @@ class FieldDecl : public ClassBodyDecls {
         Expression* getInitializingExpression() { return fieldExpression; }
 
         bool isInitialized() { return fieldExpression != NULL; }
+        void setFieldTable(FieldTable* set) { table = set; }
+        FieldTable* getFieldTable() { return table; }
 };
 
 #endif

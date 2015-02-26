@@ -10,7 +10,8 @@ class IfStmt : public BlockStmts {
         BlockStmts* exTrue;
         BlockStmts* exFalse;
     public:
-        IfStmt(Expression* eval, BlockStmts* exTrue, BlockStmts* exFalse) : BlockStmts(), eval(eval), exTrue(exTrue), exFalse(exFalse) {}
+        IfStmt(Expression* eval, BlockStmts* exTrue, BlockStmts* exFalse) : BlockStmts(), eval(eval),
+                 exTrue(exTrue), exFalse(exFalse) {}
         ~IfStmt() {
             delete eval;
             delete exTrue;

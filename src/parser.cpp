@@ -41,7 +41,8 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
         std::string token = it->first;
         if(counter != entrySize && counter != 1) {
-            if(isTerminal(token[0])) { 
+            if(isTerminal(token[0]) || token == "ID" || token == "CHAR" ||
+               token == "STRING" || token == "NUMBER") { 
                 ss << ", ";
                 if(counter == entrySize - 1) {
                     ss << "and ";
@@ -233,6 +234,5 @@ ParseTree* Parser::Parse(std::string& parseFile) {
 
     resetParser(false);
     cleanSymbolStack();
-    std::cout << "GOT HERE" << std::endl;
     return NULL;
 }
