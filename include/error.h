@@ -9,6 +9,7 @@ enum E_TYPE {
     E_PARSER,
     E_WEEDER,
     E_SYMTABLE,
+    E_AFTERSYMTABLE,
     E_DEFAULT
 };
 

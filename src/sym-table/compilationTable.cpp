@@ -10,9 +10,14 @@
 #include "interfaceMethod.h"
 #include "localDecl.h"
 
+#include "classTable.h"
+#include "interfaceTable.h"
+#include "classDecl.h"
+#include "interfaceDecl.h"
 #include "error.h"
 
-CompilationTable::CompilationTable(PackageDecl* package) : package(package), symTable(NULL) {}
+CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename) : package(package),
+                symTable(NULL), filename(filename), compilationsInPackage(NULL) {}
 
 CompilationTable::~CompilationTable() {
     delete symTable;
@@ -23,11 +28,56 @@ SymbolTable* CompilationTable::getSymbolTable() {
 }
 
 std::string CompilationTable::getPackageName() {
-    return package->getPackageName()->getFullName();
+    if(!package->isEpsilon()) {
+        return package->getPackageName()->getFullName();
+    }
+    // default package name
+    return "";
+}
+
+std::string CompilationTable::getClassOrInterfaceName() {
+    if(symTable->isClassTable()) {
+        return ((ClassTable*) symTable)->getClass()->getClassId()->getIdAsString();
+    }
+    return ((InterfaceTable*) symTable)->getInterface()->getInterfaceId()->getIdAsString();
+}
+
+std::string CompilationTable::getCanonicalName() {
+    std::string packageName = getPackageName();
+    if(packageName != "") {
+        packageName+= '.';
+    }
+
+    return packageName + getClassOrInterfaceName();
+}
+
+std::string CompilationTable::getFilename() {
+    return filename;
 }
 
 void CompilationTable::setSymbolTable(SymbolTable* set) {
     symTable = set;
+}
+
+void CompilationTable::setCompilationsInPackage(std::vector<CompilationTable*>* tables) {
+    compilationsInPackage = tables;
+}
+
+void CompilationTable::checkForConflictingCanonicalName() {
+    // should only be invoked after compilationsInPackage have been set
+    assert(compilationsInPackage != NULL);
+    for(unsigned int i = 0; i < compilationsInPackage->size(); i++) {
+        if(compilationsInPackage->at(i) != this) {
+            // if not equal to self
+            std::string canonicalName = getCanonicalName();
+            if(canonicalName == compilationsInPackage->at(i)->getCanonicalName()) {
+                std::stringstream ss;
+                ss << filename << ": error: Canonical name '" << canonicalName << "' has already been used in file '"
+                   << compilationsInPackage->at(i)->getFilename();
+                Error(E_AFTERSYMTABLE, NULL, ss.str());
+            }
+        }
+    }
 }
 
 FieldTable* CompilationTable::getAField(const std::string& field) {
@@ -80,7 +130,7 @@ bool CompilationTable::isClassSymbolTable() {
 //----------------------------------------------------------------------
 // Symbol table analysis
 
-void CompilationTable::reportError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken) {
+void CompilationTable::reportLocalError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken) {
     std::stringstream ss;
     ss << conflict << ": '" << entity << "' was previously defined here: "
        << prevToken->getFile() << ":" << prevToken->getLocation().first << ":" << prevToken->getLocation().second;
@@ -96,7 +146,7 @@ void CompilationTable::registerFormalParameters(ParamList* params, std::map<std:
         } else {
             // switched the prevToken and currToken around due to the way
             // we're traversing the AST tree here
-            reportError("Formal parameter", var, params->getParameterId()->getToken(), localVars[var]);
+            reportLocalError("Formal parameter", var, params->getParameterId()->getToken(), localVars[var]);
         }
         params = params->getNextParameter();
     }
@@ -123,7 +173,7 @@ void CompilationTable::checkLocalTable(LocalTable& table, std::vector<std::map<s
     for(unsigned int i = 0; i < blockScopes.size(); i++) {
         if(blockScopes[i]->count(var) == 1) {
             // variable is found
-            reportError("Local variable", var, (*blockScopes[i])[var], id->getToken());
+            reportLocalError("Local variable", var, (*blockScopes[i])[var], id->getToken());
             return;
         }
     }

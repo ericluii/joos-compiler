@@ -68,7 +68,7 @@ class BuildCompilationTable {
         void build(InterfaceBodyStar& node);
         void build(InterfaceMethod& node);
     public:
-        CompilationTable* build(CompilationUnit& node);
+        CompilationTable* build(CompilationUnit& node, const std::string& filename);
         BuildCompilationTable();
         ~BuildCompilationTable();
 };

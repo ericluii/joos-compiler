@@ -37,6 +37,32 @@ void cleanUpCompilationTable(std::map<std::string, CompilationTable*>& compilati
     }
 }
 
+void cleanUpPackages(std::map<std::string, std::vector<CompilationTable*>* >& packages) {
+    std::map<std::string, std::vector<CompilationTable*>* >::iterator it;
+    for(it = packages.begin(); it != packages.end(); it++) {
+        delete it->second;
+    }
+}
+
+void registerPackages(std::map<std::string, std::vector<CompilationTable*>* >& packagesCompilations,
+                     CompilationTable* table) {
+    std::string packageName = table->getPackageName();
+    if(packagesCompilations.count(packageName) == 0) {
+        packagesCompilations[packageName] = new std::vector<CompilationTable*>();
+    }
+    packagesCompilations[packageName]->push_back(table);
+}
+
+void setOtherCompilations(std::map<std::string, CompilationTable*>& compilationTables,
+                          std::map<std::string, std::vector<CompilationTable*>* > packages) {
+    std::map<std::string, CompilationTable*>::iterator it;
+    for(it = compilationTables.begin(); it != compilationTables.end(); it++) {
+        it->second->setCompilationsInPackage(packages[it->second->getPackageName()]);
+        // check for canonical names here
+        it->second->checkForConflictingCanonicalName();
+    }
+}
+
 void printSymbolTable(SymbolTable* table, int depth = 0) {
     if(table == NULL) return;
     for(int i = 0; i < depth; i++) {
@@ -84,6 +110,7 @@ int main(int argc, char *argv[])
     // Symbol table
     BuildCompilationTable compilationBuilder;
     std::map<std::string, CompilationTable*> compilationTables;
+    std::map<std::string, std::vector<CompilationTable*>* > packagesCompilations;
 
     try {
         for (int i = 1; i < argc; i++) {
@@ -134,8 +161,11 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
 
             completeASTs[filename] = BuildAst::build(newParseTrees);
+            delete newParseTrees;
+            newParseTrees = NULL;
+
             // AstPrinter::print(*completeASTs[filename]);
-            compilationTables[filename] = compilationBuilder.build(*completeASTs[filename]);
+            compilationTables[filename] = compilationBuilder.build(*completeASTs[filename], filename);
             CHECK_ERROR();
 
             compilationTables[filename]->checkForOverlappingLocalScope();
@@ -143,19 +173,30 @@ int main(int argc, char *argv[])
             /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
             }*/ 
-
-            delete newParseTrees;
-            newParseTrees = NULL;
+            
+            registerPackages(packagesCompilations, compilationTables[filename]);
         }
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;
         rc = 42;
     }
-    
+   
+    if(rc != 42) {
+        // continue ahead with compilation iff there was no errors above
+        try {
+            setOtherCompilations(compilationTables, packagesCompilations);
+            CHECK_ERROR();
+        } catch(std::exception& e) {
+            Error::print();
+            rc = 42;
+        }
+    }
+
     cleanUpTokens(tokens);
     cleanUpASTs(completeASTs);
     cleanUpCompilationTable(compilationTables);
+    cleanUpPackages(packagesCompilations);
 
     exit(rc);
 }

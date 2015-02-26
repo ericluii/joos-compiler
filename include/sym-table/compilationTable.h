@@ -16,6 +16,7 @@ class ForTable;
 class InterfaceMethodTable;
 class BuildCompilationTable;
 class ParamList;
+class Identifier;
 class Token;
 
 class CompilationTable {
@@ -23,6 +24,9 @@ class CompilationTable {
     private:
         PackageDecl* package;
         SymbolTable* symTable;
+        std::string filename;
+        // other compilations in the same package
+        std::vector<CompilationTable*>* compilationsInPackage;
         // mappings for class methods and constructor
         std::map<std::string, ClassMethodTable*> classMethods;
         std::map<std::string, ConstructorTable*> constructors;
@@ -30,7 +34,7 @@ class CompilationTable {
         // mappings for interface methods
         std::map<std::string, InterfaceMethodTable*> interfaceMethods;
 
-        void reportError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken);
+        void reportLocalError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken);
         void registerFormalParameters(ParamList*, std::map<std::string, Token*>& localVars);
         void iterateThroughTable(SymbolTable* table, std::vector<std::map<std::string, Token*>* >& blockScopes);
         void checkBodyForOverlappingScope(SymbolTable* body, std::map<std::string, Token*>& localVars);
@@ -42,12 +46,17 @@ class CompilationTable {
         void checkMethodForOverlappingScope(ClassMethodTable* methodTable);
         void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
     public:
-        CompilationTable(PackageDecl* package);
+        CompilationTable(PackageDecl* package, const std::string& filename);
         ~CompilationTable();
 
         SymbolTable* getSymbolTable();
         std::string getPackageName();
+        std::string getClassOrInterfaceName();
+        std::string getCanonicalName();
+        std::string getFilename();
         void setSymbolTable(SymbolTable* set);
+        void setCompilationsInPackage(std::vector<CompilationTable*>* tables);
+        void checkForConflictingCanonicalName();
 
         // --------------------------------------------------------------------
         // Interface if symbol table is a class table

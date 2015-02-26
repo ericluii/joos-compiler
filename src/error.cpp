@@ -27,6 +27,7 @@ void Error::print()
     for (unsigned int i = 0; i < all_errors.size(); i++) {
         switch (all_errors[i].type) {
             case E_SCANNER:
+            case E_AFTERSYMTABLE:
                 std::cerr << all_errors[i].message << std::endl;
                 break;
             case E_PARSER:
