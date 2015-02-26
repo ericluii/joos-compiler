@@ -40,7 +40,7 @@ class CompilationTable {
         void checkForTable(ForTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes);
 
         void checkMethodForOverlappingScope(ClassMethodTable* methodTable);
-        // void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
+        void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
     public:
         CompilationTable(PackageDecl* package);
         ~CompilationTable();

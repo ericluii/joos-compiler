@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cassert>
 #include <sstream>
 #include "compilationTable.h"
@@ -86,26 +87,6 @@ void CompilationTable::reportError(const std::string& conflict, const std::strin
     Error(E_SYMTABLE, currToken, ss.str());
 }
 
-void CompilationTable::checkForOverlappingLocalScope() {
-    if(symTable->isClassTable()) {
-        std::map<std::string, ClassMethodTable*>::iterator method = classMethods.begin();
-        std::map<std::string, ConstructorTable*>::iterator constructor = constructors.begin();
-
-        for(; method != classMethods.end(); method++) {
-            if(method->second != NULL) {
-                // if there is a body and it's not empty
-                checkMethodForOverlappingScope(method->second);
-            }
-        }
-
-        for(; constructor != constructors.end(); constructor++) {
-            if(constructor->second != NULL) {
-                // checkConstructorForOverlappingScope(constructor->second);
-            }
-        }
-    }
-}
-
 void CompilationTable::registerFormalParameters(ParamList* params, std::map<std::string, Token*>& localVars) {
     while(params != NULL) {
         std::string var = params->getParameterId()->getIdAsString();
@@ -113,7 +94,9 @@ void CompilationTable::registerFormalParameters(ParamList* params, std::map<std:
             // variable is not in the set
             localVars[var] = params->getParameterId()->getToken();
         } else {
-            reportError("Formal parameter", var, localVars[var], params->getParameterId()->getToken());
+            // switched the prevToken and currToken around due to the way
+            // we're traversing the AST tree here
+            reportError("Formal parameter", var, params->getParameterId()->getToken(), localVars[var]);
         }
         params = params->getNextParameter();
     }
@@ -136,13 +119,18 @@ void CompilationTable::iterateThroughTable(SymbolTable* table, std::vector<std::
 void CompilationTable::checkLocalTable(LocalTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
     Identifier* id = table.getLocalDecl()->getLocalId();
     std::string var = id->getIdAsString();
-    for(unsigned int i = 0; blockScopes.size(); i++) {
-        if(blockScopes[i]->count(var) == 0) {
-            (*blockScopes[blockScopes.size() - 1])[var] = id->getToken();
-        } else {
+
+    for(unsigned int i = 0; i < blockScopes.size(); i++) {
+        if(blockScopes[i]->count(var) == 1) {
+            // variable is found
             reportError("Local variable", var, (*blockScopes[i])[var], id->getToken());
+            return;
         }
     }
+
+    // always add to the last mapping since this variable
+    // in the currently inspected block
+    (*blockScopes[blockScopes.size() - 1])[var] = id->getToken();
 }
 
 void CompilationTable::checkNestedBlockTable(NestedBlockTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
@@ -152,7 +140,9 @@ void CompilationTable::checkNestedBlockTable(NestedBlockTable& table, std::vecto
     if(blockTable != NULL) {
         iterateThroughTable(blockTable, blockScopes);
     }
-    // makes sure that the back of the vector is the same map
+
+    // makes sure that the back of the vector is the same as the previously
+    // created map
     assert(blockScopes.back() == newBlock);
     blockScopes.pop_back();
 }
@@ -160,14 +150,28 @@ void CompilationTable::checkNestedBlockTable(NestedBlockTable& table, std::vecto
 void CompilationTable::checkForTable(ForTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
     LocalTable* initTable = table.getForInitTable();
     SymbolTable* loopTable = table.getLoopTable();
+    std::map<std::string, Token*>* newBlock = NULL;
     if(initTable != NULL) {
+        newBlock = new std::map<std::string, Token*>();
+        // creates a new scope specifically for forInit, important
+        // since the declaration in forInit should not ve visible outside of the for statement
+        blockScopes.push_back(newBlock);
         iterateThroughTable(initTable, blockScopes);
     } else if(loopTable != NULL) {
+        // if initTable is NULL then loopTable will need to be checked through here
+        // since initTable wouldn't be pointing to loopTable
         iterateThroughTable(loopTable, blockScopes);
+    }
+
+    if(newBlock != NULL) {
+        // if newBlock was actually allocated
+        assert(blockScopes.back() == newBlock);
+        blockScopes.pop_back();
     }
 }
 
 void CompilationTable::checkBodyForOverlappingScope(SymbolTable* body, std::map<std::string, Token*>& localVars) {
+    // a vector of scopes to simulate nested block scopes
     std::vector<std::map<std::string, Token*>* > blockScopes;
     blockScopes.push_back(&localVars);
     iterateThroughTable(body, blockScopes);
@@ -178,4 +182,31 @@ void CompilationTable::checkMethodForOverlappingScope(ClassMethodTable* methodTa
     FormalParamStar* params = methodTable->getClassMethod()->getMethodHeader()->getClassMethodParams();
     registerFormalParameters(params->getListOfParameters(), localVars);
     checkBodyForOverlappingScope(methodTable->getSymbolTableOfMethod(), localVars);
+}
+
+void CompilationTable::checkConstructorForOverlappingScope(ConstructorTable* constructorTable) {
+    std::map<std::string, Token*> localVars;
+    FormalParamStar* params = constructorTable->getConstructor()->getConstructorParameters();
+    registerFormalParameters(params->getListOfParameters(), localVars);
+    checkBodyForOverlappingScope(constructorTable->getSymbolTableOfConstructor(), localVars);
+}
+
+void CompilationTable::checkForOverlappingLocalScope() {
+    if(symTable->isClassTable()) {
+        std::map<std::string, ClassMethodTable*>::iterator method = classMethods.begin();
+        std::map<std::string, ConstructorTable*>::iterator constructor = constructors.begin();
+
+        for(; method != classMethods.end(); method++) {
+            if(method->second != NULL) {
+                // if there is a body and it's not empty
+                checkMethodForOverlappingScope(method->second);
+            }
+        }
+
+        for(; constructor != constructors.end(); constructor++) {
+            if(constructor->second != NULL) {
+                checkConstructorForOverlappingScope(constructor->second);
+            }
+        }
+    }
 }
