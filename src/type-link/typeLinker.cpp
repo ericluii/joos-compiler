@@ -71,7 +71,8 @@ void TypeLinker::setImportIfExist(CompilationTable* compilation, ImportDecls* im
                 }
             } else {
                 // package does not exist
-                ss << "Package '" << packageName << "' does not exist among the given files in the command line.";
+                ss << "Single type import specified package '" << packageName
+                   << "' which does not exist among the given files in the command line.";
                 Error(E_TYPELINKING, importName->getNextName()->getNameId()->getToken(), ss.str());
             }
         } else {

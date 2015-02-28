@@ -214,6 +214,7 @@ enum RuleNumbers {
     MEMBER_MOD_EPSILON,             // 207 MemberModifiers*
     ABSTRACT_METHOD_TYPE,           // 208 AbstractMethodHeader MemberModifiers* Type MethodDeclarator
     ABSTRACT_METHOD_VOID,           // 209 AbstractMethodHeader MemberModifiers* void MethodDeclarator
+    PRIMARY_QUALIFIED_THIS,         // 210 PrimaryNoNewArray Name . this
 };
 
 #endif

@@ -69,6 +69,7 @@
 #include "returnStmt.h"
 #include "whileStmt.h"
 #include "constructor.h"
+#include "qualifiedThis.h"
 // Interfaces
 #include "interfaceDecl.h"
 #include "interfaceBodyStar.h"
@@ -147,6 +148,7 @@ class AstPrinter {
         static void print(ReturnStmt& node);
         static void print(WhileStmt& node);
         static void print(Constructor& node);
+        static void print(QualifiedThis& node);
 // ----------------------------------------------------
 // ----------------------------------------------------
 // Interface

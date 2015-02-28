@@ -79,6 +79,8 @@ void AstPrinter::print(Primary& node) {
     } else if(node.isThis() || node.isNumber() || node.isTrueBoolean() ||
               node.isFalseBoolean() || node.isCharLiteral() || node.isStringLiteral()) {
         print((LiteralOrThis&) node);
+    } else if(node.isQualifiedThis()) {
+        print((QualifiedThis&) node);
     } else {
         assert(node.isNewPrimitiveArray() || node.isNewReferenceArray());
         print((PrimaryNewArray&) node);
@@ -672,6 +674,14 @@ void AstPrinter::print(Constructor& node) {
     print(*node.getConstructorId());
     print(*node.getConstructorParameters());
     print(*node.getConstructorBody());
+    depth--;
+}
+
+void AstPrinter::print(QualifiedThis& node) {
+    depth++;
+    printSpaces();
+    std::cout << node.getLexeme() << ':' << node.getRule() << std::endl;
+    print(*node.getQualifyingClassName());
     depth--;
 }
 
