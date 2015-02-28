@@ -5,6 +5,7 @@
 #include "type.h"
 #include "identifier.h"
 #include "expression.h"
+#include "localTable.h"
 
 class LocalDecl : public BlockStmts {
     // Rule: LOCAL_VAR_DECL and FOR_INIT_LOCAL_DECL
@@ -12,8 +13,9 @@ class LocalDecl : public BlockStmts {
         Type* type;
         Identifier* id;
         Expression* initExpr;
+        LocalTable* table;
     public:
-        LocalDecl(Type* type, Identifier* id, Expression* initExpr) : BlockStmts(), type(type), id(id), initExpr(initExpr) {}
+        LocalDecl(Type* type, Identifier* id, Expression* initExpr) : BlockStmts(), type(type), id(id), initExpr(initExpr), table(NULL) {}
         ~LocalDecl() {
             delete type;
             delete id;
@@ -23,6 +25,9 @@ class LocalDecl : public BlockStmts {
         Type* getLocalType() { return type; }
         Identifier* getLocalId() { return id; }
         Expression* getLocalInitExpr() { return initExpr; }
+
+        void setLocalTable(LocalTable* set) { table = set; }
+        LocalTable* getLocalTable() { return table; }
 };
 
 #endif

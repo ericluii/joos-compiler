@@ -6,6 +6,7 @@
 #include "identifier.h"
 #include "interfaceList.h"
 #include "interfaceBodyStar.h"
+#include "interfaceTable.h"
 
 class InterfaceDecl : public TypeDecl
 {
@@ -14,9 +15,10 @@ class InterfaceDecl : public TypeDecl
         Identifier* id;
         InterfaceList* extends;
         InterfaceBodyStar* body;
+        InterfaceTable* table;
     public:
         InterfaceDecl(Modifiers* mods, Identifier* id, InterfaceList* extends, InterfaceBodyStar* body) : 
-                        mods(mods), id(id), extends(extends), body(body) {} 
+                        mods(mods), id(id), extends(extends), body(body), table(NULL) {} 
         ~InterfaceDecl() {
             delete mods;
             delete id;
@@ -32,6 +34,8 @@ class InterfaceDecl : public TypeDecl
         bool noExtendedInterfaces() { return extends->isEpsilon(); }
         bool emptyInterfaceBody() { return body->isEpsilon(); }
         bool isEpsilon() { return false; }
+        void setInterfaceTable(InterfaceTable* set) { table = set; }
+        InterfaceTable* getInterfaceTable() { return table; }
 };
 
 #endif

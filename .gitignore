@@ -2,6 +2,8 @@ joosc
 test_joosc
 tests/src/a1TestFiles.cpp
 tests/include/a1TestFiles.h
+tests/src/a2TestFiles.cpp
+tests/include/a2TestFiles.h
 
 *.swp
 *.swo

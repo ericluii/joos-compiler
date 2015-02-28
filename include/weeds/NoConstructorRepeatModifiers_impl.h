@@ -1,5 +1,5 @@
 #ifndef __WEED_NO_CONSTRUCTOR_REPEAT_MODIFIERS_H__
-#define __WEED_NO_CLASS_METHOD_REPEAT_MODIFIERS_H__
+#define __WEED_NO_CONSTRUCTOR_REPEAT_MODIFIERS_H__
 
 #include "NoRepeatModifiers_impl.h"
 

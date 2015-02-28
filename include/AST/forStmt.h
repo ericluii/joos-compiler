@@ -4,6 +4,7 @@
 #include "blockStmts.h"
 #include "expressionStar.h"
 #include "stmtExpr.h"
+#include "forTable.h"
 
 class ForStmt : public BlockStmts {
     // Rule: FOR_UNROLL and NO_SHORT_FOR_UNROLL
@@ -12,9 +13,10 @@ class ForStmt : public BlockStmts {
         ExpressionStar* eval;
         StmtExpr* forUpdate;
         BlockStmts* loopStmt;
+        ForTable* table;
     public:
         ForStmt(BlockStmts* forInit, ExpressionStar* eval, StmtExpr* forUpdate, BlockStmts* loopStmt) : BlockStmts(), forInit(forInit),
-                eval(eval), forUpdate(forUpdate), loopStmt(loopStmt) {}
+                eval(eval), forUpdate(forUpdate), loopStmt(loopStmt), table(NULL) {}
         ~ForStmt() {
             delete forInit;
             delete eval;
@@ -30,6 +32,8 @@ class ForStmt : public BlockStmts {
         bool emptyForInit() { return forInit == NULL; }
         bool emptyExpression() { return eval->isEpsilon(); }
         bool emptyForUpdate() { return forUpdate == NULL; }
+        void setForTable(ForTable* set) { table = set; }
+        ForTable* getForTable() { return table; }
 };
 
 #endif

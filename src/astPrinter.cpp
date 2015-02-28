@@ -409,8 +409,7 @@ void AstPrinter::print(PrimaryNewArray& node) {
 void AstPrinter::print(CastPrimitive& node) {
     depth++;
     printSpaces();
-    std::cout << node.getLexeme() << ':' << node.getRule() << ':' << "Dimension rule:"
-              << node.getDimensionRule() << std::endl;
+    std::cout << node.getLexeme() << ':' << node.getRule() << std::endl;
     print(*node.getPrimitiveTypeToCastTo());
     depth--;
 }
