@@ -169,7 +169,7 @@ InterfaceMemberDeclaration
 AbstractMethodDeclaration
 AbstractMethodHeader
 Goal
-210
+211
 Goal CompilationUnit
 CompilationUnit PackageDeclaration ImportDeclarations* TypeDeclaration $
 TypeDeclaration ClassDeclaration
@@ -380,3 +380,4 @@ MemberModifiers* MemberModifiers
 MemberModifiers*
 AbstractMethodHeader MemberModifiers* Type MethodDeclarator
 AbstractMethodHeader MemberModifiers* void MethodDeclarator
+PrimaryNoNewArray Name . this

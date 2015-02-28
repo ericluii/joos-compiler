@@ -210,5 +210,6 @@ std::string parserRules [] = {
 	"MemberModifiers* MemberModifiers",
 	"MemberModifiers*",
 	"AbstractMethodHeader MemberModifiers* Type MethodDeclarator",
-	"AbstractMethodHeader MemberModifiers* void MethodDeclarator"
+	"AbstractMethodHeader MemberModifiers* void MethodDeclarator",
+	"PrimaryNoNewArray Name . this"
 };

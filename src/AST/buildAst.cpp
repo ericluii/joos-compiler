@@ -11,6 +11,7 @@
 #include "literalOrThis.h"
 #include "bracketedExpression.h"
 #include "primaryNewArray.h"
+#include "qualifiedThis.h"
 // Access and Primary
 #include "arrayAccessName.h"
 #include "arrayAccessPrimary.h"
@@ -130,7 +131,7 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
     if(tree->rule == IMPORTS_DECL){
         assert(tree->children[0]->rule == IMPORT_ON_DEMAND || tree->children[0]->rule == SINGLE_TYPE_IMPORT);
         returnImport = new ImportDecls(makeName(tree->children[0]->children[0]->children[1]));
-        returnImport->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+        returnImport->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
         return returnImport;
     }
     
@@ -961,7 +962,7 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
     if(debug) std::cout << "PrimaryNonArray\n";
     int rule = tree->rule;
     assert(rule == PRIMARY_LITERAL || rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION || rule == PRIMARY_MAKECLASS
-           || rule == PRIMARY_FIELDACCESS || rule == PRIMARY_INVOKE || rule == PRIMARY_ARRAY_ACCESS);
+           || rule == PRIMARY_FIELDACCESS || rule == PRIMARY_INVOKE || rule == PRIMARY_ARRAY_ACCESS || rule == PRIMARY_QUALIFIED_THIS);
 
     if(rule == PRIMARY_LITERAL) {
         primaryNA = new LiteralOrThis(tree->children[0]->children[0]->token);
@@ -975,13 +976,15 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
         primaryNA = makeFieldAccess(tree->children[0]);
     } else if(rule == PRIMARY_INVOKE) {
         primaryNA = makeMethodInvoke(tree->children[0]);
+    } else if(rule == PRIMARY_QUALIFIED_THIS) {
+        primaryNA = new QualifiedThis(makeName(tree->children[0]));
     } else {
         primaryNA = makeArrayAccess(tree->children[0]);
     }
 
     if(rule == PRIMARY_LITERAL) {
         primaryNA->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
-    } else if(rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION) {
+    } else if(rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION || PRIMARY_QUALIFIED_THIS) {
         primaryNA->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
     

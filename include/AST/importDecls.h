@@ -21,7 +21,7 @@ class ImportDecls : public Ast
         Name *getCurrentImport() { return import; }
         ImportDecls *getNextImport() { return nextImport; }
         void setNextImport(ImportDecls* set) { nextImport = set; }
-        bool lastImport() { return nextImport == NULL; }
+        bool isLastImport() { return nextImport == NULL; }
 };
 
 #endif

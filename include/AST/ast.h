@@ -87,6 +87,8 @@ class Ast {
         bool isCharLiteral() { return rule == LITERAL_CHAR; }
         bool isStringLiteral() { return rule == LITERAL_STRING; }
         bool isNull() { return rule == LITERAL_NULL; }
+        // Qualified this
+        bool isQualifiedThis() { return rule == PRIMARY_QUALIFIED_THIS; }
         // Bracketed expression
         bool isBracketedExpression() { return rule == PRIMARY_EXPRESSION; }
         // Class creation
