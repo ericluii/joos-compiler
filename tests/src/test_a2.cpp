@@ -6,6 +6,9 @@
 #include "parseTree.h"
 #include "weeder.h"
 #include "buildAst.h"
+#include "buildCompilationTable.h"
+#include "typeLinker.h"
+#include "hierarchyChecking.h"
 #include <fstream>
 #include <vector>
 #include <map>
@@ -19,6 +22,28 @@ void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
         }
         delete it->second;
     }
+}
+
+void setOtherCompilations(std::map<std::string, CompilationTable*>& compilationTables,
+                          std::map<std::string, std::vector<CompilationTable*> >& packages) {
+    std::map<std::string, CompilationTable*>::iterator it;
+    for(it = compilationTables.begin(); it != compilationTables.end(); it++) {
+        it->second->setCompilationsInPackage(&(packages[it->second->getPackageName()]));
+        // check for canonical names here
+        it->second->checkForConflictingCanonicalName();
+    }
+}
+
+void registerPackages(std::map<std::string, std::vector<CompilationTable*> >& packagesCompilations,
+                             CompilationTable* table) {
+    std::string packageName = table->getPackageName();
+    packagesCompilations[packageName].push_back(table);
+}
+
+void unregisterPackages(std::map<std::string, std::vector<CompilationTable*> >& packagesCompilations,
+                        CompilationTable* table) {
+    std::string packageName = table->getPackageName();
+    packagesCompilations.erase(packageName);
 }
 
 void cleanUpASTs(std::map<std::string, CompilationUnit*>& ASTs) {
@@ -47,6 +72,9 @@ void Test_A2::test() {
     std::map<std::string, std::vector<Token*> *> tokens;
     std::map<std::string, CompilationUnit*> completeASTs;
     parser = new Parser(tokens);
+    BuildCompilationTable compilationBuilder;
+    std::map<std::string, CompilationTable*> compilationTables;
+    std::map<std::string, std::vector<CompilationTable*> > packagesCompilations;
 
     std::cout << test_name << ": " << test_description << std::endl;
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
@@ -98,6 +126,17 @@ void Test_A2::test() {
         weeder.weedParseTree(newParseTree);
         completeASTs[a2TestFiles[i]] = BuildAst::build(newParseTree);
         delete newParseTree;
+        compilationTables[a2TestFiles[i]] = compilationBuilder.build(*completeASTs[a2TestFiles[i]], a2TestFiles[i]);
+        if (Error::count() == 0) {
+            compilationTables[a2TestFiles[i]]->checkForOverlappingLocalScope();
+            registerPackages(packagesCompilations, compilationTables[a2TestFiles[i]]);
+            setOtherCompilations(compilationTables, packagesCompilations);
+        }
+
+        if (Error::count() == 0) {
+            TypeLinker(packagesCompilations).typeLinkingResolution();
+            HierarchyChecking(packagesCompilations).check();
+        }
 
         if (a2TestFiles[i][1] == 'e') {
             checkTrue("EB-NR-HC: " + a2TestFiles[i], Error::count() != 0,
@@ -107,10 +146,13 @@ void Test_A2::test() {
                       "Check that we pass this file", "\n" + fileContent);
         }
 
+        unregisterPackages(packagesCompilations, compilationTables[a2TestFiles[i]]);
         delete tokens[a2TestFiles[i]];
         delete completeASTs[a2TestFiles[i]];
+        delete compilationTables[a2TestFiles[i]];
         tokens.erase(a2TestFiles[i]);
         completeASTs.erase(a2TestFiles[i]);
+        compilationTables.erase(a2TestFiles[i]);
     }
 
     cleanUpTokens(tokens);

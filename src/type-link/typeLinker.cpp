@@ -139,9 +139,9 @@ void TypeLinker::typeLinkingResolution() {
         std::vector<CompilationTable*>::iterator it2;
         for(it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             checkForClashingSingleImportInFile(*it2);
-            CHECK_ERROR();
+            if (Error::count() > 0) { return; }
             checkImportsExistenceAndSet(*it2);
-            CHECK_ERROR();
+            if (Error::count() > 0) { return; }
         }
     }
 }
