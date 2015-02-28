@@ -19,23 +19,18 @@ class Name : public Ast
 
         Identifier *getNameId() { return id; }
         Name *getNextName() { return nextName; }
+        std::string getQualifier() {
+            if(nextName == NULL) {
+                return "";
+            }
+            return nextName->getFullName();
+        }
+
         std::string getFullName() {
-            if(rule == NAME_SIMPLE) {
+            if(nextName == NULL) {
                 return id->getIdAsString();
             }
-
-            std::string qualifiedName = id->getIdAsString();
-            Name* nextName = this->nextName;
-            while(true) {
-                switch(nextName->rule) {
-                    case NAME_QUALIFIED:
-                        qualifiedName = nextName->id->getIdAsString() + "." + qualifiedName;
-                        nextName = nextName->nextName;
-                        break;
-                    case NAME_SIMPLE:
-                        return nextName->id->getIdAsString() + "." + qualifiedName;
-                }
-            }
+            return nextName->getFullName() + "." + id->getIdAsString();
         }
 
         void setNextName(Name* set) { nextName = set; }

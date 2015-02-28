@@ -130,7 +130,7 @@ ImportDecls *BuildAst::makeImportDecls(ParseTree *tree){
     if(tree->rule == IMPORTS_DECL){
         assert(tree->children[0]->rule == IMPORT_ON_DEMAND || tree->children[0]->rule == SINGLE_TYPE_IMPORT);
         returnImport = new ImportDecls(makeName(tree->children[0]->children[0]->children[1]));
-        returnImport->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+        returnImport->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
         return returnImport;
     }
     

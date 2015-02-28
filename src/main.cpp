@@ -11,6 +11,7 @@
 #include "buildAst.h"
 #include "astPrinter.h"
 #include "buildCompilationTable.h"
+#include "typeLinker.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -37,27 +38,17 @@ void cleanUpCompilationTable(std::map<std::string, CompilationTable*>& compilati
     }
 }
 
-void cleanUpPackages(std::map<std::string, std::vector<CompilationTable*>* >& packages) {
-    std::map<std::string, std::vector<CompilationTable*>* >::iterator it;
-    for(it = packages.begin(); it != packages.end(); it++) {
-        delete it->second;
-    }
-}
-
-void registerPackages(std::map<std::string, std::vector<CompilationTable*>* >& packagesCompilations,
+void registerPackages(std::map<std::string, std::vector<CompilationTable*> >& packagesCompilations,
                      CompilationTable* table) {
     std::string packageName = table->getPackageName();
-    if(packagesCompilations.count(packageName) == 0) {
-        packagesCompilations[packageName] = new std::vector<CompilationTable*>();
-    }
-    packagesCompilations[packageName]->push_back(table);
+    packagesCompilations[packageName].push_back(table);
 }
 
 void setOtherCompilations(std::map<std::string, CompilationTable*>& compilationTables,
-                          std::map<std::string, std::vector<CompilationTable*>* > packages) {
+                          std::map<std::string, std::vector<CompilationTable*> >& packages) {
     std::map<std::string, CompilationTable*>::iterator it;
     for(it = compilationTables.begin(); it != compilationTables.end(); it++) {
-        it->second->setCompilationsInPackage(packages[it->second->getPackageName()]);
+        it->second->setCompilationsInPackage(&(packages[it->second->getPackageName()]));
         // check for canonical names here
         it->second->checkForConflictingCanonicalName();
     }
@@ -110,7 +101,7 @@ int main(int argc, char *argv[])
     // Symbol table
     BuildCompilationTable compilationBuilder;
     std::map<std::string, CompilationTable*> compilationTables;
-    std::map<std::string, std::vector<CompilationTable*>* > packagesCompilations;
+    std::map<std::string, std::vector<CompilationTable*> > packagesCompilations;
 
     try {
         for (int i = 1; i < argc; i++) {
@@ -184,9 +175,11 @@ int main(int argc, char *argv[])
    
     if(rc != 42) {
         // continue ahead with compilation iff there was no errors above
+        TypeLinker typeLinker(packagesCompilations);
         try {
             setOtherCompilations(compilationTables, packagesCompilations);
             CHECK_ERROR();
+            typeLinker.typeLinkingResolution();
         } catch(std::exception& e) {
             Error::print();
             rc = 42;
@@ -196,7 +189,6 @@ int main(int argc, char *argv[])
     cleanUpTokens(tokens);
     cleanUpASTs(completeASTs);
     cleanUpCompilationTable(compilationTables);
-    cleanUpPackages(packagesCompilations);
 
     exit(rc);
 }

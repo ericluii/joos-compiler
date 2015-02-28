@@ -286,7 +286,7 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
 //--------------------------------------------------------
 
 CompilationTable* BuildCompilationTable::build(CompilationUnit& node, const std::string& filename) {
-    curCompTable = new CompilationTable(node.getPackageDecl(), filename);
+    curCompTable = new CompilationTable(node.getPackageDecl(), filename, &node);
     if(!(node.getTypeDecl()->isEpsilon())) {
         build(*node.getTypeDecl());
     }

@@ -16,8 +16,8 @@
 #include "interfaceDecl.h"
 #include "error.h"
 
-CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename) : package(package),
-                symTable(NULL), filename(filename), compilationsInPackage(NULL) {}
+CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit) : package(package),
+                symTable(NULL), filename(filename), unit(unit), compilationsInPackage(NULL) {}
 
 CompilationTable::~CompilationTable() {
     delete symTable;
@@ -36,6 +36,10 @@ std::string CompilationTable::getPackageName() {
 }
 
 std::string CompilationTable::getClassOrInterfaceName() {
+    if(symTable == NULL) {
+        return "";
+    }
+
     if(symTable->isClassTable()) {
         return ((ClassTable*) symTable)->getClass()->getClassId()->getIdAsString();
     }
@@ -55,12 +59,37 @@ std::string CompilationTable::getFilename() {
     return filename;
 }
 
+CompilationUnit* CompilationTable::getCompilationUnit() {
+    return unit;
+}
+
 void CompilationTable::setSymbolTable(SymbolTable* set) {
     symTable = set;
 }
 
 void CompilationTable::setCompilationsInPackage(std::vector<CompilationTable*>* tables) {
     compilationsInPackage = tables;
+}
+
+void CompilationTable::setASingleTypeImport(const std::string& typeName, CompilationTable* table, Token* importTok) {
+    if(singleTypeImports.count(typeName) == 0) {
+        singleTypeImports[typeName] = table;
+    } else {
+        if(singleTypeImports[typeName] != table) {
+            // if it's not actually a repeating import of the same type
+            std::stringstream ss;
+            ss << "Single type import '" << table->getPackageName() << "." << typeName << "' conflicts with single type import '"
+               << singleTypeImports[typeName]->getPackageName() << "." << typeName << "'.";
+            Error(E_TYPELINKING, importTok, ss.str());
+        }
+    }
+}
+
+void CompilationTable::setAnImportTypeOnDemand(const std::string& packageName, std::vector<CompilationTable*>* compilations) {
+    if(importsOnDemand.count(packageName) == 0) {
+        // if the package has not yet been specified
+        importsOnDemand[packageName] = compilations;
+    }
 }
 
 void CompilationTable::checkForConflictingCanonicalName() {
@@ -73,8 +102,8 @@ void CompilationTable::checkForConflictingCanonicalName() {
             if(canonicalName == compilationsInPackage->at(i)->getCanonicalName()) {
                 std::stringstream ss;
                 ss << filename << ": error: Canonical name '" << canonicalName << "' has already been used in file '"
-                   << compilationsInPackage->at(i)->getFilename();
-                Error(E_AFTERSYMTABLE, NULL, ss.str());
+                   << compilationsInPackage->at(i)->getFilename() << '.';
+                Error(E_DEFAULT, NULL, ss.str());
             }
         }
     }
@@ -242,20 +271,22 @@ void CompilationTable::checkConstructorForOverlappingScope(ConstructorTable* con
 }
 
 void CompilationTable::checkForOverlappingLocalScope() {
-    if(symTable->isClassTable()) {
-        std::map<std::string, ClassMethodTable*>::iterator method = classMethods.begin();
-        std::map<std::string, ConstructorTable*>::iterator constructor = constructors.begin();
+    if(symTable != NULL) {
+        if(symTable->isClassTable()) {
+            std::map<std::string, ClassMethodTable*>::iterator method = classMethods.begin();
+            std::map<std::string, ConstructorTable*>::iterator constructor = constructors.begin();
 
-        for(; method != classMethods.end(); method++) {
-            if(method->second != NULL) {
-                // if there is a body and it's not empty
-                checkMethodForOverlappingScope(method->second);
+            for(; method != classMethods.end(); method++) {
+                if(method->second != NULL) {
+                    // if there is a body and it's not empty
+                    checkMethodForOverlappingScope(method->second);
+                }
             }
-        }
 
-        for(; constructor != constructors.end(); constructor++) {
-            if(constructor->second != NULL) {
-                checkConstructorForOverlappingScope(constructor->second);
+            for(; constructor != constructors.end(); constructor++) {
+                if(constructor->second != NULL) {
+                    checkConstructorForOverlappingScope(constructor->second);
+                }
             }
         }
     }

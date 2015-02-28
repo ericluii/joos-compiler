@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -19,19 +19,23 @@ DFA_O = $(addprefix build/src/dfas/, $(notdir $(DFA_C:.cpp=.o)))
 SYMTABLE_C = $(wildcard src/sym-table/*.cpp)
 SYMTABLE_O = $(addprefix build/src/sym-table/, $(notdir $(SYMTABLE_C:.cpp=.o)))
 
+# Type linking code
+TYPELINK_C = $(wildcard src/type-link/*.cpp)
+TYPELINK_O = $(addprefix build/src/type-link/, $(notdir $(TYPELINK_C:.cpp=.o)))
+
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
-SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O)
+SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
 # Include
-SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h)
+SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h)
 TEST_INC = $(wildcard tests/include/*.h)
 
 # Static Lib for Tests
@@ -61,6 +65,9 @@ build/src/dfas/%.o: src/dfas/%.cpp $(SRC_INC)
 
 build/src/sym-table/%.o: src/sym-table/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/sym-table/$(notdir $(@:.cpp=.o))
+
+build/src/type-link/%.o: src/type-link/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/type-link/$(notdir $(@:.cpp=.o))
 
 build/src/%.o: src/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/$(notdir $(@:.cpp=.o))

@@ -7,6 +7,7 @@
 #include "packageDecl.h"
 #include "symbolTable.h"
 
+class CompilationUnit;
 class ClassMethodTable;
 class ConstructorTable;
 class FieldTable;
@@ -23,10 +24,16 @@ class CompilationTable {
     friend class BuildCompilationTable;
     private:
         PackageDecl* package;
+        // NULL if no type is defined
         SymbolTable* symTable;
         std::string filename;
+        CompilationUnit* unit;
         // other compilations in the same package
         std::vector<CompilationTable*>* compilationsInPackage;
+        // compilations from single type import
+        std::map<std::string, CompilationTable* > singleTypeImports;
+        // compilations from import type on demand
+        std::map<std::string, std::vector<CompilationTable*>* > importsOnDemand;
         // mappings for class methods and constructor
         std::map<std::string, ClassMethodTable*> classMethods;
         std::map<std::string, ConstructorTable*> constructors;
@@ -46,7 +53,7 @@ class CompilationTable {
         void checkMethodForOverlappingScope(ClassMethodTable* methodTable);
         void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
     public:
-        CompilationTable(PackageDecl* package, const std::string& filename);
+        CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit);
         ~CompilationTable();
 
         SymbolTable* getSymbolTable();
@@ -54,8 +61,11 @@ class CompilationTable {
         std::string getClassOrInterfaceName();
         std::string getCanonicalName();
         std::string getFilename();
+        CompilationUnit* getCompilationUnit();
         void setSymbolTable(SymbolTable* set);
         void setCompilationsInPackage(std::vector<CompilationTable*>* tables);
+        void setASingleTypeImport(const std::string& typeName, CompilationTable* table, Token* importTok);
+        void setAnImportTypeOnDemand(const std::string& packageName, std::vector<CompilationTable*>* compilations);
         void checkForConflictingCanonicalName();
 
         // --------------------------------------------------------------------
