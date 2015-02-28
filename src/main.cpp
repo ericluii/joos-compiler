@@ -12,6 +12,7 @@
 #include "astPrinter.h"
 #include "buildCompilationTable.h"
 #include "typeLinker.h"
+#include "hierarchyChecking.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -167,25 +168,18 @@ int main(int argc, char *argv[])
             
             registerPackages(packagesCompilations, compilationTables[filename]);
         }
+
+        setOtherCompilations(compilationTables, packagesCompilations);
+        TypeLinker(packagesCompilations).typeLinkingResolution();
+        HierarchyChecking(packagesCompilations).check();
+
+        CHECK_ERROR();
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;
         rc = 42;
     }
    
-    if(rc != 42) {
-        // continue ahead with compilation iff there was no errors above
-        TypeLinker typeLinker(packagesCompilations);
-        try {
-            setOtherCompilations(compilationTables, packagesCompilations);
-            CHECK_ERROR();
-            typeLinker.typeLinkingResolution();
-        } catch(std::exception& e) {
-            Error::print();
-            rc = 42;
-        }
-    }
-
     cleanUpTokens(tokens);
     cleanUpASTs(completeASTs);
     cleanUpCompilationTable(compilationTables);
