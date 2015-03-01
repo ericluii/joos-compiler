@@ -45,6 +45,7 @@ class Test_Base {
                 os << "---------------------------------------------------------------------------------------\n";
             }
             os << "Passed " << (tb.test_count - tb.test_fails.size()) << " out of " << tb.test_count << " tests.\n";
+            os << tb.test_count - (tb.test_count - tb.test_fails.size()) << " more tests to go (:\n";
 
             return os;
         }
