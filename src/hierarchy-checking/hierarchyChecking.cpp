@@ -350,7 +350,7 @@ void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, st
         {
             Name *interfaceName = interface->getCurrentInterface();
             std::vector<CompilationTable*> package;
-            if(!interfaceName->lastPrefix())
+            if(!interfaceName->isLastPrefix())
             {
                 package = packages[interfaceName->getQualifier()];
             }
@@ -367,7 +367,7 @@ void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, st
                 {
                     if((*it3)->getCompilationUnit()->getTypeDecl()->isClass())
                     {
-                        Error(E_HIERARCHYCHECKING, interfaceName->getNameId()->getToken(), "error: class cannot implement a class\n");
+                        Error(E_HIERARCHY, interfaceName->getNameId()->getToken(), "error: class cannot implement a class\n");
                     }
                     else
                     {
@@ -387,7 +387,7 @@ void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation, 
     {
         Name *superName = dynamic_cast<ClassDecl*>(typedecl)->getSuper()->getSuperName();
         std::vector<CompilationTable*> package;
-        if(!superName->lastPrefix())
+        if(!superName->isLastPrefix())
         {
             package = packages[superName->getQualifier()];
         }
@@ -406,7 +406,7 @@ void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation, 
                 {
                     if(modifiers->getCurrentModifierAsString() == "final")
                     {
-                        Error(E_HIERARCHYCHECKING, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
+                        Error(E_HIERARCHY, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
                     }
                     modifiers = modifiers->getNextModifier();
                 }
