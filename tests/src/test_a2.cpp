@@ -72,6 +72,7 @@ void Test_A2::test() {
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
 
+
     // Build Test File Only
     for(unsigned int i = 0; i < a2TestFiles.size(); i++) {
         Error::resetErrors();

@@ -291,3 +291,34 @@ void CompilationTable::checkForOverlappingLocalScope() {
         }
     }
 }
+
+CompilationTable* CompilationTable::checkTypePresenceFromSingleImport(const std::string& typeName) {
+    if(singleTypeImports.count(typeName) == 1) {
+        return singleTypeImports[typeName];
+    }
+
+    return NULL;
+}
+
+CompilationTable* CompilationTable::checkTypePresenceInPackage(const std::string& typeName) {
+    for(unsigned int i = 0; i < compilationsInPackage->size(); i++) {
+        if(compilationsInPackage->at(i)->getClassOrInterfaceName() == typeName) {
+            return compilationsInPackage->at(i);
+        }
+    }
+
+    return NULL;
+}
+
+CompilationTable* CompilationTable::checkTypePresenceFromImportOnDemand(const std::string& typeName) {
+    std::map<std::string, std::vector<CompilationTable*>* >::iterator it;
+    for(it = importsOnDemand.begin(); it != importsOnDemand.end(); it++) {
+        std::vector<CompilationTable*>::iterator it2;
+        for(it2 = it->second->begin(); it2 != it->second->end(); it2++) {
+            if(typeName == (*it2)->getClassOrInterfaceName()) {
+                return *it2;
+            }
+        }
+    }
+    return NULL;
+}

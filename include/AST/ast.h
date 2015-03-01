@@ -35,6 +35,7 @@ class Ast {
         // Class or interface type
         bool isClass() { return rule == TYPE_CLASS; }
         bool isInterface() { return rule == TYPE_INTERFACE; }
+        bool isNoTypeDefined() { return rule == TYPE_EPSILON; }
         // Name
         bool isSimpleName() { return rule == NAME_SIMPLE; }
         bool isQualifiedName() { return rule == NAME_QUALIFIED; }

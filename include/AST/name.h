@@ -34,7 +34,7 @@ class Name : public Ast
         }
 
         void setNextName(Name* set) { nextName = set; }
-        bool lastPrefix() { return nextName == NULL; }
+        bool isLastPrefix() { return nextName == NULL; }
 };
 
 #endif

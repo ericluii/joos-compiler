@@ -284,12 +284,14 @@ Interfaces* BuildAst::makeInterfaces(ParseTree* tree) {
     tree = tree->children[0];
     while(true) {
         switch(tree->rule) {
+            case EXTENDING_LIST:
             case INTERFACE_TYPE_LIST:
                 nextInterface = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
                 nextInterface->setNextInterface(nextInterface);
                 currentInterface = nextInterface;
                 tree = tree->children[0];
                 break;
+            case EXTENDING:
             case INTERFACE_TYPE_LIST_END:
                 currentInterface->setNextInterface(makeInterfaces(tree));
                 return returnInterfaces;

@@ -89,6 +89,13 @@ class CompilationTable {
         // ---------------------------------------------------------------------
         // Symbol table analysis
         void checkForOverlappingLocalScope();
+
+        // ---------------------------------------------------------------------
+        // Interface to check presence of a type from import type on demand, 
+        // single type import or other compilations in the package
+        CompilationTable* checkTypePresenceFromSingleImport(const std::string& typeName);
+        CompilationTable* checkTypePresenceInPackage(const std::string& typeName);
+        CompilationTable* checkTypePresenceFromImportOnDemand(const std::string& typeName);
 };
 
 #endif
