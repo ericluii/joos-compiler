@@ -188,4 +188,5 @@ int main(int argc, char *argv[])
     cleanUpCompilationTable(compilationTables);
 
     exit(rc);
+
 }

@@ -150,6 +150,9 @@ void TypeLinker::checkImportsExistenceAndSet(CompilationTable* compilation) {
     if(!imports->isEpsilon()) {
         importsExistenceRecurse(compilation, imports->getImportDeclarations());
     }
+
+    // by default all compilation unit imports java.lang as an import type on demand
+    compilation->setAnImportTypeOnDemand("java.lang", &packages["java.lang"]);
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -237,7 +240,29 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* u
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassDecl* type) {
-    if(!type->noSuperClass()) { linkTypeNames(compilation, type->getSuper()); }
+    std::string canonicalName = compilation->getCanonicalName();
+    if(!type->noSuperClass()) { 
+        if(canonicalName != "java.lang.Object") {
+            linkTypeNames(compilation, type->getSuper());
+        } else {
+            std::stringstream ss;
+            ss << "Class java.lang.Object may not have a super class.";
+            Error(E_TYPELINKING, type->getClassId()->getToken(), ss.str()); 
+        }
+    } else {
+        if(canonicalName != "java.lang.Object") {
+            // if it's not java.lang.Object itself and it does not have a superclass
+            // then make java.lang.Object it's superclass
+            std::vector<CompilationTable*>& types = packages["java.lang"];
+            for(unsigned int i = 0; i < types.size(); i++) {
+                if(types[i]->getClassOrInterfaceName() == "Object") {
+                    type->getSuper()->setSuperClassTable(types[i]);
+                    break;
+                }
+            }
+        }
+    }
+
     if(!type->noImplementedInterfaces()) { linkTypeNames(compilation, type->getImplementInterfaces()); }
     if(!type->emptyBody()) { linkTypeNames(compilation, type->getClassMembers()); }
 }
