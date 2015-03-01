@@ -375,7 +375,7 @@ void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, st
                     }
                 }
             }
-            assert(it3 != package.end());
+            //assert(it3 != package.end());
             interface = interface->getNextInterface();
         }
     }
@@ -400,15 +400,21 @@ void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation, 
         {
             if((*it3)->getClassOrInterfaceName() == superName->getNameId()->getIdAsString())
             {
-                assert((*it3)->getCompilationUnit()->getTypeDecl()->isClass());
-                Modifiers *modifiers = dynamic_cast<ClassDecl*>((*it3)->getCompilationUnit()->getTypeDecl())->getClassModifiers();
-                while(modifiers != NULL)
+                if((*it3)->getCompilationUnit()->getTypeDecl()->isClass())
                 {
-                    if(modifiers->getCurrentModifierAsString() == "final")
+                    Modifiers *modifiers = dynamic_cast<ClassDecl*>((*it3)->getCompilationUnit()->getTypeDecl())->getClassModifiers();
+                    while(modifiers != NULL)
                     {
-                        Error(E_HIERARCHY, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
+                        if(modifiers->getCurrentModifierAsString() == "final")
+                        {
+                            Error(E_HIERARCHY, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
+                        }
+                        modifiers = modifiers->getNextModifier();
                     }
-                    modifiers = modifiers->getNextModifier();
+                }
+                else
+                {
+                    std::cout << "badbadbad" << std::endl;
                 }
             }
         }
