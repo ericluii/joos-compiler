@@ -16,6 +16,8 @@ class HierarchyChecking {
         // Checks
         void classNotExtendInterface(CompilationTable* compilation);
         void duplicateInterface(CompilationTable* compilation);
+        void classNotImplementClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage);
+        void classNotExtendFinalClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 
