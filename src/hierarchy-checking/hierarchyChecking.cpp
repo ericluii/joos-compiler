@@ -166,6 +166,26 @@ void HierarchyChecking::interfaceNotExtendClass(CompilationTable* compilation) {
     }
 }
 
+void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
+    SymbolTable* st = compilation->getSymbolTable();
+    Token* token;
+
+    if (compilation->isClassSymbolTable()) {
+        ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+        token = cd->getClassId()->getToken();
+
+        if (!cd->emptyBody()) {
+            ClassBodyStar* cbs = cd->getClassMembers();
+
+            if (!cbs->isEpsilon()) {
+                ClassBodyDecls* cbd = cbs->getBody();
+            }
+        }
+    } else if (st) {
+        InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+        token = id->getInterfaceId()->getToken();
+    }
+}
 
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
@@ -176,6 +196,7 @@ void HierarchyChecking::check() {
             classNotExtendInterface(*it2);
             duplicateInterface(*it2);
             interfaceNotExtendClass(*it2);
+            noDuplicateSignature(*it2);
 
             if (Error::count() > 0) { return; }
         }
