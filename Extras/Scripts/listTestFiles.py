@@ -24,7 +24,7 @@ def main():
         writeTo.write("std::vector<std::vector<std::string>> "+assignment.lower()+"TestFiles {\n")
 
         last_dir = "";
-        p = subprocess.Popen('find ~/Workspace/joos-compiler/tests/' + assignment.lower() + ' -iname *.java', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen('find tests/' + assignment.lower() + ' -iname *.java', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for files in p.stdout.readlines():
             if files == ".DS_Store":
                 continue

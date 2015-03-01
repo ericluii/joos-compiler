@@ -6,16 +6,19 @@
 #include <string>
 #include "compilationTable.h"
 #include "name.h"
+#include "token.h"
 
 class HierarchyChecking {
     private:
         std::map<std::string, std::vector<CompilationTable*> >& packages;
 
-        CompilationTable* retrieveCompilationOfTypeName(CompilationTable* compilation, Name* typeName);
+        CompilationTable* retrieveCompilationOfTypeName(CompilationTable* compilation, Name* typeName, Token* token);
 
         // Checks
         void classNotExtendInterface(CompilationTable* compilation);
         void duplicateInterface(CompilationTable* compilation);
+        void interfaceNotExtendClass(CompilationTable* compilation);
+        void noDuplicateSignature(CompilationTable* compilation);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 

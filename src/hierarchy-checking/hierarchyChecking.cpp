@@ -10,7 +10,7 @@
 
 HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
-CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTable* compilation, Name* name) {
+CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTable* compilation, Name* name, Token* token) {
     CompilationTable* next_compilation = NULL;
     std::string typeName = name->getNameId()->getIdAsString();
 
@@ -40,6 +40,16 @@ CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTa
         }
     }
 
+    std::stringstream ss;
+    if (compilation->isClassSymbolTable()) {
+        ss << "Class '" << compilation->getClassOrInterfaceName() << "' must include the qualified name"
+           << " for '" << typeName << "' or import the package.";
+    } else {
+       ss << "Interface '" << compilation->getClassOrInterfaceName() << "' must include the qualified name"
+          << " for '" << typeName << "' or import the package.";
+    }
+    Error(E_HIERARCHY, token, ss.str());
+
     return NULL;
 }
 
@@ -56,7 +66,7 @@ void HierarchyChecking::classNotExtendInterface(CompilationTable* compilation) {
 
                 for (unsigned int i = 0; i < packages[packageName].size(); i++) {
                     if (packages[packageName][i]->getClassOrInterfaceName() == name->getNameId()->getIdAsString()) {
-                        if (!packages[packageName][i]->isClassSymbolTable()) {
+                        if (packages[packageName][i]->getSymbolTable() && !packages[packageName][i]->isClassSymbolTable()) {
                             std::stringstream ss;
                             ss << "Class '" << packages[packageName][i]->getClassOrInterfaceName() << "' cannot extend"
                                << " from an interface.";
@@ -82,7 +92,7 @@ void HierarchyChecking::duplicateInterface(CompilationTable* compilation) {
         if (!cd->noImplementedInterfaces()) {
             interface_list = cd->getImplementInterfaces();
         }
-    } else {
+    } else if (st) {
         InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
         token = id->getInterfaceId()->getToken();
 
@@ -99,21 +109,9 @@ void HierarchyChecking::duplicateInterface(CompilationTable* compilation) {
         while (interface != NULL) {
             Name* name = interface->getCurrentInterface();
 
-            CompilationTable* source = retrieveCompilationOfTypeName(compilation, name);
-
-            if (source == NULL) {
-                std::stringstream ss;
-                if (compilation->isClassSymbolTable()) {
-                    ss << "Class '" << compilation->getClassOrInterfaceName() << "' must include the qualified name"
-                       << " for '" << name->getNameId()->getIdAsString() << "' or import the package.";
-                } else {
-                   ss << "Interface '" << compilation->getClassOrInterfaceName() << "' must include the qualified name"
-                      << " for '" << name->getNameId()->getIdAsString() << "' or import the package.";
-                }
-
-                Error(E_HIERARCHY, token, ss.str());
-                break;
-            }
+            CompilationTable* source = retrieveCompilationOfTypeName(compilation, name, token);
+            // Error generated in retrieveCompilationOfTypeName.
+            if (source == NULL) { break; }
 
             ret = extendsOrImplements.insert(source->getCanonicalName());
             if (ret.second == false) {
@@ -135,6 +133,60 @@ void HierarchyChecking::duplicateInterface(CompilationTable* compilation) {
     }
 }
 
+void HierarchyChecking::interfaceNotExtendClass(CompilationTable* compilation) {
+    SymbolTable* st = compilation->getSymbolTable();
+    Token* token;
+
+    if (st && !compilation->isClassSymbolTable()) {
+        InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+        token = id->getInterfaceId()->getToken();
+
+        if (!id->noExtendedInterfaces()) {
+            Interfaces* interface = id->getExtendedInterfaces()->getListOfInterfaces();
+
+            while (interface != NULL) {
+                Name* name = interface->getCurrentInterface();
+
+                CompilationTable* source = retrieveCompilationOfTypeName(compilation, name, token);
+                // Error generated in retrieveCompilationOfTypeName.
+                if (source == NULL) { break; }
+
+                if (source->isClassSymbolTable()) {
+                    std::stringstream ss;
+                    ss << "Interface '" << compilation->getClassOrInterfaceName() << "' cannot extend "
+                       << "from a class.";
+
+                    Error(E_HIERARCHY, token, ss.str());
+                    break;
+                }
+
+                interface = interface->getNextInterface();
+            }
+        }
+    }
+}
+
+void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
+    SymbolTable* st = compilation->getSymbolTable();
+    Token* token;
+
+    if (compilation->isClassSymbolTable()) {
+        ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+        token = cd->getClassId()->getToken();
+
+        if (!cd->emptyBody()) {
+            ClassBodyStar* cbs = cd->getClassMembers();
+
+            if (!cbs->isEpsilon()) {
+                ClassBodyDecls* cbd = cbs->getBody();
+            }
+        }
+    } else if (st) {
+        InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+        token = id->getInterfaceId()->getToken();
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
     for (it = packages.begin(); it != packages.end(); it++) {
@@ -143,6 +195,8 @@ void HierarchyChecking::check() {
             // PLACE CHECKS HERE
             classNotExtendInterface(*it2);
             duplicateInterface(*it2);
+            interfaceNotExtendClass(*it2);
+            noDuplicateSignature(*it2);
 
             if (Error::count() > 0) { return; }
         }
