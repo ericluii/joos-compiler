@@ -1,5 +1,6 @@
 #include "hierarchyChecking.h"
 #include "compilationUnit.h"
+#include "classDecl.h"
 #include "error.h"
 #include "classDecl.h"
 #include "interfaceDecl.h"
@@ -141,9 +142,33 @@ void HierarchyChecking::check() {
         std::vector<CompilationTable*>::iterator it2;
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
+<<<<<<< HEAD
             classNotExtendInterface(*it2);
             duplicateInterface(*it2);
 
+=======
+            
+            TypeDecl *typedecl = (*it2)->getCompilationUnit()->getTypeDecl();
+            if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noImplementedInterfaces())
+            {
+                Interfaces *interface = dynamic_cast<ClassDecl*>(typedecl)->getImplementInterfaces()->getListOfInterfaces();
+                while(!interface->lastInterface())
+                {
+                    Name *interfaceName = interface->getCurrentInterface();
+                    if(interfaceName->lastPrefix())
+                    {
+                        
+                    }
+                    else
+                    {
+                    
+                    }
+                    interfaceName->getFullName();
+                    interface = interface->getNextInterface();
+                }
+            }
+            
+>>>>>>> beginning of check for class implementing class
             if (Error::count() > 0) { return; }
         }
     }
