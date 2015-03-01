@@ -287,7 +287,8 @@ Interfaces* BuildAst::makeInterfaces(ParseTree* tree) {
             case EXTENDING_LIST:
             case INTERFACE_TYPE_LIST:
                 nextInterface = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
-                nextInterface->setNextInterface(nextInterface);
+                nextInterface->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+                currentInterface->setNextInterface(nextInterface);
                 currentInterface = nextInterface;
                 tree = tree->children[0];
                 break;

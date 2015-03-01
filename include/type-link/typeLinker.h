@@ -24,6 +24,9 @@ class Expression;
 class InstanceOf;
 class FieldAccess;
 class Primary;
+class ArrayAccess;
+class MethodInvoke;
+class NewClassCreation;
 
 class TypeLinker {
     private:
@@ -59,6 +62,9 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, Expression* expr);
         void linkTypeNames(CompilationTable* compilation, FieldAccess* fieldAccessed);
         void linkTypeNames(CompilationTable* compilation, Primary* prim);
+        void linkTypeNames(CompilationTable* compilation, ArrayAccess* array);
+        void linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke);
+        void linkTypeNames(CompilationTable* compilation, NewClassCreation* create);
         void linkTypeNames(CompilationTable* compilation, ClassMethod* method);
         void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
 

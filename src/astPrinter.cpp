@@ -222,11 +222,9 @@ void AstPrinter::print(ImportDecls& node) {
     depth++;
     printSpaces();
     std::cout << node.getLexeme() << ':' << node.getRule() << std::endl;
-    if(node.isSingleImport()) {
-        print(*node.getCurrentImport());
-    }
-    assert(node.isOnDemandImport());
-    print(*node.getNextImport());
+    assert(node.isSingleImport() || node.isOnDemandImport());
+    print(*node.getCurrentImport());
+    if(!node.isLastImport()) { print(*node.getNextImport()); }
     depth--;
 }
 

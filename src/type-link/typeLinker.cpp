@@ -17,6 +17,10 @@
 #include "instanceof.h"
 #include "negationExpression.h"
 #include "assignField.h"
+#include "arrayAccessPrimary.h"
+#include "bracketedExpression.h"
+#include "invokeAccessedMethod.h"
+#include "newClassCreation.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -357,7 +361,35 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, FieldAccess* field
     linkTypeNames(compilation, fieldAccessed->getAccessedFieldPrimary());
 }
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {
+    if(prim->isArrayAccessPrimary()) {
+        linkTypeNames(compilation, (ArrayAccess*) prim);
+    } else if(prim->isBracketedExpression()) {
+        linkTypeNames(compilation, ((BracketedExpression*) prim)->getExpressionInside());
+    } else if(prim->isNormalMethodCall() || prim->isAccessedMethodCall()) {
+        linkTypeNames(compilation, (MethodInvoke*) prim);
+    } else if(prim->isNewClassCreation()) {
+        linkTypeNames(compilation, (NewClassCreation*) prim);
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ArrayAccess* array) {
+    // only when it is an array access primary
+    if(array->isArrayAccessPrimary()) {
+        linkTypeNames(compilation, ((ArrayAccessPrimary*) array)->getAccessedPrimaryArray());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke) {
+    if(invoke->isAccessedMethodCall()) {
+        linkTypeNames(compilation, ((InvokeAccessedMethod*) invoke)->getAccessedMethod());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* create) {
+    linkTypeNames(compilation, create->getClassName());
+    // linkTypeNames(compilation, create->getArgsToCreateClass());
+}
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {}
 
