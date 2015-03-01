@@ -12,6 +12,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <iostream>
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -64,100 +65,79 @@ void Test_A2::init() {
 
 void Test_A2::test() {
     std::ifstream file;
-    std::string fileContent;
-    std::string buffer;
-    std::vector<Token*>* tokenList;
-    Weeder weeder = Weeder();
     ParseTree* newParseTree = NULL;
-    std::map<std::string, std::vector<Token*> *> tokens;
-    std::map<std::string, CompilationUnit*> completeASTs;
-    parser = new Parser(tokens);
-    BuildCompilationTable compilationBuilder;
-    std::map<std::string, CompilationTable*> compilationTables;
-    std::map<std::string, std::vector<CompilationTable*> > packagesCompilations;
+    std::string fileContent = "File too long.";
 
     std::cout << test_name << ": " << test_description << std::endl;
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
-    // Build STDLib Files First
-    std::vector<std::string> files;
-    for (unsigned int j = 0; j < STDLIB_NUM_FILES; j++) {
-        files.push_back(stdlibPath + "/" + stdlibFiles[j]);
-    }
-
-    for (unsigned int j = 0; j < files.size(); j++) {
-        file.open(files[j], std::ifstream::in);
-
-        tokenList = new std::vector<Token*>();
-        scanner.setFileName(files[j]);
-        scanner.Scan(file, tokenList);
-        scanner.resetDFAs();
-        tokens[files[j]] = tokenList;
-        file.close();
-    }
-
-    for (unsigned int j = 0; j < files.size(); j++) {
-        newParseTree = parser->Parse(files[j]);
-        weeder.weedParseTree(newParseTree);
-        completeASTs[files[j]] = BuildAst::build(newParseTree);
-        delete newParseTree;
-    }
 
     // Build Test File Only
-    for(unsigned int i = 0; i < A2_NUM_FILES; i++) {
+    for(unsigned int i = 0; i < a2TestFiles.size(); i++) {
         Error::resetErrors();
 
-        file.open(directoryPath + "/" + a2TestFiles[i], std::ifstream::in);
-        while(getline(file, buffer)) {
-            fileContent += buffer + "\n";
+        std::map<std::string, std::vector<Token*> *> tokens;
+        std::map<std::string, CompilationUnit*> completeASTs;
+        Weeder weeder = Weeder();
+        std::vector<Token*>* tokenList;
+        parser = new Parser(tokens);
+        std::vector<std::string> files;
+        for (unsigned int j = 0; j < STDLIB_NUM_FILES; j++) {
+            files.push_back(stdlibPath + "/" + stdlibFiles[j]);
+        }
+        for (unsigned int j = 0; j < a2TestFiles[i].size(); j++) {
+            files.push_back(directoryPath + "/" + a2TestFiles[i][j]); 
         }
 
-        file.clear();
-        file.seekg(0, std::ios_base::beg);
-
-        tokenList = new std::vector<Token*>();
-        scanner.setFileName(a2TestFiles[i]);
-        scanner.Scan(file, tokenList);
-        scanner.resetDFAs();
-        tokens[a2TestFiles[i]] = tokenList;
-        file.close();
-
-        newParseTree = parser->Parse(a2TestFiles[i]);
-        weeder.weedParseTree(newParseTree);
-        completeASTs[a2TestFiles[i]] = BuildAst::build(newParseTree);
-        delete newParseTree;
-        compilationTables[a2TestFiles[i]] = compilationBuilder.build(*completeASTs[a2TestFiles[i]], a2TestFiles[i]);
-        if (Error::count() == 0) {
-            compilationTables[a2TestFiles[i]]->checkForOverlappingLocalScope();
-            registerPackages(packagesCompilations, compilationTables[a2TestFiles[i]]);
-            setOtherCompilations(compilationTables, packagesCompilations);
+        for (unsigned int j = 0; j < files.size(); j++) {
+            file.open(files[j]);
+            tokenList = new std::vector<Token*>();
+            scanner.setFileName(files[j]);
+            scanner.Scan(file, tokenList);
+            scanner.resetDFAs();
+            tokens[files[j]] = tokenList;
+            file.close();
         }
+
+        BuildCompilationTable compilationBuilder;
+        std::map<std::string, CompilationTable*> compilationTables;
+        std::map<std::string, std::vector<CompilationTable*> > packagesCompilations;
+
+        for (unsigned int j = 0; j < files.size(); j++) {
+            newParseTree = parser->Parse(files[j]);
+            if (newParseTree == NULL) { break; }
+            weeder.weedParseTree(newParseTree);
+            completeASTs[files[j]] = BuildAst::build(newParseTree);
+            delete newParseTree;
+            compilationTables[files[j]] = compilationBuilder.build(*completeASTs[files[j]], files[j]);
+            compilationTables[files[j]]->checkForOverlappingLocalScope();
+            registerPackages(packagesCompilations, compilationTables[files[j]]);
+        }
+
+        setOtherCompilations(compilationTables, packagesCompilations);
 
         if (Error::count() == 0) {
             TypeLinker(packagesCompilations).typeLinkingResolution();
             HierarchyChecking(packagesCompilations).check();
         }
 
-        if (a2TestFiles[i][1] == 'e') {
-            checkTrue("EB-NR-HC: " + a2TestFiles[i], Error::count() != 0,
+        if (a2TestFiles[i][0][1] == 'e') {
+            checkTrue("EB-NR-HC: " + a2TestFiles[i][0], Error::count() != 0,
                       "Check that we fail this file", "\n" + fileContent);
         } else {
-            checkTrue("EB-NR-HC: " + a2TestFiles[i], Error::count() == 0,
+            checkTrue("EB-NR-HC: " + a2TestFiles[i][0], Error::count() == 0,
                       "Check that we pass this file", "\n" + fileContent);
         }
 
-        unregisterPackages(packagesCompilations, compilationTables[a2TestFiles[i]]);
-        delete tokens[a2TestFiles[i]];
-        delete completeASTs[a2TestFiles[i]];
-        delete compilationTables[a2TestFiles[i]];
-        tokens.erase(a2TestFiles[i]);
-        completeASTs.erase(a2TestFiles[i]);
-        compilationTables.erase(a2TestFiles[i]);
-    }
+        for (unsigned int j = 0; j < files.size(); j++) {
+            delete compilationTables[files[j]];
+        }
 
-    cleanUpTokens(tokens);
-    cleanUpASTs(completeASTs);
-    delete parser;
+        cleanUpTokens(tokens);
+        cleanUpASTs(completeASTs);
+
+        delete parser;
+    }
 
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 }

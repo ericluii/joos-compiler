@@ -23,8 +23,8 @@ void Test_Scanner::test() {
     std::cout << test_name << ": " << test_description << std::endl;
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
-    for(unsigned int i = 0; i < A1_NUM_FILES; i++) {
-        fileName = a1TestFiles[i];
+    for(unsigned int i = 0; i < a1TestFiles.size(); i++) {
+        fileName = a1TestFiles[i][0];
         scanner.setFileName(fileName);
         scanFile.open(directoryPath+"/"+fileName, std::ifstream::in);
         tokens = new std::vector<Token*>;
