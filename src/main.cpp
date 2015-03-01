@@ -170,9 +170,12 @@ int main(int argc, char *argv[])
         }
 
         setOtherCompilations(compilationTables, packagesCompilations);
-        TypeLinker(packagesCompilations).typeLinkingResolution();
-        HierarchyChecking(packagesCompilations).check();
+        CHECK_ERROR();
 
+        TypeLinker(packagesCompilations).typeLinkingResolution();
+        CHECK_ERROR();
+
+        HierarchyChecking(packagesCompilations).check();
         CHECK_ERROR();
     } catch (std::exception &e) {
         Error::print();

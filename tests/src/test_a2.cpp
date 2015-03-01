@@ -119,6 +119,9 @@ void Test_A2::test() {
 
         if (Error::count() == 0) {
             TypeLinker(packagesCompilations).typeLinkingResolution();
+        }
+
+        if (Error::count() == 0) {
             HierarchyChecking(packagesCompilations).check();
         }
 
