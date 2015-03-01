@@ -277,7 +277,7 @@ void AstPrinter::print(Interfaces& node) {
     printSpaces();
     std::cout << node.getLexeme() << ':' << node.getRule() << std::endl;
     print(*node.getCurrentInterface());
-    if(!node.lastInterface()) {
+    if(!node.isLastInterface()) {
         print(*node.getNextInterface());
     }
     depth--;

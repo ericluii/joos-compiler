@@ -45,7 +45,7 @@ void BuildCompilationTable::attachSymbolTable(SymbolTable* table) {
 void BuildCompilationTable::build(TypeDecl& node) {
     if(node.isClass()) {
         build((ClassDecl&) node);
-    } else {
+    } else if(node.isInterface()) {
         // Interface declaration
         build((InterfaceDecl&) node);
     }

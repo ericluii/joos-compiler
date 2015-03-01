@@ -5,7 +5,7 @@
 #include "name.h"
 
 class Interfaces : public Ast {
-    // Rule: INTERFACE_TYPE_LIST_END and INTERFACE_TYPE_LIST
+    // Rule: INTERFACE_TYPE_LIST_END, INTERFACE_TYPE_LIST, EXTENDING and EXTENDING_LIST
     private:
         Name* interface;
         Interfaces* nextInterface;
@@ -19,7 +19,7 @@ class Interfaces : public Ast {
         Name* getCurrentInterface() { return interface; }
         Interfaces* getNextInterface() { return nextInterface; }
         void setNextInterface(Interfaces* set) { nextInterface = set; }
-        bool lastInterface() { return nextInterface == NULL; }
+        bool isLastInterface() { return nextInterface == NULL; }
 };
 
 #endif
