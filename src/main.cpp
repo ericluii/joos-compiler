@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
             /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
-            }*/ 
+            }*/
             
             registerPackages(packagesCompilations, compilationTables[filename]);
         }
@@ -188,4 +188,5 @@ int main(int argc, char *argv[])
     cleanUpCompilationTable(compilationTables);
 
     exit(rc);
+
 }

@@ -287,7 +287,8 @@ Interfaces* BuildAst::makeInterfaces(ParseTree* tree) {
             case EXTENDING_LIST:
             case INTERFACE_TYPE_LIST:
                 nextInterface = new Interfaces(makeName(tree->children[2]->children[0]->children[0]));
-                nextInterface->setNextInterface(nextInterface);
+                nextInterface->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+                currentInterface->setNextInterface(nextInterface);
                 currentInterface = nextInterface;
                 tree = tree->children[0];
                 break;
@@ -986,10 +987,9 @@ Primary* BuildAst::makePrimaryNonArray(ParseTree* tree) {
 
     if(rule == PRIMARY_LITERAL) {
         primaryNA->setRuleAndLexeme(tree->children[0]->rule, tree->children[0]->treeLexeme);
-    } else if(rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION || PRIMARY_QUALIFIED_THIS) {
+    } else if(rule == PRIMARY_THIS || rule == PRIMARY_EXPRESSION || rule == PRIMARY_QUALIFIED_THIS) {
         primaryNA->setRuleAndLexeme(tree->rule, tree->treeLexeme);
     }
-    
     return primaryNA;
 }
 

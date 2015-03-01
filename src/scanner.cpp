@@ -89,7 +89,8 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
                         errorCount++;
                         break;
                     case DS_ABORT:
-                        goto reportError;
+                        type = result.second;
+                        break;
                     default:
                         break;
                 }
@@ -101,7 +102,6 @@ int Scanner::Scan(std::ifstream& file, std::vector<Token*> *tokens)
 
         if (errorCount == numDfas) {
             if(type == TT_INVALID){
-reportError:
                 std::stringstream ss;
                 ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Invalid token with lexime: " << lexime << (char)c << ".";
 
@@ -111,6 +111,20 @@ reportError:
 
             if(type != TT_COMMENT && type != TT_WHITESPACE) {
                 tokens->push_back(new Token(type, lexime, std::pair <unsigned int, unsigned int>(tokenLine, tokenCollumn), fileName));
+            }
+
+            if(type == TT_MINUSMINUS || type == TT_PLUSPLUS || type == TT_DO || type == TT_TRY ||
+               type == TT_CASE || type == TT_GOTO || type == TT_LONG || type == TT_CATCH || type == TT_CONST ||
+               type == TT_CATCH || type == TT_CONST || type == TT_FLOAT || type == TT_SUPER || type == TT_THROW ||
+               type == TT_DOUBLE || type == TT_SWITCH || type == TT_THROWS || type == TT_DEFAULT || type == TT_FINALLY ||
+               type == TT_FINALLY || type == TT_PRIVATE || type == TT_CONTINUE || type == TT_VOLATILE || type == TT_STRICTFP ||
+               type == TT_TRANSIENT || type == TT_SYNCHRONIZED) {
+                std::stringstream ss;
+                ss << fileName << ":" << currentLine << ":" << currentColumn << ": error: Unsupported Java keyword: " << lexime << (char)c << ".";
+
+                Error(E_SCANNER, NULL, ss.str());
+                return SCANNER_INV_LEXEME;
+
             }
 
             // Reset all the things!!!

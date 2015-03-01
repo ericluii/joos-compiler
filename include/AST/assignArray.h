@@ -3,6 +3,7 @@
 
 #include "expression.h"
 #include "arrayAccess.h"
+#include "assignment.h"
 
 class AssignArray : public Assignment {
     // Rule: LVALUE_ARRAY

@@ -12,6 +12,21 @@ class CompilationUnit;
 class ClassDecl;
 class InterfaceDecl;
 class Super;
+class InterfaceList;
+class Interfaces;
+class ClassBodyStar;
+class ClassBodyDecls;
+class FieldDecl;
+class ClassMethod;
+class Constructor;
+class Type;
+class Expression;
+class InstanceOf;
+class FieldAccess;
+class Primary;
+class ArrayAccess;
+class MethodInvoke;
+class NewClassCreation;
 
 class TypeLinker {
     private:
@@ -35,11 +50,30 @@ class TypeLinker {
         void checkPackageAndImportsResolveToTypes(CompilationTable* compilation);
 
         // Related to making sure all names that resolve to types refer to some class or interface
-        void linkTypeNames(CompilationTable* compilation, InterfaceDecl* type);
-        CompilationTable* linkTypeNames(CompilationTable* compilation, Name* name);
-        void linkTypeNames(CompilationTable* compilaiton, Super* super);
-        void linkTypeNames(CompilationTable* compilation, ClassDecl* type);
         void linkTypeNames(CompilationTable* compilation, CompilationUnit* unit);
+        void linkTypeNames(CompilationTable* compilation, ClassDecl* type);
+        void linkTypeNames(CompilationTable* compilaiton, Super* super);
+        void linkTypeNames(CompilationTable* compilation, InterfaceList* interfaces);
+        void linkTypeNames(CompilationTable* compilation, Interfaces* interface);
+        void linkTypeNames(CompilationTable* compilation, ClassBodyStar* classBody);
+        void linkTypeNames(CompilationTable* compilation, ClassBodyDecls* classMember);
+        void linkTypeNames(CompilationTable* compilation, FieldDecl* field);
+        void linkTypeNames(CompilationTable* compilation, Type* type);
+        void linkTypeNames(CompilationTable* compilation, Expression* expr);
+        void linkTypeNames(CompilationTable* compilation, FieldAccess* fieldAccessed);
+        void linkTypeNames(CompilationTable* compilation, Primary* prim);
+        void linkTypeNames(CompilationTable* compilation, ArrayAccess* array);
+        void linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke);
+        void linkTypeNames(CompilationTable* compilation, NewClassCreation* create);
+        void linkTypeNames(CompilationTable* compilation, ClassMethod* method);
+        void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
+
+        void linkTypeNames(CompilationTable* compilation, InterfaceDecl* type);
+
+        CompilationTable* linkTypeNames(CompilationTable* compilation, Name* name);
+        
+        // Related to reporting errors regarding to type names not being able to be linked
+        void reportTypeNameLinkError(const std::string& errorMsg, const std::string& typeName, Token* tok);
     public:
         TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages);
         ~TypeLinker();

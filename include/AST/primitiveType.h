@@ -21,7 +21,6 @@ class PrimitiveType : public Type {
             return type;
         }
 
-        bool isEpsilon() { return false; }
         bool isPrimitiveArray() { return isArray; }
 };
 

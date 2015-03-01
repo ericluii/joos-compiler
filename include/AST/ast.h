@@ -71,9 +71,14 @@ class Ast {
         bool isNameExpression() { return rule == UNARY_NAME; }
         bool isNumericNegation() { return rule == NEG_UNARY; }
         bool isBooleanNegation() { return rule == NOT_UNARY; }
-        bool isCastToReferenceType() { return rule == CAST_NONPRIMITIVE; }
-        bool isCastToArrayName() { return rule == CAST_TO_EXPRESSION; }
+        bool isCastToArrayName() { return rule == CAST_NONPRIMITIVE; }
+        bool isCastToReferenceType() { return rule == CAST_TO_EXPRESSION; }
         bool isCastToPrimitiveType() { return rule == CAST_PRIMITIVE; }
+        bool isRegularBinaryExpression() { 
+            return isLazyOr() || isLazyAnd() || isEagerOr() || isEagerAnd() || isEqual() ||
+                   isNotEqual() || isLT() || isGT() || isLTE() || isGTE() || isAddition() || isMinus() ||
+                   isMultiplication() || isDivision() || isModulo();
+        }
         // Class declarations
         bool isFieldDecl() { return rule == CLASS_FIELD; }
         bool isClassMethodDecl() { return rule == CLASS_METHOD; }

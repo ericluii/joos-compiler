@@ -3,6 +3,7 @@
 
 #include "expression.h"
 #include "fieldAccess.h"
+#include "assignment.h"
 
 class AssignField : public Assignment {
     // Rule: LVALUE_FIELD_ACCESS

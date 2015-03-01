@@ -4,10 +4,13 @@
 #include "type.h"
 #include "name.h"
 
+class CompilationTable;
+
 class ReferenceType : public Type {
     // Rule: REFERENCE_CLASSINTERFACE, and ARRAY_NONPRIMITIVE
     private:
         Name* referenceType;
+        CompilationTable* referenceTable;
     public:
         ReferenceType(Name* referenceType) : referenceType(referenceType) {}
         ~ReferenceType() {
@@ -23,7 +26,8 @@ class ReferenceType : public Type {
             return typeName;
         }
 
-        bool isEpsilon() { return false; }
+        void setReferenceTypeTable(CompilationTable* set) { referenceTable = set; }
+        CompilationTable* getReferenceTypeTable() { return referenceTable; }
 };
 
 #endif
