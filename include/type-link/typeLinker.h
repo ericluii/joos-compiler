@@ -22,6 +22,8 @@ class Constructor;
 class Type;
 class Expression;
 class InstanceOf;
+class FieldAccess;
+class Primary;
 
 class TypeLinker {
     private:
@@ -55,7 +57,8 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, FieldDecl* field);
         void linkTypeNames(CompilationTable* compilation, Type* type);
         void linkTypeNames(CompilationTable* compilation, Expression* expr);
-        void linkTypeNames(CompilationTable* compilation, InstanceOf* instanceof);
+        void linkTypeNames(CompilationTable* compilation, FieldAccess* fieldAccessed);
+        void linkTypeNames(CompilationTable* compilation, Primary* prim);
         void linkTypeNames(CompilationTable* compilation, ClassMethod* method);
         void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
 

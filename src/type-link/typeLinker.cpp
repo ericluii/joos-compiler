@@ -15,6 +15,8 @@
 #include "referenceType.h"
 #include "binaryExpression.h"
 #include "instanceof.h"
+#include "negationExpression.h"
+#include "assignField.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -232,10 +234,13 @@ void TypeLinker::checkPackageAndImportsResolveToTypes(CompilationTable* compilat
 // ----------------------------------------------------------------------------------------------------
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* unit) {
-    if(unit->getTypeDecl()->isClass()) {
-        linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
-    } else {
-        linkTypeNames(compilation, (InterfaceDecl*) unit->getTypeDecl());
+    if(!unit->getTypeDecl()->isNoTypeDefined()) {
+        // if the compilation unit has a defined type
+        if(unit->getTypeDecl()->isClass()) {
+            linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
+        } else {
+            linkTypeNames(compilation, (InterfaceDecl*) unit->getTypeDecl());
+        }
     }
 }
 
@@ -340,10 +345,19 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) 
         linkTypeNames(compilation, ((BinaryExpression*) expr)->getRightExpression());
     } else if(expr->isInstanceOf()) {
         linkTypeNames(compilation, ((InstanceOf*) expr)->getTypeToCheck());
+    } else if(expr->isNumericNegation() || expr->isBooleanNegation()) {
+        linkTypeNames(compilation, ((NegationExpression*) expr)->getNegatedExpression());
+    } else if(expr->isAssignField()) {
+        linkTypeNames(compilation, (FieldAccess*) ((AssignField*) expr)->getAssignedField());
+        linkTypeNames(compilation, ((AssignField*) expr)->getExpressionToAssign());
     }
 }
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, InstanceOf* instanceof) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, FieldAccess* fieldAccessed) {
+    linkTypeNames(compilation, fieldAccessed->getAccessedFieldPrimary());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {}
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {}
 

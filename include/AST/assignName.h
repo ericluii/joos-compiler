@@ -3,6 +3,7 @@
 
 #include "expression.h"
 #include "name.h"
+#include "assignment.h"
 
 class AssignName : public Assignment {
     // Rule: LVALUE_NAME
