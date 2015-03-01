@@ -11,7 +11,7 @@ class HierarchyChecking {
         std::map<std::string, std::vector<CompilationTable*> >& packages;
 
         // Checks
-        void classNotExtendInterface();
+        void classNotExtendInterface(CompilationTable* compilation);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 

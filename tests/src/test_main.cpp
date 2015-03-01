@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     // Add tests to this vector if you want
     // to add it to the test sequence
     std::vector<Test_Base *> test_list;
-     test_list.push_back(new Test_Dfa);
+    test_list.push_back(new Test_Dfa);
     test_list.push_back(new Test_Scanner(a1TestPath));
     test_list.push_back(new Test_Parser(a1TestPath));
     test_list.push_back(new Test_A2(stdlibPath, a2TestPath));
