@@ -10,6 +10,7 @@ enum E_TYPE {
     E_WEEDER,
     E_SYMTABLE,
     E_TYPELINKING,
+    E_HIERARCHY,
     E_DEFAULT
 };
 
