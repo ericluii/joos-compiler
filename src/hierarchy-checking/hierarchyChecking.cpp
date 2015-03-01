@@ -341,42 +341,95 @@ void HierarchyChecking::NoStaticOverride(CompilationTable* compilation) {
     }
 }
 
+void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage){
+    TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
+    if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noImplementedInterfaces())
+    {
+        Interfaces *interface = dynamic_cast<ClassDecl*>(typedecl)->getImplementInterfaces()->getListOfInterfaces();
+        while(interface != NULL)
+        {
+            Name *interfaceName = interface->getCurrentInterface();
+            std::vector<CompilationTable*> package;
+            if(!interfaceName->lastPrefix())
+            {
+                package = packages[interfaceName->getQualifier()];
+            }
+            else
+            {
+                package = currentPackage;
+            }
+            std::vector<CompilationTable*>::iterator it3;
+            for (it3 = package.begin(); it3 != package.end(); it3++) 
+            {
+                std::cout << "interface name: " << interfaceName->getNameId()->getIdAsString() << std::endl;
+                std::cout << "checking name: " << (*it3)->getClassOrInterfaceName() << std::endl;
+                if((*it3)->getClassOrInterfaceName() == interfaceName->getNameId()->getIdAsString())
+                {
+                    if((*it3)->getCompilationUnit()->getTypeDecl()->isClass())
+                    {
+                        Error(E_HIERARCHYCHECKING, interfaceName->getNameId()->getToken(), "error: class cannot implement a class\n");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            assert(it3 != package.end());
+            interface = interface->getNextInterface();
+        }
+    }
+}
+
+void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage){
+    TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
+    if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noSuperClass())
+    {
+        Name *superName = dynamic_cast<ClassDecl*>(typedecl)->getSuper()->getSuperName();
+        std::vector<CompilationTable*> package;
+        if(!superName->lastPrefix())
+        {
+            package = packages[superName->getQualifier()];
+        }
+        else
+        {
+            package = currentPackage;
+        }
+        std::vector<CompilationTable*>::iterator it3;
+        for (it3 = package.begin(); it3 != package.end(); it3++) 
+        {
+            if((*it3)->getClassOrInterfaceName() == superName->getNameId()->getIdAsString())
+            {
+                assert((*it3)->getCompilationUnit()->getTypeDecl()->isClass());
+                Modifiers *modifiers = dynamic_cast<ClassDecl*>((*it3)->getCompilationUnit()->getTypeDecl())->getClassModifiers();
+                while(modifiers != NULL)
+                {
+                    if(modifiers->getCurrentModifierAsString() == "final")
+                    {
+                        Error(E_HIERARCHYCHECKING, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
+                    }
+                    modifiers = modifiers->getNextModifier();
+                }
+            }
+        }
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
     for (it = packages.begin(); it != packages.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
-<<<<<<< HEAD
+            
+            classNotImplementClass(*it2, it->second);
+            classNotExtendFinalClass(*it2, it->second);
             classNotExtendInterface(*it2);
             duplicateInterface(*it2);
             interfaceNotExtendClass(*it2);
             noDuplicateSignature(*it2);
             NoStaticOverride(*it2);
 
-=======
-            
-            TypeDecl *typedecl = (*it2)->getCompilationUnit()->getTypeDecl();
-            if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noImplementedInterfaces())
-            {
-                Interfaces *interface = dynamic_cast<ClassDecl*>(typedecl)->getImplementInterfaces()->getListOfInterfaces();
-                while(!interface->lastInterface())
-                {
-                    Name *interfaceName = interface->getCurrentInterface();
-                    if(interfaceName->lastPrefix())
-                    {
-                        
-                    }
-                    else
-                    {
-                    
-                    }
-                    interfaceName->getFullName();
-                    interface = interface->getNextInterface();
-                }
-            }
-            
->>>>>>> beginning of check for class implementing class
             if (Error::count() > 0) { return; }
         }
     }

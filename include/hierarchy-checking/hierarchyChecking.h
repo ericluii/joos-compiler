@@ -20,6 +20,8 @@ class HierarchyChecking {
         void interfaceNotExtendClass(CompilationTable* compilation);
         void noDuplicateSignature(CompilationTable* compilation);
         void NoStaticOverride(CompilationTable* compilation);
+        void classNotImplementClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage);
+        void classNotExtendFinalClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 
