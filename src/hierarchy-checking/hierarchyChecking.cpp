@@ -3,6 +3,9 @@
 #include "error.h"
 #include "classDecl.h"
 #include "interfaceDecl.h"
+#include "methodHeader.h"
+#include "classMethod.h"
+#include "interfaceMethod.h"
 #include <iostream>
 #include <sstream>
 #include <set>
@@ -179,11 +182,56 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
 
             if (!cbs->isEpsilon()) {
                 ClassBodyDecls* cbd = cbs->getBody();
+                std::set<std::string> method_signatures;
+                std::pair<std::set<std::string>::iterator,bool> ret;
+
+                while (cbd != NULL) {
+                    if (cbd->isClassMethodDecl()) {
+                        MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
+                        std::string signature = mh->methodSignatureAsString();
+
+                        ret = method_signatures.insert(signature);
+                        if (ret.second == false) {
+                            std::stringstream ss;
+                            ss << "Class '" << compilation->getClassOrInterfaceName() << "' has multiple methods with the signature '"
+                               << signature << "'.";
+
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+                    }
+
+                    cbd = cbd->getNextDeclaration();
+                }
             }
         }
     } else if (st) {
         InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
         token = id->getInterfaceId()->getToken();
+
+        if (!id->emptyInterfaceBody()) {
+            InterfaceBodyStar* ibs = id->getInterfaceBodyStar();
+
+            if (!ibs->isEpsilon()) {
+                InterfaceMethod* im = ibs->getInterfaceMethods();
+                std::set<std::string> method_signatures;
+                std::pair<std::set<std::string>::iterator,bool> ret;
+                
+                while (im != NULL) {
+                    std::string signature = im->methodSignatureAsString();
+
+                    ret = method_signatures.insert(signature);
+                    if (ret.second == false) {
+                        std::stringstream ss;
+                        ss << "Interface '" << compilation->getClassOrInterfaceName() << "' has multiple methods with the signature '"
+                           << signature << "'.";
+
+                        Error(E_HIERARCHY, token, ss.str());
+                    }
+                    
+                    im = im->getNextInterfaceMethod();
+                }
+            }
+        }
     }
 }
 
