@@ -151,6 +151,10 @@ bool CompilationTable::checkForInterfaceMethodPresence(const std::string& method
 }
 
 //----------------------------------------------------------------------
+// Interface to check if symbol table is NULL
+bool CompilationTable::aTypeWasDefined() { return symTable != NULL; }
+
+//----------------------------------------------------------------------
 // negation is isInterfaceSymbolTable
 bool CompilationTable::isClassSymbolTable() {
     return symTable->isClassTable();

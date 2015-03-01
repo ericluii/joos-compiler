@@ -13,8 +13,7 @@ void AstPrinter::printSpaces() {
 void AstPrinter::print(TypeDecl& node) {
     if(node.isClass()) {
         print((ClassDecl&) node);
-    } else {
-        assert(node.isInterface());
+    } else if(node.isInterface()) {
         print((InterfaceDecl&) node);
     }
 }
@@ -82,6 +81,7 @@ void AstPrinter::print(Primary& node) {
     } else if(node.isQualifiedThis()) {
         print((QualifiedThis&) node);
     } else {
+        std::cout << node.getRule() << std::endl;
         assert(node.isNewPrimitiveArray() || node.isNewReferenceArray());
         print((PrimaryNewArray&) node);
     }

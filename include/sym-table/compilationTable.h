@@ -83,6 +83,10 @@ class CompilationTable {
         bool checkForInterfaceMethodPresence(const std::string& methodSignature);
 
         // ---------------------------------------------------------------------
+        // Interface to check if symbol table is NULL or not
+        bool aTypeWasDefined();
+
+        // ---------------------------------------------------------------------
         // negation is isInterfaceSymbolTable
         bool isClassSymbolTable();
 

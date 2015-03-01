@@ -6,6 +6,15 @@
 #include "classDecl.h"
 #include "interfaceDecl.h"
 #include "super.h"
+#include "interfaceList.h"
+#include "interfaces.h"
+#include "classBodyStar.h"
+#include "fieldDecl.h"
+#include "classMethod.h"
+#include "constructor.h"
+#include "referenceType.h"
+#include "binaryExpression.h"
+#include "instanceof.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -219,6 +228,102 @@ void TypeLinker::checkPackageAndImportsResolveToTypes(CompilationTable* compilat
 // ----------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------
 
+void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* unit) {
+    if(unit->getTypeDecl()->isClass()) {
+        linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
+    } else {
+        linkTypeNames(compilation, (InterfaceDecl*) unit->getTypeDecl());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassDecl* type) {
+    if(!type->noSuperClass()) { linkTypeNames(compilation, type->getSuper()); }
+    if(!type->noImplementedInterfaces()) { linkTypeNames(compilation, type->getImplementInterfaces()); }
+    if(!type->emptyBody()) { linkTypeNames(compilation, type->getClassMembers()); }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Super* super) {
+    CompilationTable* linkType = linkTypeNames(compilation, super->getSuperName());
+    if(linkType == NULL) {
+        // type cannot be found
+        reportTypeNameLinkError("Extending class '", super->getSuperName()->getFullName(),
+                                super->getSuperName()->getNameId()->getToken());
+    }
+
+    super->setSuperClassTable(linkType);
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceList* interfaces) {
+    linkTypeNames(compilation, interfaces->getListOfInterfaces());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Interfaces* interface) {
+    if(!interface->isLastInterface()) {
+        linkTypeNames(compilation, interface->getNextInterface());
+    }
+
+    CompilationTable* linkType = linkTypeNames(compilation, interface->getCurrentInterface());
+    if(linkType == NULL) {
+        // type cannot be found
+        reportTypeNameLinkError("Implementing or extending interface '", interface->getCurrentInterface()->getFullName(),
+                                interface->getCurrentInterface()->getNameId()->getToken());
+    }
+    interface->setImplOrExtInterfaceTable(linkType);
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassBodyStar* classBody) {
+    linkTypeNames(compilation, classBody->getBody());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassBodyDecls* classMember) {
+    if(!classMember->isLastClassMember()) {
+        linkTypeNames(compilation, classMember->getNextDeclaration());
+    }
+
+    if(classMember->isField()) {
+        linkTypeNames(compilation, (FieldDecl*) classMember);
+    } else if(classMember->isClassMethodDecl()) {
+        linkTypeNames(compilation, (ClassMethod*) classMember);
+    } else {
+        // constructor
+        linkTypeNames(compilation, (Constructor*) classMember);
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, FieldDecl* field) {
+    linkTypeNames(compilation, field->getFieldType());
+    if(field->isInitialized()) {
+        linkTypeNames(compilation, field->getInitializingExpression());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Type* type) {
+    if(type->isClassOrInterfaceType() || type->isReferenceArrayType()) {
+        Name* typeName = ((ReferenceType*) type)->getReferenceName();
+        CompilationTable* linkType = linkTypeNames(compilation, typeName);
+        if(linkType == NULL) { 
+            reportTypeNameLinkError("Specifying type '", typeName->getFullName(), typeName->getNameId()->getToken());
+        }
+
+        ((ReferenceType*) type)->setReferenceTypeTable(linkType);
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) {
+    if(expr->isRegularBinaryExpression()) {
+        linkTypeNames(compilation, ((BinaryExpression*) expr)->getLeftExpression());
+        linkTypeNames(compilation, ((BinaryExpression*) expr)->getRightExpression());
+    } else if(expr->isInstanceOf()) {
+        linkTypeNames(compilation, ((InstanceOf*) expr)->getTypeToCheck());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InstanceOf* instanceof) {}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Constructor* ctor) {}
+
 void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceDecl* type) {}
 
 CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name* name) {
@@ -226,7 +331,8 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
     CompilationTable* linkType = NULL;
     if(name->isQualifiedName()) {
         std::string qualifier = name->getQualifier();
-        if(packages.count(qualifier) == 1) {
+        if(qualifier != "" && packages.count(qualifier) == 1) {
+            // if it can be found in the packages which are not default packages
             bool typeExist = false;
             unsigned int indexExist = 0;
             for(unsigned int i = 0; i != packages[qualifier].size(); i++) {
@@ -252,34 +358,17 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
 
     return linkType;
 }
+// ----------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, Super* super) {
-    if(!super->isEpsilon()) {
-        CompilationTable* linkType = linkTypeNames(compilation, super->getSuperName());
-        if(linkType == NULL) {
-            std::stringstream ss;
-            ss << "Extending class '" << super->getSuperName()->getFullName() 
-               << "' is not possible because it does not exist.";
-            Error(E_TYPELINKING, super->getSuperName()->getNameId()->getToken(), ss.str());
-        }
-    }
-}
-
-void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassDecl* type) {
-    linkTypeNames(compilation, type->getSuper());
-}
-
-void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* unit) {
-    if(unit->getTypeDecl()->isClass()) {
-        linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
-    } else {
-        linkTypeNames(compilation, (InterfaceDecl*) unit->getTypeDecl());
-    }
+void TypeLinker::reportTypeNameLinkError(const std::string& errorMsg, const std::string& typeName, Token* tok) {
+    std::stringstream ss;
+    ss << errorMsg << typeName << "' is not possible because it does not exist.";
+    Error(E_TYPELINKING, tok, ss.str());
 }
 
 // ----------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------
-
 
 void TypeLinker::typeLinkingResolution() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
