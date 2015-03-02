@@ -100,7 +100,6 @@ class Ast {
         // Class creation
         bool isNewClassCreation() { return rule == MAKE_NEW_CLASS; }
         // Variable accessing
-        bool isNameAccess() { return rule == UNARY_NAME; }
         bool isFieldAccess() { return rule == FIELD_ACCESS; }
         bool isArrayAccessName() { return rule == ACCESS_ARRAY_NAME; }
         bool isArrayAccessPrimary() { return rule == ACCESS_ARRAY_PRIMARY; }

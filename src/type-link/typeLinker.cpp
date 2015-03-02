@@ -21,6 +21,9 @@
 #include "bracketedExpression.h"
 #include "invokeAccessedMethod.h"
 #include "newClassCreation.h"
+#include "primaryNewArray.h"
+#include "qualifiedThis.h"
+#include "primaryExpression.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -352,8 +355,12 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) 
     } else if(expr->isNumericNegation() || expr->isBooleanNegation()) {
         linkTypeNames(compilation, ((NegationExpression*) expr)->getNegatedExpression());
     } else if(expr->isAssignField()) {
-        linkTypeNames(compilation, (FieldAccess*) ((AssignField*) expr)->getAssignedField());
+        linkTypeNames(compilation, ((AssignField*) expr)->getAssignedField());
         linkTypeNames(compilation, ((AssignField*) expr)->getExpressionToAssign());
+    } else if(expr->isPrimaryExpression()) {
+        linkTypeNames(compilation, ((PrimaryExpression*) expr)->getPrimaryExpression());
+    } else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
+        linkTypeNames(compilation, (CastExpression*) expr);
     }
 }
 
@@ -362,7 +369,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, FieldAccess* field
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {
-    if(prim->isArrayAccessPrimary()) {
+    if(prim->isArrayAccessPrimary() || prim->isArrayAccessName()) {
         linkTypeNames(compilation, (ArrayAccess*) prim);
     } else if(prim->isBracketedExpression()) {
         linkTypeNames(compilation, ((BracketedExpression*) prim)->getExpressionInside());
@@ -370,6 +377,29 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {
         linkTypeNames(compilation, (MethodInvoke*) prim);
     } else if(prim->isNewClassCreation()) {
         linkTypeNames(compilation, (NewClassCreation*) prim);
+    } else if(prim->isNewReferenceArray()) {
+        // only really when it is a an array of some class or interface
+        linkTypeNames(compilation, ((PrimaryNewArray*) prim)->getArrayType());
+    } else if(prim->isFieldAccess()) {
+        linkTypeNames(compilation, (FieldAccess*) prim);
+    } else if(prim->isQualifiedThis()) {
+        QualifiedThis* qualThis = (QualifiedThis*) prim;
+        CompilationTable* linkType = linkTypeNames(compilation, qualThis->getQualifyingClassName());
+        if(linkType == NULL) {
+            reportTypeNameLinkError("Cannot qualify this expression with '", qualThis->getQualifyingClassName()->getFullName(),
+                                    qualThis->getQualifyingClassName()->getNameId()->getToken());
+        } else {
+            // found the class
+            if(linkType->getCanonicalName() == compilation->getCanonicalName()) {
+                qualThis->setQualifyingClassTable(linkType);
+            } else {
+                // it is not the current class
+                std::stringstream ss;
+                ss << "Qualifying class for this expression '" << qualThis->getQualifyingClassName()
+                   << "' is not allowed since it is not the class that this expression is in.";
+                Error(E_TYPELINKING, qualThis->getQualifyingClassName()->getNameId()->getToken(), ss.str());
+            }
+        }
     }
 }
 
@@ -378,6 +408,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, ArrayAccess* array
     if(array->isArrayAccessPrimary()) {
         linkTypeNames(compilation, ((ArrayAccessPrimary*) array)->getAccessedPrimaryArray());
     }
+    linkTypeNames(compilation, array->getAccessExpression());
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke) {
@@ -387,9 +418,28 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodInvoke* invo
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* create) {
-    linkTypeNames(compilation, create->getClassName());
-    // linkTypeNames(compilation, create->getArgsToCreateClass());
+    CompilationTable* linkType = linkTypeNames(compilation, create->getClassName());
+    if(linkType == NULL) {
+        reportTypeNameLinkError("Cannot create class '", create->getClassName()->getFullName(),
+                                create->getClassName()->getNameId()->getToken());
+    } else {
+        if(linkType->aTypeWasDefined() && !linkType->isClassSymbolTable()) {
+            // the type can be found and is defined BUT is an interface
+            std::stringstream ss;
+            ss << "Invalid creation of interface '" << create->getClassName()->getFullName()
+               << "' since an interface cannot be created via a class creation expression.";
+            Error(E_TYPELINKING, create->getClassName()->getNameId()->getToken(), ss.str());
+        }
+    }
+
+    create->setTableOfCreatedClass(linkType);
 }
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, PrimaryExpression* primExpr) {
+    linkTypeNames(compilation, primExpr->getPrimaryExpression());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* castExpr) {}
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {}
 

@@ -27,6 +27,8 @@ class Primary;
 class ArrayAccess;
 class MethodInvoke;
 class NewClassCreation;
+class PrimaryExpression;
+class CastExpression;
 
 class TypeLinker {
     private:
@@ -65,6 +67,8 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, ArrayAccess* array);
         void linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke);
         void linkTypeNames(CompilationTable* compilation, NewClassCreation* create);
+        void linkTypeNames(CompilationTable* compilation, PrimaryExpression* primExpr);
+        void linkTypeNames(CompilationTable* compilation, CastExpression* castExpr);
         void linkTypeNames(CompilationTable* compilation, ClassMethod* method);
         void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
 

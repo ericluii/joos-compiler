@@ -5,13 +5,17 @@
 #include "name.h"
 #include "argumentsStar.h"
 
+class CompilationTable;
+
 class NewClassCreation : public Primary {
     // Rule: MAKE_NEW_CLASS
     private:
         Name* classType;
         ArgumentsStar* args;
+        CompilationTable* classCreatedTable;
     public:
-        NewClassCreation(Name* classType, ArgumentsStar* args) : classType(classType), args(args) {}
+        NewClassCreation(Name* classType, ArgumentsStar* args) : classType(classType), args(args),
+                        classCreatedTable(NULL) {}
         ~NewClassCreation() {
             delete classType;
             delete args;
@@ -19,6 +23,8 @@ class NewClassCreation : public Primary {
 
         Name* getClassName() { return classType; }
         ArgumentsStar* getArgsToCreateClass() { return args; }
+        void setTableOfCreatedClass(CompilationTable* set) { classCreatedTable = set; }
+        CompilationTable* getTableOfCreatedClass() { return classCreatedTable; }
 };
 
 #endif

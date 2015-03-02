@@ -4,16 +4,21 @@
 #include "primary.h"
 #include "name.h"
 
+class CompilationTable;
+
 class QualifiedThis : public Primary {
     private:
         Name* className;
+        CompilationTable* qualifyingTable;
     public:
-        QualifiedThis(Name* className) : className(className) {}
+        QualifiedThis(Name* className) : className(className), qualifyingTable(NULL) {}
         ~QualifiedThis() {
             delete className;
         }
 
         Name* getQualifyingClassName() { return className; }
+        void setQualifyingClassTable(CompilationTable* set) { qualifyingTable = set; }
+        CompilationTable* getQualifyingClassTable() { return qualifyingTable; }
 };
 
 #endif
