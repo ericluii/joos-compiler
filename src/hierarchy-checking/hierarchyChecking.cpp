@@ -1,9 +1,11 @@
 #include "hierarchyChecking.h"
 #include "compilationUnit.h"
+#include "classDecl.h"
 #include "error.h"
 #include "classDecl.h"
 #include "interfaceDecl.h"
 #include "methodHeader.h"
+#include "constructor.h"
 #include "classMethod.h"
 #include "interfaceMethod.h"
 #include <iostream>
@@ -181,6 +183,7 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
             if (!cbs->isEpsilon()) {
                 ClassBodyDecls* cbd = cbs->getBody();
                 std::set<std::string> method_signatures;
+                std::set<std::string> constructor_signatures;
                 std::pair<std::set<std::string>::iterator,bool> ret;
 
                 while (cbd != NULL) {
@@ -192,6 +195,18 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
                         if (ret.second == false) {
                             std::stringstream ss;
                             ss << "Class '" << compilation->getClassOrInterfaceName() << "' has multiple methods with the signature '"
+                               << signature << "'.";
+
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+                    }
+                    else if(cbd->isConstructor())
+                    {
+                        std::string signature = static_cast<Constructor*>(cbd)->constructorSignatureAsString();
+                        ret = constructor_signatures.insert(signature);
+                        if (ret.second == false) {
+                            std::stringstream ss;
+                            ss << "Class '" << compilation->getClassOrInterfaceName() << "' has multiple constructors with the signature '"
                                << signature << "'.";
 
                             Error(E_HIERARCHY, token, ss.str());
@@ -340,17 +355,234 @@ void HierarchyChecking::NoStaticOverride(CompilationTable* compilation) {
     }
 }
 
+void HierarchyChecking::classNotImplementClass(CompilationTable* compilation){
+    TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
+    if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noImplementedInterfaces())
+    {
+        Interfaces *interface = dynamic_cast<ClassDecl*>(typedecl)->getImplementInterfaces()->getListOfInterfaces();
+        while(interface != NULL)
+        {
+            Name *interfaceName = interface->getCurrentInterface();
+            CompilationTable* source = retrieveCompilationOfTypeName(compilation, interfaceName, dynamic_cast<ClassDecl*>(typedecl)->getClassId()->getToken());
+            assert(source->getClassOrInterfaceName() == interfaceName->getNameId()->getIdAsString());
+            if(source->getCompilationUnit()->getTypeDecl()->isClass())
+            {
+                Error(E_HIERARCHY, interfaceName->getNameId()->getToken(), "error: class cannot implement a class\n");
+            }
+            interface = interface->getNextInterface();
+        }
+    }
+}
+
+void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation){
+    TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
+    if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noSuperClass())
+    {
+        Name *superName = dynamic_cast<ClassDecl*>(typedecl)->getSuper()->getSuperName();
+        CompilationTable* source = retrieveCompilationOfTypeName(compilation, superName, dynamic_cast<ClassDecl*>(typedecl)->getClassId()->getToken());
+        assert(source->getClassOrInterfaceName() == superName->getNameId()->getIdAsString());
+        //if it's not a class, we will catch that in a different check. Combine checks?
+        if(source->getCompilationUnit()->getTypeDecl()->isClass())
+        {
+            Modifiers *modifiers = dynamic_cast<ClassDecl*>(source->getCompilationUnit()->getTypeDecl())->getClassModifiers();
+            while(modifiers != NULL)
+            {
+                if(modifiers->getCurrentModifierAsString() == "final")
+                {
+                    Error(E_HIERARCHY, superName->getNameId()->getToken(), "error: class cannot extend a final class\n");
+                }
+                modifiers = modifiers->getNextModifier();
+            }
+        }
+    }
+}
+
+//This check is very similar to the no static overide check
+void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
+    bool checkAbstract = true;
+    if(!compilation->isClassSymbolTable() || dynamic_cast<ClassDecl*>(compilation->getCompilationUnit()->getTypeDecl())->isAbstract())
+    {
+        checkAbstract = false;
+    }
+
+    std::set<CompilationTable*> visited;
+    std::pair<std::set<CompilationTable*>::iterator,bool> visited_ret;
+    std::queue<CompilationTable*> traverse;
+    traverse.push(compilation);
+
+    std::map<std::string, std::string> methods;
+    CompilationTable* processing;
+    while (!traverse.empty()) {
+        processing = traverse.front();
+        traverse.pop();
+
+        visited_ret= visited.insert(processing);
+        if (visited_ret.second == false || processing == NULL) {
+            continue;
+        }
+
+        SymbolTable* st = processing->getSymbolTable();
+        Token* token;
+
+        if (processing->isClassSymbolTable()) {
+            ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+            token = cd->getClassId()->getToken();
+
+            if (!cd->emptyBody()) {
+                ClassBodyStar* cbs = cd->getClassMembers();
+
+                if (!cbs->isEpsilon()) {
+                    ClassBodyDecls* cbd = cbs->getBody();
+
+                    while (cbd != NULL) {
+                        if (cbd->isClassMethod()) {
+                            MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
+                            std::string signature = mh->methodSignatureAsString();
+                            if(methods.count(signature) == 1)
+                            {
+                                if((mh->isVoidReturnType() && methods[signature] != "") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
+                                {
+                                    std::stringstream ss;
+                                    if(mh->isVoidReturnType())
+                                    {
+                                        ss << "Method '" << signature << "with return type void' in class '" << processing->getClassOrInterfaceName()
+                                            << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                    }
+                                    else
+                                    {
+                                        ss << "Method '" << signature << "with return type " << mh->getReturnType()->getTypeAsString() << "' in class '" << processing->getClassOrInterfaceName()
+                                            << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                    }
+                                    Error(E_HIERARCHY, token, ss.str());
+                                    break;
+                                }
+                            }
+                            if(methods.count(signature) == 1 && cbd->isFinal())
+                            {
+                                std::stringstream ss;
+                                ss << "Final method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                   << "' cannot be overriden.";
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                            if(methods.count(signature) == 0 && checkAbstract && cbd->isAbstract())
+                            {
+                                std::stringstream ss;
+                                ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                   << "' must be overriden.";
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                            if(mh->isVoidReturnType())
+                            {
+                                methods[signature] = "";
+                            }
+                            else
+                            {
+                                methods[signature] = mh->getReturnType()->getTypeAsString();
+                            }
+                        }
+
+                        cbd = cbd->getNextDeclaration();
+                    }
+                }
+            }
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+            
+            if (!cd->noSuperClass()) {
+                Name* name = cd->getSuper()->getSuperName();
+
+                processing = retrieveCompilationOfTypeName(compilation, name, token);
+                if (processing == NULL) { break; }
+                traverse.push(processing);
+            }
+            
+        } else if (st) {
+            InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+
+            if (!id->emptyInterfaceBody()) {
+                InterfaceBodyStar* ibs = id->getInterfaceBodyStar();
+                Token* token = id->getInterfaceId()->getToken();
+
+                if (!ibs->isEpsilon()) {
+                    InterfaceMethod* im = ibs->getInterfaceMethods();
+
+                    while (im != NULL) {
+                        std::string signature = im->methodSignatureAsString();
+                        if(methods.count(signature) == 1)
+                        {
+                            if((im->isVoidReturnType() && methods[signature] != "") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
+                            {
+                                std::stringstream ss;
+                                if(im->isVoidReturnType())
+                                {
+                                    ss << "Method '" << signature << "with return type  void ' in interface '" << processing->getClassOrInterfaceName()
+                                        << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                }
+                                else
+                                {
+                                    ss << "Method '" << signature << "with return type " << im->getReturnType()->getTypeAsString() << "' in interface '" << processing->getClassOrInterfaceName()
+                                        << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                }
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                        }
+                        if (methods.count(signature) == 0 && checkAbstract) {
+                            std::stringstream ss;
+                            ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                               << "' must be overriden.";
+                            Error(E_HIERARCHY, token, ss.str());
+                            break;
+                        }
+                        if(im->isVoidReturnType())
+                        {
+                            methods[signature] = "";
+                        }
+                        else
+                        {
+                            methods[signature] = im->getReturnType()->getTypeAsString();
+                        }
+
+                        im = im->getNextInterfaceMethod();
+                    }
+                }
+            }
+
+            if (!id->noExtendedInterfaces()) {
+                Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+        }
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
     for (it = packages.begin(); it != packages.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
+            
+            classNotImplementClass(*it2);
             classNotExtendInterface(*it2);
+            classNotExtendFinalClass(*it2);
             duplicateInterface(*it2);
             interfaceNotExtendClass(*it2);
             noDuplicateSignature(*it2);
             NoStaticOverride(*it2);
+            checkMethodModifiers(*it2);
 
             if (Error::count() > 0) { return; }
         }
