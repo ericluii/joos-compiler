@@ -38,6 +38,11 @@ class BlockStmtsStar;
 class BlockStmts;
 class ExpressionStar;
 class StmtExpr;
+class IfStmt;
+class WhileStmt;
+class ForStmt;
+class InterfaceBodyStar;
+class InterfaceMethod;
 
 class TypeLinker {
     private:
@@ -88,7 +93,12 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, BlockStmts* stmts);
         void linkTypeNames(CompilationTable* compilation, ExpressionStar* exprStar);
         void linkTypeNames(CompilationTable* compilation, StmtExpr* stmtExpr);
+        void linkTypeNames(CompilationTable* compilation, IfStmt* stmt);
+        void linkTypeNames(CompilationTable* compilation, WhileStmt* stmt);
+        void linkTypeNames(CompilationTable* compilation, ForStmt* stmt);
         void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
+        void linkTypeNames(CompilationTable* compilation, InterfaceBodyStar* body);
+        void linkTypeNames(CompilationTable* compilation, InterfaceMethod* methods);
 
         void linkTypeNames(CompilationTable* compilation, InterfaceDecl* type);
 

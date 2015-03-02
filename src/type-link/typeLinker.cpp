@@ -37,6 +37,12 @@
 #include "stmtExprAssign.h"
 #include "stmtExprInvoke.h"
 #include "stmtExprCreation.h"
+#include "nestedBlock.h"
+#include "ifStmt.h"
+#include "whileStmt.h"
+#include "forStmt.h"
+#include "interfaceBodyStar.h"
+#include "interfaceMethod.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -285,7 +291,7 @@ void TypeLinker::checkPackageAndImportsResolveToTypes(CompilationTable* compilat
 // ----------------------------------------------------------------------------------------------------
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* unit) {
-    if(!unit->getTypeDecl()->isNoTypeDefined()) {
+    if(!unit->noTypeDeclared()) {
         // if the compilation unit has a defined type
         if(unit->getTypeDecl()->isClass()) {
             linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
@@ -313,6 +319,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassDecl* type) {
             for(unsigned int i = 0; i < types.size(); i++) {
                 if(types[i]->getClassOrInterfaceName() == "Object") {
                     type->getSuper()->setSuperClassTable(types[i]);
+                    type->getSuper()->setImplicitExtend();
                     break;
                 }
             }
@@ -335,7 +342,9 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Super* super) {
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceList* interfaces) {
-    linkTypeNames(compilation, interfaces->getListOfInterfaces());
+    if(!interfaces->isEpsilon()) {
+        linkTypeNames(compilation, interfaces->getListOfInterfaces());
+    }
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, Interfaces* interface) {
@@ -542,13 +551,24 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmtsStar* st
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmts* stmts) {
+    if(!stmts->isLastStatement()) {
+        linkTypeNames(compilation, stmts->getNextBlockStmt());
+    }
     if(stmts->isLocalVarDecl()) {
         linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalType());
     } else if(stmts->isReturnStmt()) {
         linkTypeNames(compilation, ((ReturnStmt*) stmts)->getReturnExpr());
     } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isMethodInvokeStmt()) {
         linkTypeNames(compilation, (StmtExpr*) stmts);
-    }
+    } else if(stmts->isNestedBlock()) {
+        linkTypeNames(compilation, ((NestedBlock*) stmts)->getNestedBlock());
+    } else if(stmts->isIfStmt()) {
+        linkTypeNames(compilation, (IfStmt*) stmts);
+    } else if(stmts->isWhileStmt()) {
+        linkTypeNames(compilation, (WhileStmt*) stmts);
+    } else if(stmts->isForStmt()) {
+        linkTypeNames(compilation, (ForStmt*) stmts);
+    } 
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, ExpressionStar* exprStar) {
@@ -564,14 +584,60 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, StmtExpr* stmtExpr
         linkTypeNames(compilation, ((StmtExprInvoke*) stmtExpr)->getMethodInvoked());
     } else {
         // class creation stmt
-        std::cout << compilation->getCanonicalName() << std::endl;
         linkTypeNames(compilation, ((StmtExprCreation*) stmtExpr)->getCreatedClass());
     }
 }
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, Constructor* ctor) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, IfStmt* stmt) {
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    linkTypeNames(compilation, stmt->getExecuteTruePart());
+    if(!stmt->noElsePart()) {
+        linkTypeNames(compilation, stmt->getExecuteFalsePart());
+    }
+}
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceDecl* type) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, WhileStmt* stmt) {
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    linkTypeNames(compilation, stmt->getLoopStmt());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ForStmt* stmt) {
+    if(!stmt->emptyForInit()) {
+        linkTypeNames(compilation, stmt->getForInit());
+    }
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    if(!stmt->emptyForUpdate()) {
+        linkTypeNames(compilation, stmt->getForUpdate());
+    }
+    linkTypeNames(compilation, stmt->getLoopStmt());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Constructor* ctor) {
+    linkTypeNames(compilation, ctor->getConstructorParameters());
+    linkTypeNames(compilation, ctor->getConstructorBody());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceDecl* type) {
+    linkTypeNames(compilation, type->getExtendedInterfaces());
+    linkTypeNames(compilation, type->getInterfaceBodyStar());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceBodyStar* body) {
+    if(!body->isEpsilon()) {
+        linkTypeNames(compilation, body->getInterfaceMethods());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceMethod* methods) {
+    if(!methods->isLastMethod()) {
+        linkTypeNames(compilation, methods->getNextInterfaceMethod());
+    }
+
+    if(!methods->isVoidReturnType()) {
+        linkTypeNames(compilation, methods->getReturnType());
+    }
+    linkTypeNames(compilation, methods->getParametersList());
+}
 
 CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name* name) {
     std::string typeName = name->getNameId()->getIdAsString();
@@ -615,7 +681,8 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
 
 void TypeLinker::reportTypeNameLinkError(const std::string& errorMsg, const std::string& typeName, Token* tok) {
     std::stringstream ss;
-    ss << errorMsg << typeName << "' is not possible because type does not exist.";
+    ss << errorMsg << typeName 
+        << "' is not possible because type does not exist within the other compilation units/single type import/package/import type on demand.";
     Error(E_TYPELINKING, tok, ss.str());
 }
 
