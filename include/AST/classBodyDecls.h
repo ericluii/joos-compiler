@@ -37,6 +37,20 @@ class ClassBodyDecls : public Ast {
 
             return false;
         }
+        
+        bool isAbstract() {
+            Modifiers* m = getModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "abstract") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
 };
 
 #endif

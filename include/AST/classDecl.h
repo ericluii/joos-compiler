@@ -36,6 +36,19 @@ class ClassDecl : public TypeDecl
         InterfaceList* getImplementInterfaces() { return interfaces; }
         ClassBodyStar* getClassMembers() { return body; }
 
+        bool isAbstract() {
+            Modifiers* m = getClassModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "abstract") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
         bool noSuperClass() { return super->isEpsilon(); }
         bool noImplementedInterfaces() { return interfaces->isEpsilon(); }
         bool emptyBody() { return body->isEpsilon(); }

@@ -22,6 +22,7 @@ class HierarchyChecking {
         void NoStaticOverride(CompilationTable* compilation);
         void classNotImplementClass(CompilationTable* compilation);
         void classNotExtendFinalClass(CompilationTable* compilation);
+        void classWithAbstractMethodIsAbstract(CompilationTable* compilation);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 
