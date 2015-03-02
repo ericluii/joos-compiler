@@ -77,6 +77,7 @@ void Test_A2::test() {
     for(unsigned int i = 0; i < a2TestFiles.size(); i++) {
         Error::resetErrors();
 
+
         std::map<std::string, std::vector<Token*> *> tokens;
         std::map<std::string, CompilationUnit*> completeASTs;
         Weeder weeder = Weeder();

@@ -13,14 +13,6 @@ class MethodHeader : public Ast {
         Type* retType;
         FormalParamStar* params;
 
-        std::string parametersAsString(ParamList* parameters) {
-            std::string res = "";
-            if(!parameters->isLastParameter()) {
-                res+= ',' + parametersAsString(parameters->getNextParameter());
-            }
-
-            return res + ',' + parameters->getParameterType()->getTypeAsString();
-        }
     public:
         MethodHeader(Identifier* name, Type* retType, FormalParamStar* params) : name(name),
                      retType(retType), params(params) {}

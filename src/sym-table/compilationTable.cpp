@@ -79,7 +79,7 @@ void CompilationTable::setASingleTypeImport(const std::string& typeName, Compila
             // if it's not actually a repeating import of the same type
             std::stringstream ss;
             ss << "Single type import '" << table->getPackageName() << "." << typeName << "' conflicts with single type import '"
-               << singleTypeImports[typeName]->getPackageName() << "." << typeName << "'.";
+               << singleTypeImports[typeName]->getCanonicalName() << "'.";
             Error(E_TYPELINKING, importTok, ss.str());
         }
     }
@@ -307,6 +307,7 @@ CompilationTable* CompilationTable::checkTypePresenceFromSingleImport(const std:
 CompilationTable* CompilationTable::checkTypePresenceInPackage(const std::string& typeName) {
     for(unsigned int i = 0; i < compilationsInPackage->size(); i++) {
         if(compilationsInPackage->at(i)->getClassOrInterfaceName() == typeName) {
+            // safe since we have checked for conflicting canonical name
             return compilationsInPackage->at(i);
         }
     }
@@ -314,15 +315,26 @@ CompilationTable* CompilationTable::checkTypePresenceInPackage(const std::string
     return NULL;
 }
 
-CompilationTable* CompilationTable::checkTypePresenceFromImportOnDemand(const std::string& typeName) {
+CompilationTable* CompilationTable::checkTypePresenceFromImportOnDemand(const std::string& typeName, Token* tokName) {
+    bool found = false;
+    CompilationTable* retTable = NULL;
     std::map<std::string, std::vector<CompilationTable*>* >::iterator it;
     for(it = importsOnDemand.begin(); it != importsOnDemand.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;
         for(it2 = it->second->begin(); it2 != it->second->end(); it2++) {
             if(typeName == (*it2)->getClassOrInterfaceName()) {
-                return *it2;
+                if(found) {
+                    std::stringstream ss;
+                    ss << "Type specified by simple name '" << typeName
+                       << "' can be found through import type on demand '" << retTable->getPackageName()
+                       << "' and '" << (*it2)->getPackageName() << "'.";
+                    Error(E_TYPELINKING, tokName, ss.str());
+                    return retTable;
+                }
+                found = true;
+                retTable = *it2;
             }
         }
     }
-    return NULL;
+    return retTable;
 }
