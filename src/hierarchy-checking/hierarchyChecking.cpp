@@ -410,8 +410,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
     std::queue<CompilationTable*> traverse;
     traverse.push(compilation);
 
-    std::set<std::string> methods;
-    std::pair<std::set<std::string>::iterator,bool> ret;
+    std::map<std::string, std::string> methods;
     CompilationTable* processing;
     while (!traverse.empty()) {
         processing = traverse.front();
@@ -439,21 +438,48 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         if (cbd->isClassMethod()) {
                             MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
                             std::string signature = mh->methodSignatureAsString();
-
-                            ret = methods.insert(signature);
-                            if (checkAbstract && cbd->isAbstract() && ret.second == true) {
+                            if(methods.count(signature) == 1)
+                            {
+                                if((mh->isVoidReturnType() && methods[signature] != "") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
+                                {
+                                    std::stringstream ss;
+                                    if(mh->isVoidReturnType())
+                                    {
+                                        ss << "Method '" << signature << "with return type void' in class '" << processing->getClassOrInterfaceName()
+                                            << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                    }
+                                    else
+                                    {
+                                        ss << "Method '" << signature << "with return type " << mh->getReturnType()->getTypeAsString() << "' in class '" << processing->getClassOrInterfaceName()
+                                            << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                    }
+                                    Error(E_HIERARCHY, token, ss.str());
+                                    break;
+                                }
+                            }
+                            if(methods.count(signature) == 1 && cbd->isFinal())
+                            {
+                                std::stringstream ss;
+                                ss << "Final method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                   << "' cannot be overriden.";
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                            if(methods.count(signature) == 0 && checkAbstract && cbd->isAbstract())
+                            {
                                 std::stringstream ss;
                                 ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' must be overriden.";
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
                             }
-                            if (cbd->isFinal() && ret.second == false) {
-                                std::stringstream ss;
-                                ss << "Final method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
-                                   << "' cannot be overriden.";
-                                Error(E_HIERARCHY, token, ss.str());
-                                break;
+                            if(mh->isVoidReturnType())
+                            {
+                                methods[signature] = "";
+                            }
+                            else
+                            {
+                                methods[signature] = mh->getReturnType()->getTypeAsString();
                             }
                         }
 
@@ -461,7 +487,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
-
             if (!cd->noImplementedInterfaces()) {
                 Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
 
@@ -491,13 +516,39 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
 
                     while (im != NULL) {
                         std::string signature = im->methodSignatureAsString();
-
-                        ret = methods.insert(signature);
-                        if (checkAbstract && ret.second == true) {
+                        if(methods.count(signature) == 1)
+                        {
+                            if((im->isVoidReturnType() && methods[signature] != "") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
+                            {
+                                std::stringstream ss;
+                                if(im->isVoidReturnType())
+                                {
+                                    ss << "Method '" << signature << "with return type  void ' in interface '" << processing->getClassOrInterfaceName()
+                                        << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                }
+                                else
+                                {
+                                    ss << "Method '" << signature << "with return type " << im->getReturnType()->getTypeAsString() << "' in interface '" << processing->getClassOrInterfaceName()
+                                        << "' cannot be overriden by a method with return type " << methods[signature] << ".";
+                                }
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                        }
+                        if (methods.count(signature) == 0 && checkAbstract) {
                             std::stringstream ss;
                             ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' must be overriden.";
                             Error(E_HIERARCHY, token, ss.str());
+                            break;
+                        }
+                        if(im->isVoidReturnType())
+                        {
+                            methods[signature] = "";
+                        }
+                        else
+                        {
+                            methods[signature] = im->getReturnType()->getTypeAsString();
                         }
 
                         im = im->getNextInterfaceMethod();
