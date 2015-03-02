@@ -560,6 +560,10 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                 traverse.push(processing);
             }
             
+            if (cd->getSuper()->isImplicitlyExtending()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+            
             if (!cd->noImplementedInterfaces()) {
                 Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
 
