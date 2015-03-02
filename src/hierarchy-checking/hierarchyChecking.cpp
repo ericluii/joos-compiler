@@ -5,6 +5,7 @@
 #include "classDecl.h"
 #include "interfaceDecl.h"
 #include "methodHeader.h"
+#include "constructor.h"
 #include "classMethod.h"
 #include "interfaceMethod.h"
 #include <iostream>
@@ -182,6 +183,7 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
             if (!cbs->isEpsilon()) {
                 ClassBodyDecls* cbd = cbs->getBody();
                 std::set<std::string> method_signatures;
+                std::set<std::string> constructor_signatures;
                 std::pair<std::set<std::string>::iterator,bool> ret;
 
                 while (cbd != NULL) {
@@ -193,6 +195,18 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
                         if (ret.second == false) {
                             std::stringstream ss;
                             ss << "Class '" << compilation->getClassOrInterfaceName() << "' has multiple methods with the signature '"
+                               << signature << "'.";
+
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+                    }
+                    else if(cbd->isConstructor())
+                    {
+                        std::string signature = static_cast<Constructor*>(cbd)->constructorSignatureAsString();
+                        ret = constructor_signatures.insert(signature);
+                        if (ret.second == false) {
+                            std::stringstream ss;
+                            ss << "Class '" << compilation->getClassOrInterfaceName() << "' has multiple constructors with the signature '"
                                << signature << "'.";
 
                             Error(E_HIERARCHY, token, ss.str());
@@ -350,8 +364,6 @@ void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, st
         {
             Name *interfaceName = interface->getCurrentInterface();
             CompilationTable* source = retrieveCompilationOfTypeName(compilation, interfaceName, dynamic_cast<ClassDecl*>(typedecl)->getClassId()->getToken());
-            /*std::cout << "interface name: " << interfaceName->getNameId()->getIdAsString() << std::endl;
-            std::cout << "checking name: " << source->getClassOrInterfaceName() << std::endl;*/
             assert(source->getClassOrInterfaceName() == interfaceName->getNameId()->getIdAsString());
             if(source->getCompilationUnit()->getTypeDecl()->isClass())
             {
