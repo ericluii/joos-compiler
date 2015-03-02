@@ -79,10 +79,6 @@ class Ast {
                    isNotEqual() || isLT() || isGT() || isLTE() || isGTE() || isAddition() || isMinus() ||
                    isMultiplication() || isDivision() || isModulo();
         }
-        // Class declarations
-        bool isFieldDecl() { return rule == CLASS_FIELD; }
-        bool isClassMethodDecl() { return rule == CLASS_METHOD; }
-        bool isConstructorDecl() { return rule == CLASS_CONSTRUCTOR; }
         // Interface methods
         bool isInterfaceMethod() { return rule == INTERFACE_MEMBER_DECL || rule == INTERFACE_MEMBER_DECL_LIST; }
         // Literal and this
@@ -100,7 +96,6 @@ class Ast {
         // Class creation
         bool isNewClassCreation() { return rule == MAKE_NEW_CLASS; }
         // Variable accessing
-        bool isNameAccess() { return rule == UNARY_NAME; }
         bool isFieldAccess() { return rule == FIELD_ACCESS; }
         bool isArrayAccessName() { return rule == ACCESS_ARRAY_NAME; }
         bool isArrayAccessPrimary() { return rule == ACCESS_ARRAY_PRIMARY; }

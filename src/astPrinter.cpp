@@ -76,12 +76,11 @@ void AstPrinter::print(Primary& node) {
     } else if(node.isNewClassCreation()) {
         print((NewClassCreation&) node);
     } else if(node.isThis() || node.isNumber() || node.isTrueBoolean() ||
-              node.isFalseBoolean() || node.isCharLiteral() || node.isStringLiteral()) {
+              node.isFalseBoolean() || node.isCharLiteral() || node.isStringLiteral() || node.isNull()) {
         print((LiteralOrThis&) node);
     } else if(node.isQualifiedThis()) {
         print((QualifiedThis&) node);
     } else {
-        std::cout << node.getRule() << std::endl;
         assert(node.isNewPrimitiveArray() || node.isNewReferenceArray());
         print((PrimaryNewArray&) node);
     }
@@ -207,6 +206,7 @@ void AstPrinter::print(ImportDeclsStar& node) {
 void AstPrinter::print(Name& node) {
     depth++;
     printSpaces();
+
     std::cout << node.getLexeme() << ':' << node.getRule() << ':' << node.getFullName() << std::endl;
     depth--;
 }
