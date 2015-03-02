@@ -355,7 +355,7 @@ void HierarchyChecking::NoStaticOverride(CompilationTable* compilation) {
     }
 }
 
-void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage){
+void HierarchyChecking::classNotImplementClass(CompilationTable* compilation){
     TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
     if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noImplementedInterfaces())
     {
@@ -374,7 +374,7 @@ void HierarchyChecking::classNotImplementClass(CompilationTable* compilation, st
     }
 }
 
-void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation, std::vector<CompilationTable*> currentPackage){
+void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation){
     TypeDecl *typedecl = compilation->getCompilationUnit()->getTypeDecl();
     if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noSuperClass())
     {
@@ -404,9 +404,9 @@ void HierarchyChecking::check() {
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
             
-            classNotImplementClass(*it2, it->second);
+            classNotImplementClass(*it2);
             classNotExtendInterface(*it2);
-            classNotExtendFinalClass(*it2, it->second);
+            classNotExtendFinalClass(*it2);
             duplicateInterface(*it2);
             interfaceNotExtendClass(*it2);
             noDuplicateSignature(*it2);
