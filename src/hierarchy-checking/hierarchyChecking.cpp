@@ -445,7 +445,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                                 std::stringstream ss;
                                 ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' must be overriden.";
-
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
                             }
@@ -453,7 +452,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                                 std::stringstream ss;
                                 ss << "Final method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' cannot be overriden.";
-
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
                             }
@@ -464,14 +462,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                 }
             }
 
-            if (!cd->noSuperClass()) {
-                Name* name = cd->getSuper()->getSuperName();
-
-                processing = retrieveCompilationOfTypeName(compilation, name, token);
-                if (processing == NULL) { break; }
-                traverse.push(processing);
-            }
-
             if (!cd->noImplementedInterfaces()) {
                 Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
 
@@ -480,6 +470,15 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     il = il->getNextInterface();
                 }
             }
+            
+            if (!cd->noSuperClass()) {
+                Name* name = cd->getSuper()->getSuperName();
+
+                processing = retrieveCompilationOfTypeName(compilation, name, token);
+                if (processing == NULL) { break; }
+                traverse.push(processing);
+            }
+            
         } else if (st) {
             InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
 
@@ -494,18 +493,10 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         std::string signature = im->methodSignatureAsString();
 
                         ret = methods.insert(signature);
-                        if (checkAbstract && im->isAbstract() && ret.second == false) {
+                        if (checkAbstract && ret.second == true) {
                             std::stringstream ss;
                             ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' must be overriden.";
-
-                            Error(E_HIERARCHY, token, ss.str());
-                        }
-                        if (im->isFinal() && ret.second == false) {
-                            std::stringstream ss;
-                            ss << "Final method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
-                               << "' cannot be overriden.";
-
                             Error(E_HIERARCHY, token, ss.str());
                         }
 

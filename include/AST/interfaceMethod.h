@@ -49,6 +49,7 @@ class InterfaceMethod : public Ast {
             return signature + ')';
         }
 
+        //declaring an interface method to be static should cause an error
         bool isStatic() {
             ModifiersStar* ms = getModifiersStar();
 
@@ -67,24 +68,7 @@ class InterfaceMethod : public Ast {
             return false;
         }
         
-        bool isAbstract() {
-            ModifiersStar* ms = getModifiersStar();
-
-            if (!ms->isEpsilon()) {
-                Modifiers* m = ms->getListOfModifiers();
-
-                while (m != NULL) {
-                    if (m->getCurrentModifierAsString() == "abstract") {
-                        return true;
-                    }
-
-                    m = m->getNextModifier();
-                }
-            }
-
-            return false;
-        }
-        
+        //declaring an interface method to be final should cause an error
         bool isFinal() {
             ModifiersStar* ms = getModifiersStar();
 
