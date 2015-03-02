@@ -38,6 +38,20 @@ class ClassBodyDecls : public Ast {
             return false;
         }
         
+        bool isProtected() {
+            Modifiers* m = getModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "protected") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
+
         bool isAbstract() {
             Modifiers* m = getModifiers();
 

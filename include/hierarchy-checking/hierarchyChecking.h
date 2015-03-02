@@ -19,7 +19,7 @@ class HierarchyChecking {
         void duplicateInterface(CompilationTable* compilation);
         void interfaceNotExtendClass(CompilationTable* compilation);
         void noDuplicateSignature(CompilationTable* compilation);
-        void NoStaticOverride(CompilationTable* compilation);
+        void OverrideChecks(CompilationTable* compilation);
         void classNotImplementClass(CompilationTable* compilation);
         void classNotExtendFinalClass(CompilationTable* compilation);
         void checkMethodModifiers(CompilationTable* compilation);
