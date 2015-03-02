@@ -533,7 +533,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                             if(methods.count(signature) == 0 && checkAbstract && cbd->isAbstract())
                             {
                                 std::stringstream ss;
-                                ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                ss << compilation->getClassOrInterfaceName() << ": Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' must be overriden.";
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
@@ -552,15 +552,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
-            if (!cd->noImplementedInterfaces()) {
-                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
-
-                while (il != NULL) {
-                    traverse.push(il->getImplOrExtInterfaceTable());
-                    il = il->getNextInterface();
-                }
-            }
-            
             if (!cd->noSuperClass()) {
                 Name* name = cd->getSuper()->getSuperName();
 
@@ -568,6 +559,15 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                 if (processing == NULL) { break; }
                 traverse.push(processing);
             }
+            
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }  
             
         } else if (st) {
             InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
@@ -602,7 +602,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         }
                         if (methods.count(signature) == 0 && checkAbstract) {
                             std::stringstream ss;
-                            ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                            ss << compilation->getClassOrInterfaceName() << ": Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' must be overriden.";
                             Error(E_HIERARCHY, token, ss.str());
                             break;
