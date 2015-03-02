@@ -34,7 +34,7 @@ CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTa
         next_compilation = compilation->checkTypePresenceInPackage(typeName);
         if (next_compilation != NULL) { return next_compilation; }
 
-        next_compilation = compilation->checkTypePresenceFromImportOnDemand(typeName);
+        next_compilation = compilation->checkTypePresenceFromImportOnDemand(typeName, token);
         if (next_compilation != NULL) { return next_compilation; }
 
         // Check java.lang if not found

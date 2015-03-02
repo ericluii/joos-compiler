@@ -8,7 +8,7 @@
 #include "localTable.h"
 
 class LocalDecl : public BlockStmts {
-    // Rule: LOCAL_VAR_DECL and FOR_INIT_LOCAL_DECL
+    // Rule: LOCAL_VAR_DECL
     private:
         Type* type;
         Identifier* id;

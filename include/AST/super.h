@@ -11,8 +11,9 @@ class Super : public Ast {
     private:
         Name* superClass;
         CompilationTable* superClassTable;
+        bool implicitExtend;
     public:
-        Super(Name* superClass) : superClass(superClass), superClassTable(NULL) {}
+        Super(Name* superClass) : superClass(superClass), superClassTable(NULL), implicitExtend(false) {}
         ~Super() {
             delete superClass;
         }
@@ -21,6 +22,8 @@ class Super : public Ast {
         void setSuperClassTable(CompilationTable* set) { superClassTable = set; }
         CompilationTable* getSuperClassTable() { return superClassTable; }
         bool isEpsilon() { return superClass == NULL; }
+        void setImplicitExtend() { implicitExtend = true; }
+        bool isImplicitlyExtending() { return implicitExtend; }
 };
 
 #endif

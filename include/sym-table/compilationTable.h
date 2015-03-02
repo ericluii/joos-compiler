@@ -99,7 +99,7 @@ class CompilationTable {
         // single type import or other compilations in the package
         CompilationTable* checkTypePresenceFromSingleImport(const std::string& typeName);
         CompilationTable* checkTypePresenceInPackage(const std::string& typeName);
-        CompilationTable* checkTypePresenceFromImportOnDemand(const std::string& typeName);
+        CompilationTable* checkTypePresenceFromImportOnDemand(const std::string& typeName, Token* tokName);
 };
 
 #endif

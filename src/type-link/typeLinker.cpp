@@ -26,6 +26,23 @@
 #include "qualifiedThis.h"
 #include "primaryExpression.h"
 #include "castName.h"
+#include "methodHeader.h"
+#include "formalParamStar.h"
+#include "paramList.h"
+#include "methodBody.h"
+#include "blockStmtsStar.h"
+#include "localDecl.h"
+#include "returnStmt.h"
+#include "expressionStar.h"
+#include "stmtExprAssign.h"
+#include "stmtExprInvoke.h"
+#include "stmtExprCreation.h"
+#include "nestedBlock.h"
+#include "ifStmt.h"
+#include "whileStmt.h"
+#include "forStmt.h"
+#include "interfaceBodyStar.h"
+#include "interfaceMethod.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -169,16 +186,14 @@ void TypeLinker::checkImportsExistenceAndSet(CompilationTable* compilation) {
 // ----------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------
 
-bool TypeLinker::checkIfNameConflictsWithType(CompilationTable* compilation, Name* name) {
+bool TypeLinker::checkIfNameConflictsWithType(CompilationTable* compilation, Name* name, bool isType = false) {
     if(name == NULL) {
         return false;
     }
     
     std::string qualifier = name->getQualifier();
+    std::string potentialTypeName = name->getNameId()->getIdAsString();
     if(qualifier != "") {
-        Token* potentialTypeTok = name->getNameId()->getToken();
-        std::string potentialTypeName = potentialTypeTok->getString();
-
         // if not the default package
         if(packages.count(qualifier) == 1) {
             std::vector<CompilationTable*>::iterator it;
@@ -189,9 +204,20 @@ bool TypeLinker::checkIfNameConflictsWithType(CompilationTable* compilation, Nam
                 }
             }
         }
+    } else {
+        // if the qualifier's the default package
+        if(isType) {
+            // if the Name being checked right now resolved to a type, then check in the
+            // environment i.e in single imports, in packaged and in import type on demand
+            if((compilation->checkTypePresenceFromSingleImport(potentialTypeName) != NULL) ||
+               (compilation->checkTypePresenceInPackage(potentialTypeName) != NULL) ||
+               (compilation->checkTypePresenceFromImportOnDemand(potentialTypeName, name->getNameId()->getToken()) != NULL)) {
+                return true;
+            }
+        }
     }
 
-    return checkIfNameConflictsWithType(compilation, name->getNextName());
+    return checkIfNameConflictsWithType(compilation, name->getNextName(), isType);
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -205,16 +231,37 @@ void TypeLinker::checkImportsResolveToTypes(CompilationTable* compilation, Impor
    
     std::stringstream ss;
     if(import->isSingleImport()) {
+        bool conflict = false;
         if(checkIfNameConflictsWithType(compilation, import->getCurrentImport()->getNextName())) {
+            conflict = true;
+        } else {
+            // if it doesn't conflict as with the above check
+            if(compilation->getPackageName() != "") {
+                // do this check ONLY IF the current compilation is not in the default package
+                Name* name = import->getCurrentImport();
+                while(!name->isLastPrefix()) {
+                    name = name->getNextName();
+                }
+                std::string potentialTypeName = name->getNameId()->getIdAsString();
+                if((compilation->checkTypePresenceFromSingleImport(potentialTypeName) != NULL) ||
+                   (compilation->checkTypePresenceInPackage(potentialTypeName) != NULL) ||
+                   (compilation->checkTypePresenceFromImportOnDemand(potentialTypeName, name->getNameId()->getToken()) != NULL)) {
+                    conflict = true;
+                }
+            }
+        }
+
+        if(conflict) {
+            // if there was a conflict
             ss << "Single type import '" << import->getCurrentImport()->getFullName()
-               << "' or a prefix of it resolves to a type.";
+               << "' or a prefix of it resolves to a type not in the default package.";
             Error(E_TYPELINKING, import->getCurrentImport()->getNameId()->getToken(), ss.str());
         }
     } else {
         // import type on demand
         if(checkIfNameConflictsWithType(compilation, import->getCurrentImport())) {
             ss << "Import on demand '" << import->getCurrentImport()->getFullName()
-               << "' or a prefix of it resolves to a type.";
+               << "' or a prefix of it resolves to a type not in the default package.";
             Error(E_TYPELINKING, import->getCurrentImport()->getNameId()->getToken(), ss.str());
         }
     }
@@ -223,7 +270,8 @@ void TypeLinker::checkImportsResolveToTypes(CompilationTable* compilation, Impor
 void TypeLinker::checkPackageResolveToTypes(CompilationTable* compilation, PackageDecl* package) {
     if(checkIfNameConflictsWithType(compilation, package->getPackageName())) {
         std::stringstream ss;
-        ss << "Package name '" << compilation->getPackageName() << "' refers to a type.";
+        ss << "Package name '" << compilation->getPackageName()
+           << "' or a prefix of it resolves to a type not in the default package.";
         Error(E_TYPELINKING, package->getPackageName()->getNameId()->getToken(), ss.str());
     }
 }
@@ -243,7 +291,7 @@ void TypeLinker::checkPackageAndImportsResolveToTypes(CompilationTable* compilat
 // ----------------------------------------------------------------------------------------------------
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, CompilationUnit* unit) {
-    if(!unit->getTypeDecl()->isNoTypeDefined()) {
+    if(!unit->noTypeDeclared()) {
         // if the compilation unit has a defined type
         if(unit->getTypeDecl()->isClass()) {
             linkTypeNames(compilation, (ClassDecl*) unit->getTypeDecl());
@@ -271,6 +319,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassDecl* type) {
             for(unsigned int i = 0; i < types.size(); i++) {
                 if(types[i]->getClassOrInterfaceName() == "Object") {
                     type->getSuper()->setSuperClassTable(types[i]);
+                    type->getSuper()->setImplicitExtend();
                     break;
                 }
             }
@@ -293,7 +342,9 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Super* super) {
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceList* interfaces) {
-    linkTypeNames(compilation, interfaces->getListOfInterfaces());
+    if(!interfaces->isEpsilon()) {
+        linkTypeNames(compilation, interfaces->getListOfInterfaces());
+    }
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, Interfaces* interface) {
@@ -460,11 +511,133 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* ca
     linkTypeNames(compilation, castExpr->getExpressionToCast());
 }
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ClassMethod* method) {
+    linkTypeNames(compilation, method->getMethodHeader());
+    linkTypeNames(compilation, method->getMethodBody());
+}
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, Constructor* ctor) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodHeader* header) {
+    if(!header->isVoidReturnType()) {
+        linkTypeNames(compilation, header->getReturnType());
+    }
+    linkTypeNames(compilation, header->getClassMethodParams());
+}
 
-void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceDecl* type) {}
+void TypeLinker::linkTypeNames(CompilationTable* compilation, FormalParamStar* params) {
+    if(!params->isEpsilon()) {
+        linkTypeNames(compilation, params->getListOfParameters());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ParamList* params) {
+    if(!params->isLastParameter()) {
+        linkTypeNames(compilation, params->getNextParameter());
+    }
+
+    linkTypeNames(compilation, params->getParameterType());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodBody* body) {
+    if(!body->noDefinition()) {
+        // only if it actually has a body, even if it's empty
+        linkTypeNames(compilation, body->getBlockStmtsStar());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmtsStar* stmts) {
+    if(!stmts->isEpsilon()) {
+        linkTypeNames(compilation, stmts->getStatements());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmts* stmts) {
+    if(!stmts->isLastStatement()) {
+        linkTypeNames(compilation, stmts->getNextBlockStmt());
+    }
+    if(stmts->isLocalVarDecl()) {
+        linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalType());
+    } else if(stmts->isReturnStmt()) {
+        linkTypeNames(compilation, ((ReturnStmt*) stmts)->getReturnExpr());
+    } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isMethodInvokeStmt()) {
+        linkTypeNames(compilation, (StmtExpr*) stmts);
+    } else if(stmts->isNestedBlock()) {
+        linkTypeNames(compilation, ((NestedBlock*) stmts)->getNestedBlock());
+    } else if(stmts->isIfStmt()) {
+        linkTypeNames(compilation, (IfStmt*) stmts);
+    } else if(stmts->isWhileStmt()) {
+        linkTypeNames(compilation, (WhileStmt*) stmts);
+    } else if(stmts->isForStmt()) {
+        linkTypeNames(compilation, (ForStmt*) stmts);
+    } 
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ExpressionStar* exprStar) {
+    if(!exprStar->isEpsilon()) {
+        linkTypeNames(compilation, exprStar->getExpression());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, StmtExpr* stmtExpr) {
+    if(stmtExpr->isAssignStmt()) {
+        linkTypeNames(compilation, ((StmtExprAssign*) stmtExpr)->getAssignmentExpression());
+    } else if(stmtExpr->isMethodInvokeStmt()) {
+        linkTypeNames(compilation, ((StmtExprInvoke*) stmtExpr)->getMethodInvoked());
+    } else {
+        // class creation stmt
+        linkTypeNames(compilation, ((StmtExprCreation*) stmtExpr)->getCreatedClass());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, IfStmt* stmt) {
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    linkTypeNames(compilation, stmt->getExecuteTruePart());
+    if(!stmt->noElsePart()) {
+        linkTypeNames(compilation, stmt->getExecuteFalsePart());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, WhileStmt* stmt) {
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    linkTypeNames(compilation, stmt->getLoopStmt());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ForStmt* stmt) {
+    if(!stmt->emptyForInit()) {
+        linkTypeNames(compilation, stmt->getForInit());
+    }
+    linkTypeNames(compilation, stmt->getExpressionToEvaluate());
+    if(!stmt->emptyForUpdate()) {
+        linkTypeNames(compilation, stmt->getForUpdate());
+    }
+    linkTypeNames(compilation, stmt->getLoopStmt());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Constructor* ctor) {
+    linkTypeNames(compilation, ctor->getConstructorParameters());
+    linkTypeNames(compilation, ctor->getConstructorBody());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceDecl* type) {
+    linkTypeNames(compilation, type->getExtendedInterfaces());
+    linkTypeNames(compilation, type->getInterfaceBodyStar());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceBodyStar* body) {
+    if(!body->isEpsilon()) {
+        linkTypeNames(compilation, body->getInterfaceMethods());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, InterfaceMethod* methods) {
+    if(!methods->isLastMethod()) {
+        linkTypeNames(compilation, methods->getNextInterfaceMethod());
+    }
+
+    if(!methods->isVoidReturnType()) {
+        linkTypeNames(compilation, methods->getReturnType());
+    }
+    linkTypeNames(compilation, methods->getParametersList());
+}
 
 CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name* name) {
     std::string typeName = name->getNameId()->getIdAsString();
@@ -484,7 +657,12 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
             }
 
             if(!typeExist) { return NULL; }
-            checkIfNameConflictsWithType(compilation, name);
+            if(checkIfNameConflictsWithType(compilation, name->getNextName(), true)) {
+                std::stringstream ss;
+                ss << "Fully qualified name '" << qualifier+typeName
+                   << "' resolves to a type, but it's strict prefix is also a type itself in this compilation unit's environment.";
+                Error(E_TYPELINKING, name->getNameId()->getToken(), ss.str());
+            }
             linkType = packages[qualifier][indexExist];
         }
     } else {
@@ -493,7 +671,7 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
         if(linkType != NULL) { return linkType; }
         linkType = compilation->checkTypePresenceInPackage(typeName);
         if(linkType != NULL) { return linkType; }
-        linkType = compilation->checkTypePresenceFromImportOnDemand(typeName);
+        linkType = compilation->checkTypePresenceFromImportOnDemand(typeName, name->getNameId()->getToken());
     }
 
     return linkType;
@@ -503,7 +681,8 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
 
 void TypeLinker::reportTypeNameLinkError(const std::string& errorMsg, const std::string& typeName, Token* tok) {
     std::stringstream ss;
-    ss << errorMsg << typeName << "' is not possible because it does not exist.";
+    ss << errorMsg << typeName 
+        << "' is not possible because type does not exist within the other compilation units/single type import/package/import type on demand.";
     Error(E_TYPELINKING, tok, ss.str());
 }
 

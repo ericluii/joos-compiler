@@ -30,6 +30,19 @@ class MethodInvoke;
 class NewClassCreation;
 class PrimaryExpression;
 class CastExpression;
+class MethodHeader;
+class MethodBody;
+class FormalParamStar;
+class ParamList;
+class BlockStmtsStar;
+class BlockStmts;
+class ExpressionStar;
+class StmtExpr;
+class IfStmt;
+class WhileStmt;
+class ForStmt;
+class InterfaceBodyStar;
+class InterfaceMethod;
 
 class TypeLinker {
     private:
@@ -45,7 +58,7 @@ class TypeLinker {
         void checkImportsExistenceAndSet(CompilationTable* compilation);
 
         // Related to whether a name conflicts with a type
-        bool checkIfNameConflictsWithType(CompilationTable* compilation, Name* name);
+        bool checkIfNameConflictsWithType(CompilationTable* compilation, Name* name, bool isType);
 
         // Related to checking if packages or prefixes of packages/imports resolve to types
         void checkImportsResolveToTypes(CompilationTable* compilation, ImportDecls* import);
@@ -72,7 +85,20 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, NewClassCreation* create);
         void linkTypeNames(CompilationTable* compilation, CastExpression* castExpr);
         void linkTypeNames(CompilationTable* compilation, ClassMethod* method);
+        void linkTypeNames(CompilationTable* compilation, MethodHeader* header);
+        void linkTypeNames(CompilationTable* compilation, FormalParamStar* params);
+        void linkTypeNames(CompilationTable* compilation, ParamList* params);
+        void linkTypeNames(CompilationTable* compilation, MethodBody* body);
+        void linkTypeNames(CompilationTable* compilation, BlockStmtsStar* stmts);
+        void linkTypeNames(CompilationTable* compilation, BlockStmts* stmts);
+        void linkTypeNames(CompilationTable* compilation, ExpressionStar* exprStar);
+        void linkTypeNames(CompilationTable* compilation, StmtExpr* stmtExpr);
+        void linkTypeNames(CompilationTable* compilation, IfStmt* stmt);
+        void linkTypeNames(CompilationTable* compilation, WhileStmt* stmt);
+        void linkTypeNames(CompilationTable* compilation, ForStmt* stmt);
         void linkTypeNames(CompilationTable* compilation, Constructor* ctor);
+        void linkTypeNames(CompilationTable* compilation, InterfaceBodyStar* body);
+        void linkTypeNames(CompilationTable* compilation, InterfaceMethod* methods);
 
         void linkTypeNames(CompilationTable* compilation, InterfaceDecl* type);
 
