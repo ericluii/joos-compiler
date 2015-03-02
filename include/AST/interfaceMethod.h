@@ -84,6 +84,24 @@ class InterfaceMethod : public Ast {
 
             return false;
         }
+        
+        bool isFinal() {
+            ModifiersStar* ms = getModifiersStar();
+
+            if (!ms->isEpsilon()) {
+                Modifiers* m = ms->getListOfModifiers();
+
+                while (m != NULL) {
+                    if (m->getCurrentModifierAsString() == "final") {
+                        return true;
+                    }
+
+                    m = m->getNextModifier();
+                }
+            }
+
+            return false;
+        }
 
         void setInterfaceMethodTable(InterfaceMethodTable* set) { table = set; }
         InterfaceMethodTable* getInterfaceMethodTable() { return table; }

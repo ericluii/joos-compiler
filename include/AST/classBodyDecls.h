@@ -51,6 +51,20 @@ class ClassBodyDecls : public Ast {
 
             return false;
         }
+        
+        bool isFinal() {
+            Modifiers* m = getModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "final") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
 };
 
 #endif

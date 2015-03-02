@@ -398,10 +398,11 @@ void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation){
 }
 
 //This check is very similar to the no static overide check
-void HierarchyChecking::classWithAbstractMethodIsAbstract(CompilationTable* compilation){
+void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
+    bool checkAbstract = true;
     if(!compilation->isClassSymbolTable() || dynamic_cast<ClassDecl*>(compilation->getCompilationUnit()->getTypeDecl())->isAbstract())
     {
-        return;
+        checkAbstract = false;
     }
 
     std::set<CompilationTable*> visited;
@@ -440,10 +441,18 @@ void HierarchyChecking::classWithAbstractMethodIsAbstract(CompilationTable* comp
                             std::string signature = mh->methodSignatureAsString();
 
                             ret = methods.insert(signature);
-                            if (cbd->isAbstract() && ret.second == true) {
+                            if (checkAbstract && cbd->isAbstract() && ret.second == true) {
                                 std::stringstream ss;
                                 ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' must be overriden.";
+
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                            if (cbd->isFinal() && ret.second == false) {
+                                std::stringstream ss;
+                                ss << "Final method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                   << "' cannot be overriden.";
 
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
@@ -485,10 +494,17 @@ void HierarchyChecking::classWithAbstractMethodIsAbstract(CompilationTable* comp
                         std::string signature = im->methodSignatureAsString();
 
                         ret = methods.insert(signature);
-                        if (im->isAbstract() && ret.second == false) {
+                        if (checkAbstract && im->isAbstract() && ret.second == false) {
                             std::stringstream ss;
                             ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' must be overriden.";
+
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+                        if (im->isFinal() && ret.second == false) {
+                            std::stringstream ss;
+                            ss << "Final method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                               << "' cannot be overriden.";
 
                             Error(E_HIERARCHY, token, ss.str());
                         }
@@ -524,7 +540,7 @@ void HierarchyChecking::check() {
             interfaceNotExtendClass(*it2);
             noDuplicateSignature(*it2);
             NoStaticOverride(*it2);
-            classWithAbstractMethodIsAbstract(*it2);
+            checkMethodModifiers(*it2);
 
             if (Error::count() > 0) { return; }
         }
