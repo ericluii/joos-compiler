@@ -64,7 +64,7 @@ void BuildCompilationTable::build(ClassBodyDecls& node) {
         build(*node.getNextDeclaration());
     }
 
-    if(node.isFieldDecl()) {
+    if(node.isField()) {
         build((FieldDecl&) node);
     } else if(node.isClassMethod()) {
         build((ClassMethod&) node);

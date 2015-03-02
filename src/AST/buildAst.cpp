@@ -877,7 +877,7 @@ Expression* BuildAst::makeCastExpression(ParseTree* tree) {
                     break;
                 case UNARY_NAME:
                     retCastExpr = new CastName(makeName(tree->children[0]), expr);
-                    retCastExpr->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+                    retCastExpr->setRuleAndLexeme(CAST_TO_EXPRESSION, "CastExpression");
                     return retCastExpr;
                 default:
                     std::cerr << "None of the rules apply" << std::endl;
