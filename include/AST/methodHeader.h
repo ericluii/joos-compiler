@@ -42,7 +42,6 @@ class MethodHeader : public Ast {
             }
             return signature + ')';
         }
-
 };
 
 #endif

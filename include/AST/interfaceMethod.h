@@ -7,6 +7,7 @@
 #include "identifier.h"
 #include "formalParamStar.h"
 #include "interfaceMethodTable.h"
+#include <iostream>
 
 class InterfaceMethod : public Ast {
     // Rule: INTERFACE_MEMBER_DECL and INTERFACE_MEMBER_DECL_LIST
@@ -46,6 +47,24 @@ class InterfaceMethod : public Ast {
                 signature+= params->getListOfParameters()->parametersAsString();
             }
             return signature + ')';
+        }
+
+        bool isStatic() {
+            ModifiersStar* ms = getModifiersStar();
+
+            if (!ms->isEpsilon()) {
+                Modifiers* m = ms->getListOfModifiers();
+
+                while (m != NULL) {
+                    if (m->getCurrentModifierAsString() == "static") {
+                        return true;
+                    }
+
+                    m = m->getNextModifier();
+                }
+            }
+
+            return false;
         }
 
         void setInterfaceMethodTable(InterfaceMethodTable* set) { table = set; }

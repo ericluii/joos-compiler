@@ -7,6 +7,7 @@
 #include "classMethod.h"
 #include "interfaceMethod.h"
 #include <iostream>
+#include <queue>
 #include <sstream>
 #include <set>
 #include <cassert>
@@ -62,21 +63,18 @@ void HierarchyChecking::classNotExtendInterface(CompilationTable* compilation) {
 
         if (st->isClassTable()) {
             ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+            Token* token = cd->getClassId()->getToken();
 
             if (!cd->noSuperClass()) {
                 Name* name = cd->getSuper()->getSuperName();
-                std::string packageName = name->getQualifier();
+                CompilationTable* processing = retrieveCompilationOfTypeName(compilation, name, token);
+                if (processing == NULL) { return; }
 
-                for (unsigned int i = 0; i < packages[packageName].size(); i++) {
-                    if (packages[packageName][i]->getClassOrInterfaceName() == name->getNameId()->getIdAsString()) {
-                        if (packages[packageName][i]->getSymbolTable() && !packages[packageName][i]->isClassSymbolTable()) {
-                            std::stringstream ss;
-                            ss << "Class '" << packages[packageName][i]->getClassOrInterfaceName() << "' cannot extend"
-                               << " from an interface.";
-                            Error(E_HIERARCHY, cd->getClassId()->getToken(), ss.str());
-                        }
-                        break;
-                    }
+                if (processing->getSymbolTable() && !processing->isClassSymbolTable()) {
+                    std::stringstream ss;
+                    ss << "Class '" << processing->getClassOrInterfaceName() << "' cannot extend"
+                       << " from an interface.";
+                    Error(E_HIERARCHY, token, ss.str());
                 }
             }
         }
@@ -186,7 +184,7 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
                 std::pair<std::set<std::string>::iterator,bool> ret;
 
                 while (cbd != NULL) {
-                    if (cbd->isClassMethodDecl()) {
+                    if (cbd->isClassMethod()) {
                         MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
                         std::string signature = mh->methodSignatureAsString();
 
@@ -235,6 +233,113 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
     }
 }
 
+void HierarchyChecking::NoStaticOverride(CompilationTable* compilation) {
+    std::set<CompilationTable*> visited;
+    std::pair<std::set<CompilationTable*>::iterator,bool> visited_ret;
+    std::queue<CompilationTable*> traverse;
+    traverse.push(compilation);
+
+    std::set<std::string> methods;
+    std::pair<std::set<std::string>::iterator,bool> ret;
+    CompilationTable* processing;
+    while (!traverse.empty()) {
+        processing = traverse.front();
+        traverse.pop();
+
+        visited_ret= visited.insert(processing);
+        if (visited_ret.second == false || processing == NULL) {
+            continue;
+        }
+
+        SymbolTable* st = processing->getSymbolTable();
+        Token* token;
+
+        if (processing->isClassSymbolTable()) {
+            ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+            token = cd->getClassId()->getToken();
+
+            if (!cd->emptyBody()) {
+                ClassBodyStar* cbs = cd->getClassMembers();
+
+                if (!cbs->isEpsilon()) {
+                    ClassBodyDecls* cbd = cbs->getBody();
+
+                    while (cbd != NULL) {
+                        if (cbd->isClassMethod()) {
+                            MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
+                            std::string signature = mh->methodSignatureAsString();
+
+                            ret = methods.insert(signature);
+                            if (cbd->isStatic() && ret.second == false) {
+                                std::stringstream ss;
+                                ss << "Static method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                   << "' cannot be overriden.";
+
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
+                        }
+
+                        cbd = cbd->getNextDeclaration();
+                    }
+                }
+            }
+
+            if (!cd->noSuperClass()) {
+                Name* name = cd->getSuper()->getSuperName();
+
+                processing = retrieveCompilationOfTypeName(compilation, name, token);
+                if (processing == NULL) { break; }
+                traverse.push(processing);
+            }
+
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+        } else if (st) {
+            InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+
+            if (!id->emptyInterfaceBody()) {
+                InterfaceBodyStar* ibs = id->getInterfaceBodyStar();
+                Token* token = id->getInterfaceId()->getToken();
+
+                if (!ibs->isEpsilon()) {
+                    InterfaceMethod* im = ibs->getInterfaceMethods();
+
+                    while (im != NULL) {
+                        std::string signature = im->methodSignatureAsString();
+
+                        ret = methods.insert(signature);
+                        if (im->isStatic() && ret.second == false) {
+                            std::stringstream ss;
+                            ss << "Static method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                               << "' cannot be overriden.";
+
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+
+                        im = im->getNextInterfaceMethod();
+                    }
+                }
+            }
+
+            if (!id->noExtendedInterfaces()) {
+                Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+        }
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
     for (it = packages.begin(); it != packages.end(); it++) {
@@ -245,6 +350,7 @@ void HierarchyChecking::check() {
             duplicateInterface(*it2);
             interfaceNotExtendClass(*it2);
             noDuplicateSignature(*it2);
+            NoStaticOverride(*it2);
 
             if (Error::count() > 0) { return; }
         }
