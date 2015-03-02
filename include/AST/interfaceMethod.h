@@ -67,6 +67,24 @@ class InterfaceMethod : public Ast {
 
             return false;
         }
+
+        bool isProtected() {
+            ModifiersStar* ms = getModifiersStar();
+
+            if (!ms->isEpsilon()) {
+                Modifiers* m = ms->getListOfModifiers();
+
+                while (m != NULL) {
+                    if (m->getCurrentModifierAsString() == "protected") {
+                        return true;
+                    }
+
+                    m = m->getNextModifier();
+                }
+            }
+
+            return false;
+        }
         
         //declaring an interface method to be final should cause an error
         bool isFinal() {
