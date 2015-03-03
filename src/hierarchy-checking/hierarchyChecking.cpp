@@ -14,7 +14,15 @@
 #include <set>
 #include <cassert>
 
-HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
+HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {
+    std::vector<CompilationTable*>& types = packages["java.lang"];
+    for(unsigned int i = 0; i < types.size(); i++) {
+        if(types[i]->getClassOrInterfaceName() == "Object") {
+            object = types[i];
+            break;
+        }
+    }
+}
 
 CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTable* compilation, Name* name, Token* token) {
     CompilationTable* next_compilation = NULL;
@@ -632,6 +640,10 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     traverse.push(il->getImplOrExtInterfaceTable());
                     il = il->getNextInterface();
                 }
+            }
+            else
+            {
+                traverse.push(object);
             }
         }
     }

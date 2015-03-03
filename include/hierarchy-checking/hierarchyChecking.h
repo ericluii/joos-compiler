@@ -11,6 +11,7 @@
 class HierarchyChecking {
     private:
         std::map<std::string, std::vector<CompilationTable*> >& packages;
+        CompilationTable* object;
 
         CompilationTable* retrieveCompilationOfTypeName(CompilationTable* compilation, Name* typeName, Token* token);
 
