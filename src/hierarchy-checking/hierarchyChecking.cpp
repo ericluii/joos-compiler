@@ -512,6 +512,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         if (cbd->isClassMethod()) {
                             MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
                             std::string signature = mh->methodSignatureAsString();
+                            std::cout << std::endl << signature << std::endl;
                             if(methods.count(signature) == 1)
                             {
                                 if((mh->isVoidReturnType() && methods[signature] != "") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
@@ -593,6 +594,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
 
                     while (im != NULL) {
                         std::string signature = im->methodSignatureAsString();
+                        std::cout << std::endl << signature << std::endl;
                         if(methods.count(signature) == 1)
                         {
                             if((im->isVoidReturnType() && methods[signature] != "") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
