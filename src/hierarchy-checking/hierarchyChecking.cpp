@@ -665,18 +665,19 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
     while (!traverse.empty()) {
         processing = traverse.front();
         traverse.pop();
+        //std::cout << std::endl << "Popping: " << processing->getClassOrInterfaceName() << std::endl;
         SymbolTable* st = processing->getSymbolTable();
         if (processing->isClassSymbolTable()) {
             ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
             token = cd->getClassId()->getToken();
             if (!cd->noSuperClass()) {
-                //Name* name = cd->getSuper()->getSuperName();
-
-                //dependency = retrieveCompilationOfTypeName(compilation, name, token);
                 dependency = cd->getSuper()->getSuperClassTable();
                 if (dependency == NULL) { break; }
-                traverse.push(dependency);
                 dependencies[processing].insert(dependency);
+                if(dependencies.count(dependency) == 0)
+                {
+                    traverse.push(dependency);
+                }
                 for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
                     if(it->second.count(processing) == 1)
                     {
@@ -696,8 +697,11 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
 
                 while (il != NULL) {
                     dependency = il->getImplOrExtInterfaceTable();
-                    traverse.push(dependency);
                     dependencies[processing].insert(dependency);
+                    if(dependencies.count(dependency) == 0)
+                    {
+                        traverse.push(dependency);
+                    }
                     for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
                         if(it->second.count(processing) == 1)
                         {
@@ -722,8 +726,11 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
 
                 while (il != NULL) {
                     dependency = il->getImplOrExtInterfaceTable();
-                    traverse.push(dependency);
                     dependencies[processing].insert(dependency);
+                    if(dependencies.count(dependency) == 0)
+                    {
+                        traverse.push(dependency);
+                    }
                     for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
                         if(it->second.count(processing) == 1)
                         {
@@ -759,7 +766,7 @@ void HierarchyChecking::check() {
             noDuplicateSignature(*it2);
             OverrideChecks(*it2);
             checkMethodModifiers(*it2);
-            //checkForCycles(*it2);
+            checkForCycles(*it2);
 
             if (Error::count() > 0) { return; }
         }
