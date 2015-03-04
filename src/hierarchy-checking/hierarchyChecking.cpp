@@ -14,7 +14,15 @@
 #include <set>
 #include <cassert>
 
-HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
+HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {
+    std::vector<CompilationTable*>& types = packages["java.lang"];
+    for(unsigned int i = 0; i < types.size(); i++) {
+        if(types[i]->getClassOrInterfaceName() == "Object") {
+            object = types[i];
+            break;
+        }
+    }
+}
 
 CompilationTable* HierarchyChecking::retrieveCompilationOfTypeName(CompilationTable* compilation, Name* name, Token* token) {
     CompilationTable* next_compilation = NULL;
@@ -444,7 +452,8 @@ void HierarchyChecking::classNotExtendFinalClass(CompilationTable* compilation){
     if(typedecl->isClass() && !dynamic_cast<ClassDecl*>(typedecl)->noSuperClass())
     {
         Name *superName = dynamic_cast<ClassDecl*>(typedecl)->getSuper()->getSuperName();
-        CompilationTable* source = retrieveCompilationOfTypeName(compilation, superName, dynamic_cast<ClassDecl*>(typedecl)->getClassId()->getToken());
+        //CompilationTable* source = retrieveCompilationOfTypeName(compilation, superName, dynamic_cast<ClassDecl*>(typedecl)->getClassId()->getToken());
+        CompilationTable* source = dynamic_cast<ClassDecl*>(typedecl)->getSuper()->getSuperClassTable();
         assert(source->getClassOrInterfaceName() == superName->getNameId()->getIdAsString());
         //if it's not a class, we will catch that in a different check. Combine checks?
         if(source->getCompilationUnit()->getTypeDecl()->isClass())
@@ -533,7 +542,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                             if(methods.count(signature) == 0 && checkAbstract && cbd->isAbstract())
                             {
                                 std::stringstream ss;
-                                ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                ss << compilation->getClassOrInterfaceName() << ": Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                    << "' must be overriden.";
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
@@ -552,6 +561,17 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
+            //Do not change the order in which these are added to traverse ***************************************************
+            if (!cd->noSuperClass()) {
+                processing = cd->getSuper()->getSuperClassTable();
+                if (processing == NULL) { break; }
+                traverse.push(processing);
+            }
+            
+            if (cd->getSuper()->isImplicitlyExtending()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+            
             if (!cd->noImplementedInterfaces()) {
                 Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
 
@@ -559,16 +579,8 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     traverse.push(il->getImplOrExtInterfaceTable());
                     il = il->getNextInterface();
                 }
-            }
-            
-            if (!cd->noSuperClass()) {
-                Name* name = cd->getSuper()->getSuperName();
-
-                processing = retrieveCompilationOfTypeName(compilation, name, token);
-                if (processing == NULL) { break; }
-                traverse.push(processing);
-            }
-            
+            }  
+            //****************************************************************
         } else if (st) {
             InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
 
@@ -602,7 +614,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         }
                         if (methods.count(signature) == 0 && checkAbstract) {
                             std::stringstream ss;
-                            ss << "Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                            ss << compilation->getClassOrInterfaceName() << ": Abstract method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' must be overriden.";
                             Error(E_HIERARCHY, token, ss.str());
                             break;
@@ -620,7 +632,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
-
             if (!id->noExtendedInterfaces()) {
                 Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
 
@@ -629,7 +640,108 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     il = il->getNextInterface();
                 }
             }
+            else
+            {
+                //this is a terrible hack in which we treat interfaces that do not extend anyone as extending the object class
+                traverse.push(object);
+            }
         }
+    }
+}
+
+void HierarchyChecking::checkForCycles(CompilationTable* compilation){
+    std::map<CompilationTable*, std::set<CompilationTable*> >dependencies;
+    std::queue<CompilationTable*> traverse;
+    traverse.push(compilation);
+
+    CompilationTable* processing;
+    CompilationTable* dependency;
+    Token *token;
+    while (!traverse.empty()) {
+        processing = traverse.front();
+        traverse.pop();
+        SymbolTable* st = processing->getSymbolTable();
+        if (processing->isClassSymbolTable()) {
+            ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+            token = cd->getClassId()->getToken();
+            if (!cd->noSuperClass()) {
+                dependency = cd->getSuper()->getSuperClassTable();
+                if (dependency == NULL) { break; }
+                dependencies[processing].insert(dependency);
+                if(dependencies.count(dependency) == 0)
+                {
+                    traverse.push(dependency);
+                }
+                for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
+                    if(it->second.count(processing) == 1)
+                    {
+                        it->second.insert(dependency);
+                        if(dependency == it->first)
+                        {
+                            std::stringstream ss;
+                            ss << compilation->getClassOrInterfaceName() << ": cyclical dependency is not allowed";
+                            Error(E_HIERARCHY, token, ss.str());
+                        }
+                    }
+                }
+            }
+            
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    dependency = il->getImplOrExtInterfaceTable();
+                    dependencies[processing].insert(dependency);
+                    if(dependencies.count(dependency) == 0)
+                    {
+                        traverse.push(dependency);
+                    }
+                    for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
+                        if(it->second.count(processing) == 1)
+                        {
+                            it->second.insert(dependency);
+                            if(dependency == it->first)
+                            {
+                                std::stringstream ss;
+                                ss << compilation->getClassOrInterfaceName() << ": cyclical dependency is not allowed";
+                                Error(E_HIERARCHY, token, ss.str());
+                            }
+                        }
+                    }
+                    il = il->getNextInterface();
+                }
+            }  
+        }
+        else if (st) {
+            InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+            token = id->getInterfaceId()->getToken();
+            if (!id->noExtendedInterfaces()) {
+                Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    dependency = il->getImplOrExtInterfaceTable();
+                    dependencies[processing].insert(dependency);
+                    if(dependencies.count(dependency) == 0)
+                    {
+                        traverse.push(dependency);
+                    }
+                    for(std::map<CompilationTable*, std::set<CompilationTable*> >::iterator it = dependencies.begin(); it != dependencies.end(); it++){
+                        if(it->second.count(processing) == 1)
+                        {
+                            it->second.insert(dependency);
+                            if(dependency == it->first)
+                            {
+                                std::stringstream ss;
+                                ss << compilation->getClassOrInterfaceName() << ": cyclical dependency is not allowed";
+                                Error(E_HIERARCHY, token, ss.str());
+                            }
+                        }
+                    }
+                    il = il->getNextInterface();
+                }
+            }
+        }
+        
     }
 }
 
@@ -648,6 +760,7 @@ void HierarchyChecking::check() {
             noDuplicateSignature(*it2);
             OverrideChecks(*it2);
             checkMethodModifiers(*it2);
+            checkForCycles(*it2);
 
             if (Error::count() > 0) { return; }
         }

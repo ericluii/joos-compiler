@@ -37,3 +37,5 @@ tests/include/a2TestFiles.h
 *.exe
 *.out
 *.app
+tags
+tags

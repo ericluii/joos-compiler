@@ -11,6 +11,7 @@
 class HierarchyChecking {
     private:
         std::map<std::string, std::vector<CompilationTable*> >& packages;
+        CompilationTable* object;
 
         CompilationTable* retrieveCompilationOfTypeName(CompilationTable* compilation, Name* typeName, Token* token);
 
@@ -23,6 +24,7 @@ class HierarchyChecking {
         void classNotImplementClass(CompilationTable* compilation);
         void classNotExtendFinalClass(CompilationTable* compilation);
         void checkMethodModifiers(CompilationTable* compilation);
+        void checkForCycles(CompilationTable* compilation);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 

@@ -3,8 +3,7 @@
 
 #include "type.h"
 #include "name.h"
-
-class CompilationTable;
+#include "compilationTable.h"
 
 class ReferenceType : public Type {
     // Rule: REFERENCE_CLASSINTERFACE, and ARRAY_NONPRIMITIVE
@@ -12,14 +11,22 @@ class ReferenceType : public Type {
         Name* referenceType;
         CompilationTable* referenceTable;
     public:
-        ReferenceType(Name* referenceType) : referenceType(referenceType) {}
+        ReferenceType(Name* referenceType) : referenceType(referenceType) {referenceTable = NULL;}
         ~ReferenceType() {
             delete referenceType;
         }
 
         Name* getReferenceName() { return referenceType; }
         std::string getTypeAsString() {
-            std::string typeName = referenceType->getFullName();
+            std::string typeName;
+            if(referenceTable != NULL)
+            {   
+                typeName = referenceTable->getCanonicalName();
+            }
+            else
+            {
+                typeName = referenceType->getFullName();
+            }
             if(isReferenceArrayType()) {
                 return typeName + "[]";
             }
