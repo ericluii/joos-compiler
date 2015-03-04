@@ -512,6 +512,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         if (cbd->isClassMethod()) {
                             MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
                             std::string signature = mh->methodSignatureAsString();
+                            std::cout << std::endl << signature << std::endl;
                             if(methods.count(signature) == 1)
                             {
                                 if((mh->isVoidReturnType() && methods[signature] != "") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
@@ -561,11 +562,8 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
-            //Do not touch ***************************************************
+            //Do not change the order in which these are added to traverse ***************************************************
             if (!cd->noSuperClass()) {
-                //Name* name = cd->getSuper()->getSuperName();
-
-                //processing = retrieveCompilationOfTypeName(compilation, name, token);
                 processing = cd->getSuper()->getSuperClassTable();
                 if (processing == NULL) { break; }
                 traverse.push(processing);
@@ -596,6 +594,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
 
                     while (im != NULL) {
                         std::string signature = im->methodSignatureAsString();
+                        std::cout << std::endl << signature << std::endl;
                         if(methods.count(signature) == 1)
                         {
                             if((im->isVoidReturnType() && methods[signature] != "") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
@@ -635,7 +634,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                     }
                 }
             }
-            //Do not touch ***************************************************
             if (!id->noExtendedInterfaces()) {
                 Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
 
@@ -646,16 +644,15 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
             }
             else
             {
+                //this is a terrible hack in which we treat interfaces that do not extend anyone as extending the object class
                 traverse.push(object);
             }
-            //****************************************************************
         }
     }
 }
 
 void HierarchyChecking::checkForCycles(CompilationTable* compilation){
     std::map<CompilationTable*, std::set<CompilationTable*> >dependencies;
-    //std::pair<std::map<CompilationTable*, std::set<CompilationTable*> >::iterator,bool> dependencies_ret;
     std::queue<CompilationTable*> traverse;
     traverse.push(compilation);
 
@@ -665,7 +662,6 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
     while (!traverse.empty()) {
         processing = traverse.front();
         traverse.pop();
-        //std::cout << std::endl << "Popping: " << processing->getClassOrInterfaceName() << std::endl;
         SymbolTable* st = processing->getSymbolTable();
         if (processing->isClassSymbolTable()) {
             ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
