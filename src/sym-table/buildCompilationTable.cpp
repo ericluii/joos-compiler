@@ -120,16 +120,7 @@ void BuildCompilationTable::build(FieldDecl& node) {
     table->setPrevTable(curSymTable);
     
     node.setFieldTable(table);
-    std::string field = node.getFieldDeclared()->getIdAsString();
-    if(curCompTable->fields.count(field) == 0) {
-        curCompTable->fields[field] = table;
-    } else {
-        std::stringstream ss;
-        Token* prevField = curCompTable->fields[field]->getField()->getFieldDeclared()->getToken();
-        ss << "Field '" << field << "' was previously defined here: "
-           << prevField->getFile() << ":" << prevField->getLocation().first << ":" << prevField->getLocation().second;
-        Error(E_SYMTABLE, node.getFieldDeclared()->getToken(), ss.str());
-    }
+    curCompTable->registerAField(node.getFieldDeclared()->getIdAsString(), table); 
     curSymTable = table;
 }
 
@@ -143,19 +134,6 @@ void BuildCompilationTable::build(ClassMethod& node) {
     build(*node.getMethodBody());
     
     node.setClassMethodTable(table);
-    std::string methodSignature = node.getMethodHeader()->methodSignatureAsString();
-    if(curCompTable->classMethods.count(methodSignature) == 0) {
-        // if a method with this particular signature is not registered yet
-        curCompTable->classMethods[methodSignature] = table;
-    } else {
-        // error out
-        std::stringstream ss;
-        Token* prevMethod = curCompTable->classMethods[methodSignature]
-                            ->getClassMethod()->getMethodHeader()->getClassMethodId()->getToken();
-        ss << "Class method '" << methodSignature << "' was previously defined here: "
-           << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
-        Error(E_SYMTABLE, node.getMethodHeader()->getClassMethodId()->getToken(), ss.str());
-    }
     curSymTable = tempTable;
 }
 
@@ -229,18 +207,6 @@ void BuildCompilationTable::build(Constructor& node) {
     build(*node.getConstructorBody());
     
     node.setConstructorTable(table);
-    std::string constructorSignature = node.constructorSignatureAsString();
-    if(curCompTable->constructors.count(constructorSignature) == 0) {
-        // if a constructor with this signature is not registered yet
-        curCompTable->constructors[constructorSignature] = table;
-    } else {
-        std::stringstream ss;
-        Token* prevCtor = curCompTable->constructors[constructorSignature]->getConstructor()->getConstructorId()->getToken();
-        ss << "Constructor '" << constructorSignature << "' was previously defined here: "
-           << prevCtor->getFile() << ":" << prevCtor->getLocation().first << ":" << prevCtor->getLocation().second;
-        Error(E_SYMTABLE, node.getConstructorId()->getToken(), ss.str());
-    }
-
     curSymTable = tempTable;
 }
 
@@ -270,16 +236,6 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
     table->setPrevTable(curSymTable);
     
     node.setInterfaceMethodTable(table);
-    std::string methodSignature = node.methodSignatureAsString();
-    if(curCompTable->interfaceMethods.count(methodSignature) == 0) {
-        curCompTable->interfaceMethods[methodSignature] = table;
-    } else {
-        std::stringstream ss;
-        Token* prevMethod = curCompTable->interfaceMethods[methodSignature]->getInterfaceMethod()->getInterfaceMethodId()->getToken();
-        ss << "Interface method '" << methodSignature << "' was previously defined here: "
-           << prevMethod->getFile() << ":" << prevMethod->getLocation().first << ":" << prevMethod->getLocation().second;
-        Error(E_SYMTABLE, node.getInterfaceMethodId()->getToken(), ss.str());
-    }
     curSymTable = table;
 }
 

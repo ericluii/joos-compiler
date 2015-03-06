@@ -15,13 +15,11 @@ class LocalTable;
 class NestedBlockTable;
 class ForTable;
 class InterfaceMethodTable;
-class BuildCompilationTable;
 class ParamList;
 class Identifier;
 class Token;
 
 class CompilationTable {
-    friend class BuildCompilationTable;
     private:
         PackageDecl* package;
         // NULL if no type is defined
@@ -73,13 +71,22 @@ class CompilationTable {
         FieldTable* getAField(const std::string& field);
         ClassMethodTable* getAClassMethod(const std::string& methodSignature);
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
+        void registerAField(const std::string& field, FieldTable* table);
+        void registerAClassMethod(const std::string& methodSignature, ClassMethodTable* table);
+        void registerAConstructor(const std::string& ctorSignature, ConstructorTable* table);
         bool checkForFieldPresence(const std::string& field);
         bool checkForClassMethodPresence(const std::string& methodSignature);
         bool checkForConstructorPresence(const std::string& constructorSignature);
 
+        // This part is to be called after hierarchy checking, involved with superclass extensions
+        void registerInheritedField(const std::string& field, FieldTable* table);
+        void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table);
+        void inheritFieldsAndMethods(CompilationTable* child, CompilationTable* parent);
+
         // ---------------------------------------------------------------------
         // Interface if symbol table is an interface table
         InterfaceMethodTable* getAnInterfaceMethod(const std::string& methodSignature);
+        void registerAnInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table);
         bool checkForInterfaceMethodPresence(const std::string& methodSignature);
 
         // ---------------------------------------------------------------------

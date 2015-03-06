@@ -9,8 +9,10 @@
 #include "constructor.h"
 #include "interfaceMethod.h"
 #include "localDecl.h"
+#include "fieldDecl.h"
 
 #include "classTable.h"
+#include "fieldTable.h"
 #include "interfaceTable.h"
 #include "classDecl.h"
 #include "interfaceDecl.h"
@@ -124,6 +126,31 @@ ConstructorTable* CompilationTable::getAConstructor(const std::string& construct
     return constructors[constructorSignature];
 }
 
+void CompilationTable::registerAField(const std::string& field, FieldTable* table) {
+    // called only during the symbol table creation stage
+    if(fields.count(field) == 0) {
+        fields[field] = table;
+    } else {
+        // field is already present
+        std::stringstream ss;
+        Token* prevField = fields[field]->getField()->getFieldDeclared()->getToken();
+        ss << "Field '" << field << "' was previously defined here: "
+           << prevField->getFile() << ":" << prevField->getLocation().first << ":" << prevField->getLocation().second;
+        Error(E_SYMTABLE, table->getField()->getFieldDeclared()->getToken(), ss.str());
+    }
+}
+
+void CompilationTable::registerAClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
+    // called after the hierarchy checking stage
+    // assume that the hierarchy checking stage has checked for duplicate methods
+    classMethods[methodSignature] = table;
+}
+
+void CompilationTable::registerAConstructor(const std::string& ctorSignature, ConstructorTable* table) {
+    // assumptions hold the same way as registerAClassMethod
+    constructors[ctorSignature] = table;
+}
+
 bool CompilationTable::checkForFieldPresence(const std::string& field) {
     assert(symTable->isClassTable());
     return fields[field];
@@ -133,9 +160,20 @@ bool CompilationTable::checkForClassMethodPresence(const std::string& methodSign
     assert(symTable->isClassTable());
     return classMethods.count(methodSignature) == 1;
 }
+
 bool CompilationTable::checkForConstructorPresence(const std::string& constructorSignature) {
     assert(symTable->isClassTable());
     return constructors.count(constructorSignature) == 1;
+}
+
+// To be called after hierarchy checking
+void registerInheritedField(const std::string& field, FieldTable* table) {
+}
+
+void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
+}
+
+void inheritFieldsAndMethods(CompilationTable* child, CompilationTable* parent) {
 }
 
 // ---------------------------------------------------------------------
@@ -143,6 +181,11 @@ bool CompilationTable::checkForConstructorPresence(const std::string& constructo
 InterfaceMethodTable* CompilationTable::getAnInterfaceMethod(const std::string& methodSignature) {
     assert(symTable->isInterfaceTable());
     return interfaceMethods[methodSignature];
+}
+
+void CompilationTable::registerAnInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table) {
+    // assumptions hold the same way as registerAClassMethod
+    interfaceMethods[methodSignature] = table;
 }
 
 bool CompilationTable::checkForInterfaceMethodPresence(const std::string& methodSignature) {
@@ -276,21 +319,17 @@ void CompilationTable::checkConstructorForOverlappingScope(ConstructorTable* con
 
 void CompilationTable::checkForOverlappingLocalScope() {
     if(symTable != NULL) {
+        // a type was defined
         if(symTable->isClassTable()) {
-            std::map<std::string, ClassMethodTable*>::iterator method = classMethods.begin();
-            std::map<std::string, ConstructorTable*>::iterator constructor = constructors.begin();
-
-            for(; method != classMethods.end(); method++) {
-                if(method->second != NULL) {
-                    // if there is a body and it's not empty
-                    checkMethodForOverlappingScope(method->second);
+            // the type is a class
+            SymbolTable* table = symTable;
+            while(table != NULL) {
+                if(table->isClassMethodTable()) {
+                    checkMethodForOverlappingScope((ClassMethodTable*) table);
+                } else if(table->isConstructorTable()) {
+                    checkConstructorForOverlappingScope((ConstructorTable*) table);
                 }
-            }
-
-            for(; constructor != constructors.end(); constructor++) {
-                if(constructor->second != NULL) {
-                    checkConstructorForOverlappingScope(constructor->second);
-                }
+                table = table->getNextTable();
             }
         }
     }
