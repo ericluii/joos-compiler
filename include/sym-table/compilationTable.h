@@ -26,6 +26,7 @@ class CompilationTable {
         SymbolTable* symTable;
         std::string filename;
         CompilationUnit* unit;
+        bool established;
         // other compilations in the same package
         std::vector<CompilationTable*>* compilationsInPackage;
         // compilations from single type import
@@ -50,6 +51,12 @@ class CompilationTable {
 
         void checkMethodForOverlappingScope(ClassMethodTable* methodTable);
         void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
+
+        // Small helper during registering inherited fields and methods
+        // Called from function inheritFieldsAndMethods
+        void registerInheritedField(const std::string& field, FieldTable* table);
+        void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table);
+
     public:
         CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit);
         ~CompilationTable();
@@ -72,21 +79,22 @@ class CompilationTable {
         ClassMethodTable* getAClassMethod(const std::string& methodSignature);
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
         void registerAField(const std::string& field, FieldTable* table);
-        void registerAClassMethod(const std::string& methodSignature, ClassMethodTable* table);
-        void registerAConstructor(const std::string& ctorSignature, ConstructorTable* table);
+        void registerClassMethodsAndConstructors();
         bool checkForFieldPresence(const std::string& field);
         bool checkForClassMethodPresence(const std::string& methodSignature);
         bool checkForConstructorPresence(const std::string& constructorSignature);
 
         // This part is to be called after hierarchy checking, involved with superclass extensions
-        void registerInheritedField(const std::string& field, FieldTable* table);
-        void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table);
-        void inheritFieldsAndMethods(CompilationTable* child, CompilationTable* parent);
+        // Called to check if this compilation unit's inheritance have been properly resolved
+        // i.e methods and fields have been properly inherited, applies only to compilations of classes
+        bool isInheritanceEstablished();
+        // Called after registering class methods, fields and constructors
+        void inheritFieldsAndMethods();
 
         // ---------------------------------------------------------------------
         // Interface if symbol table is an interface table
         InterfaceMethodTable* getAnInterfaceMethod(const std::string& methodSignature);
-        void registerAnInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table);
+        void registerInterfaceMethods();
         bool checkForInterfaceMethodPresence(const std::string& methodSignature);
 
         // ---------------------------------------------------------------------

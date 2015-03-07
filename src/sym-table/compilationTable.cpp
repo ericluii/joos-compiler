@@ -19,7 +19,7 @@
 #include "error.h"
 
 CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit) : package(package),
-                symTable(NULL), filename(filename), unit(unit), compilationsInPackage(NULL) {}
+                symTable(NULL), filename(filename), unit(unit), established(false), compilationsInPackage(NULL) {}
 
 CompilationTable::~CompilationTable() {
     delete symTable;
@@ -140,40 +140,85 @@ void CompilationTable::registerAField(const std::string& field, FieldTable* tabl
     }
 }
 
-void CompilationTable::registerAClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
+void CompilationTable::registerClassMethodsAndConstructors() {
     // called after the hierarchy checking stage
     // assume that the hierarchy checking stage has checked for duplicate methods
-    classMethods[methodSignature] = table;
-}
+    SymbolTable* table = symTable;
+    if(table != NULL) {
+        // a type was defined
+        // precautionary check that the symbol table is indeed a class table
+        assert(symTable->isClassTable());
+        table = table->getNextTable();
+        while(table != NULL) {
+            if(table->isClassMethodTable()) {
+                ClassMethodTable* methodTable = (ClassMethodTable*) table;
+                classMethods[methodTable->getClassMethod()->getMethodHeader()->methodSignatureAsString()] = methodTable;
+            } else if(table->isConstructorTable()) {
+                ConstructorTable* ctorTable = (ConstructorTable*) table;
+                constructors[ctorTable->getConstructor()->constructorSignatureAsString()] = ctorTable;
+            }
 
-void CompilationTable::registerAConstructor(const std::string& ctorSignature, ConstructorTable* table) {
-    // assumptions hold the same way as registerAClassMethod
-    constructors[ctorSignature] = table;
+            table = table->getNextTable();
+        }
+    }
 }
 
 bool CompilationTable::checkForFieldPresence(const std::string& field) {
     assert(symTable->isClassTable());
-    return fields[field];
+    return fields.count(field);
 }
 
 bool CompilationTable::checkForClassMethodPresence(const std::string& methodSignature) {
     assert(symTable->isClassTable());
-    return classMethods.count(methodSignature) == 1;
+    return classMethods.count(methodSignature);
 }
 
 bool CompilationTable::checkForConstructorPresence(const std::string& constructorSignature) {
     assert(symTable->isClassTable());
-    return constructors.count(constructorSignature) == 1;
+    return constructors.count(constructorSignature);
 }
 
 // To be called after hierarchy checking
-void registerInheritedField(const std::string& field, FieldTable* table) {
+void CompilationTable::registerInheritedField(const std::string& field, FieldTable* table) {
+    if(fields.count(field) == 0) {
+        // is not overriden
+        fields[field] = table;
+    }
 }
 
-void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
+void CompilationTable::registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
+    if(classMethods.count(methodSignature) == 0) {
+        // is not overriden
+        classMethods[methodSignature] = table;
+    }
 }
 
-void inheritFieldsAndMethods(CompilationTable* child, CompilationTable* parent) {
+bool CompilationTable::isInheritanceEstablished() {
+    // precautionary check that this is called for a class table
+    assert(symTable->isClassTable());
+    return established;
+}
+
+void CompilationTable::inheritFieldsAndMethods() {
+    // precautionary check that the symbol table is indeed a class table
+    assert(symTable->isClassTable());
+    std::map<std::string, FieldTable*>::iterator fieldIt;
+    std::map<std::string, ClassMethodTable*>::iterator methodIt;
+    CompilationTable* parent = ((ClassTable*) symTable)->getClass()->getSuper()->getSuperClassTable();
+    if(parent != NULL) {
+        // if there was actually a superclass inherited
+        // only case there is none is for java.lang.Object
+        for(fieldIt = parent->fields.begin(); fieldIt != parent->fields.end(); fieldIt++) {
+            registerInheritedField(fieldIt->second->getField()->getFieldDeclared()->getIdAsString(), fieldIt->second);
+        }
+
+        for(methodIt = parent->classMethods.begin(); methodIt != parent->classMethods.end(); methodIt++) {
+            registerInheritedClassMethod(methodIt->second->getClassMethod()->getMethodHeader()->methodSignatureAsString(),
+                                         methodIt->second);
+        }
+    }
+    // indicate that inheritance have been properly done
+    established = true;
 }
 
 // ---------------------------------------------------------------------
@@ -183,14 +228,24 @@ InterfaceMethodTable* CompilationTable::getAnInterfaceMethod(const std::string& 
     return interfaceMethods[methodSignature];
 }
 
-void CompilationTable::registerAnInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table) {
-    // assumptions hold the same way as registerAClassMethod
-    interfaceMethods[methodSignature] = table;
+void CompilationTable::registerInterfaceMethods() {
+    // assumptions hold the same way as registerClassMethodsAndConstructor
+    if(symTable != NULL) {
+        // a type was defined
+        // precautionary check that the symbol table is indeed an interface table
+        assert(symTable->isInterfaceTable());
+        // by default we know the next symbol table must be an InterfaceMethodTable
+        InterfaceMethodTable* methodTable = (InterfaceMethodTable*) symTable->getNextTable();
+        while(methodTable != NULL) {
+            interfaceMethods[methodTable->getInterfaceMethod()->methodSignatureAsString()] = methodTable;
+            methodTable = (InterfaceMethodTable*) methodTable->getNextTable();
+        }
+    }
 }
 
 bool CompilationTable::checkForInterfaceMethodPresence(const std::string& methodSignature) {
     assert(symTable->isInterfaceTable());
-    return interfaceMethods.count(methodSignature) == 1;
+    return interfaceMethods.count(methodSignature);
 }
 
 //----------------------------------------------------------------------

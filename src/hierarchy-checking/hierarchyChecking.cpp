@@ -758,24 +758,52 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
     }
 }
 
+void HierarchyChecking::establishInheritance(CompilationTable* compilation) {
+    if(compilation->isClassSymbolTable() && !compilation->isInheritanceEstablished()) {
+        // if this is a compilation of a class and it's inheritance has
+        // not yet been established, then register the class's own methods and constructors
+        compilation->registerClassMethodsAndConstructors();
+        ClassDecl* aClass = ((ClassTable*) compilation->getSymbolTable())->getClass();
+        if(!aClass->noSuperClass() || aClass->getSuper()->isImplicitlyExtending()) {
+            // if there is a superclass either explicitly extended or implicitly
+            // recursively establish the superclass's constructors and methods first
+            establishInheritance(aClass->getSuper()->getSuperClassTable());
+        }
+        // make sure this class inherits all the methods and fields of its superclass, if any
+        compilation->inheritFieldsAndMethods();
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
+    std::vector<CompilationTable*>::iterator it2;
     for (it = packages.begin(); it != packages.end(); it++) {
-        std::vector<CompilationTable*>::iterator it2;
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
-            
-            classNotImplementClass(*it2);
-            classNotExtendInterface(*it2);
-            classNotExtendFinalClass(*it2);
-            duplicateInterface(*it2);
-            interfaceNotExtendClass(*it2);
-            noDuplicateSignature(*it2);
-            OverrideChecks(*it2);
-            checkMethodModifiers(*it2);
-            checkForCycles(*it2);
+            if((*it2)->aTypeWasDefined()) {
+                // only do the checks if a type was defined
+                classNotImplementClass(*it2);
+                classNotExtendInterface(*it2);
+                classNotExtendFinalClass(*it2);
+                duplicateInterface(*it2);
+                interfaceNotExtendClass(*it2);
+                noDuplicateSignature(*it2);
+                OverrideChecks(*it2);
+                checkMethodModifiers(*it2);
+                checkForCycles(*it2);
+            }
 
             if (Error::count() > 0) { return; }
+        }
+    }
+
+    // checks have been done and no error, establish inheritance
+    for (it = packages.begin(); it != packages.end(); it++) {
+        for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+            if((*it2)->aTypeWasDefined()) {
+                // if a type was defined
+                establishInheritance(*it2);
+            }
         }
     }
 }
