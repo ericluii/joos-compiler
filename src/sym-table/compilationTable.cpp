@@ -10,16 +10,18 @@
 #include "interfaceMethod.h"
 #include "localDecl.h"
 #include "fieldDecl.h"
+#include "paramList.h"
 
 #include "classTable.h"
 #include "fieldTable.h"
+#include "paramTable.h"
 #include "interfaceTable.h"
 #include "classDecl.h"
 #include "interfaceDecl.h"
 #include "error.h"
 
 CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit) : package(package),
-                symTable(NULL), filename(filename), unit(unit), established(false), compilationsInPackage(NULL) {}
+                symTable(NULL), filename(filename), unit(unit), extendFromObject(NULL), established(false), compilationsInPackage(NULL) {}
 
 CompilationTable::~CompilationTable() {
     delete symTable;
@@ -35,6 +37,10 @@ std::string CompilationTable::getPackageName() {
     }
     // default package name
     return "";
+}
+
+PackageDecl* CompilationTable::getPackageRawForm() {
+    return package;
 }
 
 std::string CompilationTable::getClassOrInterfaceName() {
@@ -113,17 +119,29 @@ void CompilationTable::checkForConflictingCanonicalName() {
 
 FieldTable* CompilationTable::getAField(const std::string& field) {
     assert(symTable->isClassTable());
-    return fields[field];
+    if(fields.count(field) == 1) {
+        return fields[field];
+    }
+    // field does not exist
+    return NULL;
  }
 
 ClassMethodTable* CompilationTable::getAClassMethod(const std::string& methodSignature) {
     assert(symTable->isClassTable());
-    return classMethods[methodSignature];
+    if(classMethods.count(methodSignature) == 1) {
+        return classMethods[methodSignature];
+    }
+    // method does not exist
+    return NULL;
 }
 
 ConstructorTable* CompilationTable::getAConstructor(const std::string& constructorSignature) {
     assert(symTable->isClassTable());
-    return constructors[constructorSignature];
+    if(constructors.count(constructorSignature)) {
+        return constructors[constructorSignature];
+    }
+    // constructor does not exist
+    return NULL;
 }
 
 void CompilationTable::registerAField(const std::string& field, FieldTable* table) {
@@ -163,21 +181,6 @@ void CompilationTable::registerClassMethodsAndConstructors() {
     }
 }
 
-bool CompilationTable::checkForFieldPresence(const std::string& field) {
-    assert(symTable->isClassTable());
-    return fields.count(field);
-}
-
-bool CompilationTable::checkForClassMethodPresence(const std::string& methodSignature) {
-    assert(symTable->isClassTable());
-    return classMethods.count(methodSignature);
-}
-
-bool CompilationTable::checkForConstructorPresence(const std::string& constructorSignature) {
-    assert(symTable->isClassTable());
-    return constructors.count(constructorSignature);
-}
-
 // To be called after hierarchy checking
 void CompilationTable::registerInheritedField(const std::string& field, FieldTable* table) {
     if(fields.count(field) == 0) {
@@ -193,13 +196,19 @@ void CompilationTable::registerInheritedClassMethod(const std::string& methodSig
     }
 }
 
+void CompilationTable::registerInheritedInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table) {
+    if(interfaceMethods.count(methodSignature) == 0) {
+        // is not overriden
+        interfaceMethods[methodSignature] = table;
+    }
+}
+
 bool CompilationTable::isInheritanceEstablished() {
     // precautionary check that this is called for a class table
-    assert(symTable->isClassTable());
     return established;
 }
 
-void CompilationTable::inheritFieldsAndMethods() {
+void CompilationTable::inheritClassFieldsAndMethods() {
     // precautionary check that the symbol table is indeed a class table
     assert(symTable->isClassTable());
     std::map<std::string, FieldTable*>::iterator fieldIt;
@@ -221,11 +230,42 @@ void CompilationTable::inheritFieldsAndMethods() {
     established = true;
 }
 
+void CompilationTable::inheritInterfaceMethods(CompilationTable* object) {
+    // precautionary check that the symbol table is indeed an interface table
+    assert(!symTable->isClassTable());
+    std::map<std::string, InterfaceMethodTable*>::iterator methodIt;
+    InterfaceDecl* anInterface = ((InterfaceTable*) symTable)->getInterface();
+    if(!anInterface->noExtendedInterfaces()) {
+        Interfaces* extended = anInterface->getExtendedInterfaces()->getListOfInterfaces();
+        while(extended != NULL) {
+            CompilationTable* parent = extended->getImplOrExtInterfaceTable();
+            for(methodIt = parent->interfaceMethods.begin(); methodIt != parent->interfaceMethods.end(); methodIt++) {
+                registerInheritedInterfaceMethod(methodIt->second->getInterfaceMethod()->methodSignatureAsString(),
+                                        methodIt->second);
+            }
+        }
+    }
+    // automatically make interface inherit from object
+    extendFromObject = object;
+    established = true;
+}
+
 // ---------------------------------------------------------------------
 // Interface if symbol table is an interface table
 InterfaceMethodTable* CompilationTable::getAnInterfaceMethod(const std::string& methodSignature) {
     assert(symTable->isInterfaceTable());
-    return interfaceMethods[methodSignature];
+    if(interfaceMethods.count(methodSignature) == 1) {
+        return interfaceMethods[methodSignature];
+    }
+    return NULL;
+}
+
+ClassMethodTable* CompilationTable::getAnInterfaceMethodFromObject(const std::string& methodSignature) {
+    assert(symTable->isInterfaceTable());
+    // make sure this is called only when the method can't be found
+    // from the interface itself
+    assert(interfaceMethods.count(methodSignature) == 0);
+    return extendFromObject->getAClassMethod(methodSignature);
 }
 
 void CompilationTable::registerInterfaceMethods() {
@@ -241,11 +281,6 @@ void CompilationTable::registerInterfaceMethods() {
             methodTable = (InterfaceMethodTable*) methodTable->getNextTable();
         }
     }
-}
-
-bool CompilationTable::checkForInterfaceMethodPresence(const std::string& methodSignature) {
-    assert(symTable->isInterfaceTable());
-    return interfaceMethods.count(methodSignature);
 }
 
 //----------------------------------------------------------------------
@@ -268,24 +303,11 @@ void CompilationTable::reportLocalError(const std::string& conflict, const std::
     Error(E_SYMTABLE, currToken, ss.str());
 }
 
-void CompilationTable::registerFormalParameters(ParamList* params, std::map<std::string, Token*>& localVars) {
-    while(params != NULL) {
-        std::string var = params->getParameterId()->getIdAsString();
-        if(localVars.count(var) == 0) {
-            // variable is not in the set
-            localVars[var] = params->getParameterId()->getToken();
-        } else {
-            // switched the prevToken and currToken around due to the way
-            // we're traversing the AST tree here
-            reportLocalError("Formal parameter", var, params->getParameterId()->getToken(), localVars[var]);
-        }
-        params = params->getNextParameter();
-    }
-}
-
 void CompilationTable::iterateThroughTable(SymbolTable* table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
     while(table != NULL) {
-        if(table->isLocalTable()) {
+        if(table->isParamTable()) {
+            checkParamTable(*((ParamTable*) table), blockScopes);
+        } else if(table->isLocalTable()) {
             checkLocalTable(*((LocalTable*) table), blockScopes);
         } else if(table->isNestedBlockTable()) {
             checkNestedBlockTable(*((NestedBlockTable*) table), blockScopes);
@@ -295,6 +317,23 @@ void CompilationTable::iterateThroughTable(SymbolTable* table, std::vector<std::
         }
         table = table->getNextTable();
     }
+}
+
+void CompilationTable::checkParamTable(ParamTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
+    Identifier* id = table.getParameter()->getParameterId();
+    std::string param = id->getIdAsString();
+
+    for(unsigned int i = 0; i < blockScopes.size(); i++) {
+        if(blockScopes[i]->count(param) == 1) {
+            // parameter is found
+            reportLocalError("Formal parameter", param, (*blockScopes[i])[param], id->getToken());
+            return;
+        }
+    }
+
+    // always add to the last mapping since this variable
+    // in the currently inspected block
+    (*blockScopes[blockScopes.size() - 1])[param] = id->getToken();
 }
 
 void CompilationTable::checkLocalTable(LocalTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes) {
@@ -360,15 +399,11 @@ void CompilationTable::checkBodyForOverlappingScope(SymbolTable* body, std::map<
 
 void CompilationTable::checkMethodForOverlappingScope(ClassMethodTable* methodTable) {
     std::map<std::string, Token*> localVars;
-    FormalParamStar* params = methodTable->getClassMethod()->getMethodHeader()->getClassMethodParams();
-    registerFormalParameters(params->getListOfParameters(), localVars);
     checkBodyForOverlappingScope(methodTable->getSymbolTableOfMethod(), localVars);
 }
 
 void CompilationTable::checkConstructorForOverlappingScope(ConstructorTable* constructorTable) {
     std::map<std::string, Token*> localVars;
-    FormalParamStar* params = constructorTable->getConstructor()->getConstructorParameters();
-    registerFormalParameters(params->getListOfParameters(), localVars);
     checkBodyForOverlappingScope(constructorTable->getSymbolTableOfConstructor(), localVars);
 }
 

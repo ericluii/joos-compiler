@@ -11,7 +11,7 @@ class PrimaryNewArray : public Primary {
         Type* type;
         Expression* dimensionExpr;
     public:
-        PrimaryNewArray(Type* type, Expression* dimensionExpr) : type(type), dimensionExpr(dimensionExpr) {}
+        PrimaryNewArray(Type* type, Expression* dimensionExpr) : Primary(), type(type), dimensionExpr(dimensionExpr) {}
         virtual ~PrimaryNewArray() {
             delete type;
             delete dimensionExpr;

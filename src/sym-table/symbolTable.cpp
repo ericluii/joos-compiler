@@ -20,6 +20,7 @@ bool SymbolTable::isConstructorTable() { return tableType == STT_CONSTRUCTOR; }
 bool SymbolTable::isNestedBlockTable() { return tableType == STT_NESTEDBLOCK; }
 bool SymbolTable::isForTable() { return tableType == STT_FOR; }
 bool SymbolTable::isLocalTable() { return tableType == STT_LOCAL; }
+bool SymbolTable::isParamTable() { return tableType == STT_PARAM; }
 SYMBOL_TABLE_TYPE SymbolTable::getTableType() { return tableType; }
 
 bool SymbolTable::isTopMostEntry() { return prevTable == NULL; }

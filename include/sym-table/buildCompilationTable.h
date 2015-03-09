@@ -8,10 +8,10 @@
 #include "interfaceTable.h"
 #include "nestedBlockTable.h"
 #include "classMethodTable.h"
-#include "compilationTable.h"
 #include "fieldTable.h"
 #include "interfaceMethodTable.h"
 #include "localTable.h"
+#include "paramTable.h"
 #include "compilationTable.h"
 // Base classes
 #include "typeDecl.h"
@@ -23,6 +23,9 @@
 #include "classBodyStar.h"
 #include "fieldDecl.h"
 #include "classMethod.h"
+#include "methodHeader.h"
+#include "formalParamStar.h"
+#include "paramList.h"
 #include "methodBody.h"
 #include "blockStmtsStar.h"
 #include "forStmt.h"
@@ -53,6 +56,9 @@ class BuildCompilationTable {
         void build(ClassBodyStar& node);
         void build(FieldDecl& node);
         void build(ClassMethod& node);
+        void build(MethodHeader& node);
+        void build(FormalParamStar& node);
+        void build(ParamList& node);
         void build(MethodBody& node);
         void build(BlockStmtsStar& node);
         void build(ForStmt& node);

@@ -13,6 +13,7 @@
 #include "buildCompilationTable.h"
 #include "typeLinker.h"
 #include "hierarchyChecking.h"
+#include "packagesManager.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -164,7 +165,7 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
             /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
-            }*/
+            }*/ 
             
             registerPackages(packagesCompilations, compilationTables[filename]);
         }
@@ -177,6 +178,8 @@ int main(int argc, char *argv[])
 
         HierarchyChecking(packagesCompilations).check();
         CHECK_ERROR();
+
+        PackagesManager pkgManager(packagesCompilations);
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;

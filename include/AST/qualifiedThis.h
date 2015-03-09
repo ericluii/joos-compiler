@@ -11,7 +11,7 @@ class QualifiedThis : public Primary {
         Name* className;
         CompilationTable* qualifyingTable;
     public:
-        QualifiedThis(Name* className) : className(className), qualifyingTable(NULL) {}
+        QualifiedThis(Name* className) : Primary(), className(className), qualifyingTable(NULL) {}
         ~QualifiedThis() {
             delete className;
         }

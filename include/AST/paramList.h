@@ -5,14 +5,17 @@
 #include "type.h"
 #include "identifier.h"
 
+class ParamTable;
+
 class ParamList : public Ast {
     // Rule: FORMAL_PARAM and FORMAL_PARAM_LIST
     private:
         Type* paramType;
         Identifier* paramId;
         ParamList* nextParam;
+        ParamTable* table;
     public:
-        ParamList(Type* paramType, Identifier* paramId) : paramType(paramType), paramId(paramId), nextParam(NULL) {}
+        ParamList(Type* paramType, Identifier* paramId) : paramType(paramType), paramId(paramId), nextParam(NULL), table(NULL) {}
         ~ParamList() {
             delete paramType;
             delete paramId;
@@ -35,6 +38,9 @@ class ParamList : public Ast {
 
             return res + paramType->getTypeAsString();
         }
+
+        void setParamTable(ParamTable* set) { table = set; }
+        ParamTable* getParamTable() { return table; }
 };
 
 #endif

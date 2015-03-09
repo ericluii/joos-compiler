@@ -14,7 +14,7 @@ class NewClassCreation : public Primary {
         ArgumentsStar* args;
         CompilationTable* classCreatedTable;
     public:
-        NewClassCreation(Name* classType, ArgumentsStar* args) : classType(classType), args(args),
+        NewClassCreation(Name* classType, ArgumentsStar* args) : Primary(), classType(classType), args(args),
                         classCreatedTable(NULL) {}
         ~NewClassCreation() {
             delete classType;

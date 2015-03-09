@@ -8,7 +8,7 @@ class MethodInvoke : public Primary {
     protected:
         ArgumentsStar* args;
     public:
-        MethodInvoke(ArgumentsStar* args) : args(args) {}
+        MethodInvoke(ArgumentsStar* args) : Primary(), args(args) {}
         virtual ~MethodInvoke() {
             delete args;
         }

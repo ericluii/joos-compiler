@@ -131,10 +131,31 @@ void BuildCompilationTable::build(ClassMethod& node) {
     curSymTable = table;
     // temporary store
     SymbolTable* tempTable = curSymTable;
+    build(*node.getMethodHeader());
     build(*node.getMethodBody());
     
     node.setClassMethodTable(table);
     curSymTable = tempTable;
+}
+
+void BuildCompilationTable::build(MethodHeader& node) {
+    build(*node.getClassMethodParams());
+}
+
+void BuildCompilationTable::build(FormalParamStar& node) {
+    if(!node.isEpsilon()) {
+        build(*node.getListOfParameters());
+    }
+}
+
+void BuildCompilationTable::build(ParamList& node) {
+    if(!node.isLastParameter()) {
+        build(*node.getNextParameter());
+    }
+
+    ParamTable* table = new ParamTable(&node);
+    node.setParamTable(table);
+    attachSymbolTable(table);
 }
 
 void BuildCompilationTable::build(LocalDecl& node) {
@@ -204,6 +225,7 @@ void BuildCompilationTable::build(Constructor& node) {
     curSymTable = table;
     // temporary store
     SymbolTable* tempTable = curSymTable;
+    build(*node.getConstructorParameters());
     build(*node.getConstructorBody());
     
     node.setConstructorTable(table);
@@ -230,7 +252,9 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
     if(!node.isLastMethod()) {
         build(*node.getNextInterfaceMethod());
     }
-    
+   
+    // note that the parameter list for interface methods
+    // do not have a symbol table because there's really no point in having them
     InterfaceMethodTable* table = new InterfaceMethodTable(&node);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);

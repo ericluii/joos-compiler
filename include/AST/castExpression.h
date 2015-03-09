@@ -7,7 +7,7 @@ class CastExpression : public Expression {
     protected:
         Expression* toCast;
     public:
-        CastExpression(Expression* toCast) : toCast(toCast) {}
+        CastExpression(Expression* toCast) : Expression(), toCast(toCast) {}
         virtual ~CastExpression() {
             delete toCast;
         }
