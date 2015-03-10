@@ -38,6 +38,8 @@ class ArrayAccess;
 class ArrayAccessName;
 class ArrayAccessPrimary;
 class CastExpression;
+class CastName;
+class CastPrimitive;
 
 class Token;
 
@@ -74,6 +76,8 @@ class AmbiguousLinker {
         void traverseAndLink(ArrayAccessPrimary* access, bool withinMethod);
         void traverseAndLink(AssignArray* assign, bool withinMethod);
         void traverseAndLink(CastExpression* cast, bool withinMethod);
+        void traverseAndLink(CastName* cast, bool withinMethod);
+        void traverseAndLink(CastPrimitive* cast);
 
         // ------------------------------------------------------------------
         // Interface part
@@ -91,17 +95,18 @@ class AmbiguousLinker {
         // ------------------------------------------------------------------
         // Various helpers
         bool checkProperMemberAccessingFromVariable(const std::string& currName, Type* type, Token* tok);
-        bool checkTypeIsClass(CompilationTable* typeTable, const std::string& fullName, Token* tok);
+        bool checkTypeIsClassDuringStaticAccess(CompilationTable* typeTable, const std::string& fullName, Token* tok);
         FieldTable* findFieldPreviouslyDeclared(const std::string& fieldName);
-        CompilationTable* findTypeFromImportsAndPackage(const std::string& typeName, Token* tok);
-        void linkQualifiedName(Name* name, bool typeChecking);
-        void linkSimpleName(Name* name, bool withinMethod, bool typeChecking);
-        FieldTable* getStaticFieldInAClass(Compilationtable* someClass, const std::string& findField);
+        CompilationTable* findTypeFromSingleImportsAndPackage(const std::string& typeName, Token* tok);
+        void linkQualifiedName(Name* name);
+        void linkSimpleName(Name* name, bool withinMethod);
+        FieldTable* getStaticFieldInAClass(CompilationTable* someClass, const std::string& findField, Token* tok);
         CompilationTable* retrieveCompilation(const std::string& package, const std::string& typeName);
-        void setNameReferringToArrayLength(Name* name, Type* type);
-        void setFieldAccessReferringToArrayLength(Name* name, Type* type);
+        bool setNameReferringToArrayLength(Name* name, Type* type);
+        bool setFieldAccessReferringToArrayLength(FieldAccess* access, Type* type);
         int returnEvalTypeFromTypeNode(Type* type);
         void setExpressionTypeBasedOnType(Expression* expr, Type* type);
+        void checkProperArrayAccessInExpression(Expression* expr, Token* tok);
         void setExpressionTypeBasedOnName(Expression* expr, Name* name);
         Token* setExpressionTypeBasedOnPrimary(Expression* expr, Primary* prim);
     public:

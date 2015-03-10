@@ -32,7 +32,7 @@ class Primary : public Ast {
                     localTable(NULL), ctorTable(NULL), linkTo(ALT_POSTPONED) {}
         virtual ~Primary() {}
 
-        void setReferredClass(CompilationTable* set) { someClass = set; linkTo = ALT_CLASS; }
+        void setReferredClass(CompilationTable* set) { someClass = set; linkTo = ALT_TYPE; }
         void setReferredField(FieldTable* set) { fieldTable = set; linkTo = ALT_FIELD; }
         void setReferredClassMethod(ClassMethodTable* set) { classMethod = set; linkTo = ALT_CLASSMETHOD; }
         void setReferredInterfaceMethod(InterfaceMethodTable* set) { interfaceMethod = set; linkTo = ALT_INTERFACEMETHOD; }
@@ -54,7 +54,7 @@ class Primary : public Ast {
         LocalTable* getReferredLocalVar() { return localTable; }
         ConstructorTable* getReferredConstructor() { return ctorTable; }
 
-        bool isReferringToClass() { return linkTo == ALT_CLASS; }
+        bool isReferringToClass() { return linkTo == ALT_TYPE; }
         bool isReferringToField() { return linkTo == ALT_FIELD; }
         bool isReferringToClassMethod() { return linkTo == ALT_CLASSMETHOD; }
         bool isReferringToInterfaceMethod() { return linkTo == ALT_INTERFACEMETHOD; }

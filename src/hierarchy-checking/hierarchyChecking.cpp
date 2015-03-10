@@ -772,6 +772,7 @@ void HierarchyChecking::establishInheritance(CompilationTable* compilation) {
         // make sure this class inherits all the methods and fields of its superclass, if any
         compilation->inheritClassFieldsAndMethods();
     } else if(!compilation->isClassSymbolTable() && !compilation->isInheritanceEstablished()) {
+        // an interface that has not had it's inheritance established
         compilation->registerInterfaceMethods();
         InterfaceDecl* anInterface = ((InterfaceTable*) compilation->getSymbolTable())->getInterface();
         if(!anInterface->noExtendedInterfaces()) {

@@ -8,7 +8,8 @@ enum AMBIGUOUS_LINK_TYPE {
     ALT_PARAM,
     ALT_CLASSMETHOD,
     ALT_INTERFACEMETHOD,
-    ALT_CLASS,
+    // linked to class/interface directly
+    ALT_TYPE,
     ALT_CTOR,
     ALT_PACKAGE,
     // this link is to some primtive literal

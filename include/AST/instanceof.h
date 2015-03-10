@@ -10,7 +10,7 @@ class InstanceOf : public Expression {
         Expression* expr;
         Type* instanceType;
     public:
-        InstanceOf(Expression* expr, Type* instanceType) : expr(expr), instanceType(instanceType) {}
+        InstanceOf(Expression* expr, Type* instanceType) : Expression(), expr(expr), instanceType(instanceType) {}
         ~InstanceOf() {
             delete expr;
             delete instanceType;

@@ -8,7 +8,7 @@ class PrimaryExpression : public Expression {
     private:
         Primary* expr;
     public:
-        PrimaryExpression(Primary* expr) : expr(expr) {}
+        PrimaryExpression(Primary* expr) : Expression(), expr(expr) {}
         ~PrimaryExpression() {
             delete expr;
         }

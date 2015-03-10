@@ -18,11 +18,9 @@ class Name : public Ast
         Name *nextName;
         Identifier *id;
 
-        // a name is either referring to a class, a field, a local variable, a parameter,
-        // a class method or a package. It is not possible to be referring to an interface since
-        // it has no meaning in Joos, unlike in Java which has interface constants
-        // only one will be set at any time
-        CompilationTable* someClass;
+        // a name is either referring to a type(class/interface), a field, a local variable, a parameter,
+        // a class method or a package.
+        CompilationTable* someType;
         FieldTable* fieldTable;
         ParamTable* paramTable;
         LocalTable* localTable;
@@ -30,7 +28,7 @@ class Name : public Ast
         
         AMBIGUOUS_LINK_TYPE linkTo;
     public:
-        Name(Identifier *id): nextName(NULL), id(id), someClass(NULL), fieldTable(NULL),
+        Name(Identifier *id): nextName(NULL), id(id), someType(NULL), fieldTable(NULL),
                     paramTable(NULL), localTable(NULL), pkg(NULL), linkTo(ALT_POSTPONED) {}
         ~Name() {
             delete id;
@@ -59,7 +57,7 @@ class Name : public Ast
         // ----------------------------------------------------------------
         // Called during disambiguation stage
         
-        void setReferredClass(CompilationTable* set) { someClass = set; linkTo = ALT_CLASS; }
+        void setReferredType(CompilationTable* set) { someType = set; linkTo = ALT_TYPE; }
         void setReferredField(FieldTable* set) { fieldTable = set; linkTo = ALT_FIELD; }
         void setReferredParameter(ParamTable* set) { paramTable = set; linkTo = ALT_PARAM; }
         void setReferredLocalVar(LocalTable* set) { localTable = set; linkTo = ALT_LOCALVAR; }
@@ -67,13 +65,13 @@ class Name : public Ast
         void setReferringToArrayLength() { linkTo = ALT_ARRAYLENGTH; }
 
         // the assumption is that only one will be true at any time
-        bool isReferringToClass() { return linkTo == ALT_CLASS; }
+        bool isReferringToType() { return linkTo == ALT_TYPE; }
         bool isReferringToField() { return linkTo == ALT_FIELD; }
         bool isReferringToParameter() { return linkTo == ALT_PARAM; }
         bool isReferringToLocalVar() { return linkTo == ALT_LOCALVAR; }
         bool isReferringToPackage() { return linkTo == ALT_PACKAGE; }
 
-        CompilationTable* getReferredClass() { return someClass; }
+        CompilationTable* getReferredType() { return someType; }
         FieldTable* getReferredField() { return fieldTable; }
         ParamTable* getReferredParameter() { return paramTable; }
         LocalTable* getReferredLocalVar() { return localTable; }
@@ -81,7 +79,7 @@ class Name : public Ast
 
         // used to check if no linking has been done
         bool postponeLinking() { return linkTo == ALT_POSTPONED; }
-        bool linkToArraylength() { return linkTo == ALT_ARRAYLENGTH; }
+        bool linkToArrayLength() { return linkTo == ALT_ARRAYLENGTH; }
 };
 
 #endif

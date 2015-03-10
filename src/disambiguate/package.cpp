@@ -20,7 +20,7 @@ void Package::insertSubpackage(Package* subpackage) {
 
 bool Package::isPackageNameASubpackage(const std::string& subpackage) {
     for(std::vector<Package*>::iterator it = subpackages.begin(); it != subpackages.end(); it++) {
-        if((*it)->getPackageName() == subpackage) {
+        if((*it)->getPkgNameAsString() == subpackage) {
             return true;
         }
     }
