@@ -150,6 +150,9 @@ class AmbiguousLinker {
         std::string getCorrespongindTypeString(EVALUATED_TYPE type, CompilationTable* table);
         Token* getTokenFromPrimary(Primary* prim);
         void linkNameToFieldFromType(Name* name, ReferenceType* type, const std::string& fieldName);
+        void linkFieldAccessFromType(FieldAccess* access, ReferenceType* type, const std::string& fieldName);
+        void linkFieldAccessFromCompilation(FieldAccess* access, CompilationTable* someClass,
+                    const std::string& fieldName, Token* tok);
     public:
         AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations);
         ~AmbiguousLinker();

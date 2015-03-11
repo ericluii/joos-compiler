@@ -410,7 +410,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) 
     } else if(expr->isAssignField() || expr->isAssignArray() || expr->isAssignName()) {
         linkTypeNames(compilation, (Assignment*) expr);
     } else if(expr->isPrimaryExpression()) {
-        linkTypeNames(compilation, ((PrimaryExpression*) expr)->getPrimaryExpression());
+        linkTypeNames(compilation, (PrimaryExpression*) expr);
     } else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
         linkTypeNames(compilation, (CastExpression*) expr);
     }
@@ -488,6 +488,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* 
     if(linkType == NULL) {
         reportTypeNameLinkError("Creating class '", create->getClassName()->getFullName(),
                                 create->getClassName()->getNameId()->getToken());
+        return;
     }
 
     if(linkType->aTypeWasDefined() && !linkType->isClassSymbolTable()) {
@@ -561,6 +562,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmts* stmts)
     }
     if(stmts->isLocalVarDecl()) {
         linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalType());
+        linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalInitExpr());
     } else if(stmts->isReturnStmt()) {
         linkTypeNames(compilation, ((ReturnStmt*) stmts)->getReturnExpr());
     } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isMethodInvokeStmt()) {

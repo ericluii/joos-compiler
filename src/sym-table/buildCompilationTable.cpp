@@ -198,6 +198,7 @@ void BuildCompilationTable::build(ForStmt& node) {
             localTable = new LocalTable((LocalDecl*) node.getForInit());
             ((ForTable*)curSymTable)->setForInitTable(localTable);
             localTable->setPrevTable(curSymTable);
+            ((LocalDecl*) node.getForInit())->setLocalTable(localTable);
         }
     }
 

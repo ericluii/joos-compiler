@@ -11,7 +11,7 @@ class ReferenceType : public Type {
         Name* referenceType;
         CompilationTable* referenceTable;
     public:
-        ReferenceType(Name* referenceType) : referenceType(referenceType) {referenceTable = NULL;}
+        ReferenceType(Name* referenceType) : referenceType(referenceType), referenceTable(NULL) {}
         ~ReferenceType() {
             delete referenceType;
         }

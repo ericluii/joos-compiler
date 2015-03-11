@@ -14,6 +14,7 @@
 #include "typeLinker.h"
 #include "hierarchyChecking.h"
 #include "packagesManager.h"
+#include "ambiguousLinker.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -165,7 +166,7 @@ int main(int argc, char *argv[])
             CHECK_ERROR();
             /* if(compilationTables[filename]->getSymbolTable() != NULL) {
                 printSymbolTable(compilationTables[filename]->getSymbolTable());
-            }*/ 
+            }*/
             
             registerPackages(packagesCompilations, compilationTables[filename]);
         }
@@ -180,6 +181,9 @@ int main(int argc, char *argv[])
         CHECK_ERROR();
 
         PackagesManager pkgManager(packagesCompilations);
+        AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
+        CHECK_ERROR();
+
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;

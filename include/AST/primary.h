@@ -74,6 +74,8 @@ class Primary : public Ast {
         // QualifiedThis -> resolved already in A2
         // manual checking needs to be done for these entities
         bool resolvedLinkButNoEntity() { return linkTo == ALT_RESOLVEDNOENTITY; }
+
+        AMBIGUOUS_LINK_TYPE getLinkType() { return linkTo; }
 };
 
 #endif
