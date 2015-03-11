@@ -243,6 +243,7 @@ void CompilationTable::inheritInterfaceMethods(CompilationTable* object) {
                 registerInheritedInterfaceMethod(methodIt->second->getInterfaceMethod()->methodSignatureAsString(),
                                         methodIt->second);
             }
+            extended = extended->getNextInterface();
         }
     }
     // automatically make interface inherit from object

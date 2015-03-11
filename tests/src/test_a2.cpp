@@ -126,6 +126,7 @@ void Test_A2::test() {
             HierarchyChecking(packagesCompilations).check();
         }
 
+
         if (a2TestFiles[i][0][1] == 'e') {
             checkTrue("EB-NR-HC: " + a2TestFiles[i][0], Error::count() != 0,
                       "Check that we fail this file", "\n" + fileContent);

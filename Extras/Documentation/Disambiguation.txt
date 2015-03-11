@@ -1,0 +1,37 @@
+This file describes what I (Btara) did for the disambiguation part:
+
+The following are files which have been newly created and changes to old files that are crucial, and their roles:
+
+Files under include/type-checking and src/type-checking
+=======================================================
+
+evaluatedType.h 
+----------------
+This file defines an enum, EVALUATED_TYPE, which represents the different possible types of an expression.
+Descriptions are there and I think the names are self explanatory. A note regarding ET_VOID: ET_VOID as it name stands
+refer to the void return type of a method. That being said, it is only ever possible for an expression to have
+a type voide iff a method of return type void is called. Doing anything with an expression that returns ET_VOID is
+not allowed in Java and Joos 1W, so that's one of the things that can be checked (which I haven't done).
+
+typeString.h and typeString.cpp
+-------------------------------
+For each EVALUATED_TYPE, it corresponds to a string of types. This is really just to ease your experience. Of course
+ET_OBJECT and ET_OBJECTARRAY which respectively represents a class/interface type and a class/interface array type
+need to have it's string manually searched. That's why the getCorrespondingTypeString function takes in a pointer
+to a CompilationTable, it's for the purposes of printing the name of the class/interface type. Hence don't give
+ET_OBJECT/ET_OBJECTARRAY to getCorrespondingTypeString without giving it a proper CompilationTable pointer too.
+
+Files under include/disambiguation and src/disambiguation
+=========================================================
+
+The main bulk of my part are defined here. The file ambiguousLinkType.h is used really for the purposes of my part,
+they don't have to be used later on directly, since they are available via the interfaces I've made. Descriptions
+are there in the file for what the enum AMBIGUOUS_LINK_TYPE is used for. A brief break down is basically it tells
+you what entity a particular Name AST node or Primary AST node links to. For most of the Name and Primary AST node
+they are said to link to some entity, though exceptions are there, later on explained.
+
+Here are explanations regarding some of the AMBIGUOUS_LINK_TYPE values:
+
+- ALT_POSTPONED -> mainly used in my part. The assumption is that if things went well, then aside from the exceptions
+later on pointed out, every Name or Primary AST node SHOULD NOT be linked to ALT_POSTPONED, since it indicates an error
+of not being able to link the name

@@ -43,6 +43,8 @@ class WhileStmt;
 class ForStmt;
 class InterfaceBodyStar;
 class InterfaceMethod;
+class ArgumentsStar;
+class Arguments;
 
 class TypeLinker {
     private:
@@ -82,6 +84,8 @@ class TypeLinker {
         void linkTypeNames(CompilationTable* compilation, PrimaryExpression* primExpr);
         void linkTypeNames(CompilationTable* compilation, Primary* prim);
         void linkTypeNames(CompilationTable* compilation, MethodInvoke* invoke);
+        void linkTypeNames(CompilationTable* compilation, ArgumentsStar* args);
+        void linkTypeNames(CompilationTable* compilation, Arguments* arg);
         void linkTypeNames(CompilationTable* compilation, NewClassCreation* create);
         void linkTypeNames(CompilationTable* compilation, CastExpression* castExpr);
         void linkTypeNames(CompilationTable* compilation, ClassMethod* method);

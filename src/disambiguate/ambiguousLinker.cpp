@@ -758,19 +758,21 @@ void AmbiguousLinker::traverseAndLink(CastExpression* cast) {
         // cast to primitve array
         traverseAndLink((CastPrimitive*) cast);
     }
+    traverseAndLink(cast->getExpressionToCast());
 }
 
 void AmbiguousLinker::traverseAndLink(CastName* cast) {
-    Name* nameToCastTo = cast->getNameToCastTo();
-    traverseAndLink(nameToCastTo);
+    // commented out for now, since technically it's not needed
+    /* traverseAndLink(nameToCastTo);
     // an error in linking name, quietly return
     if(nameToCastTo->postponeLinking()) { return; }
+    */
 
     // name must necesserarily now link to some class/interface
     // due to A2's check
-    setExpressionTypeBasedOnName(cast, nameToCastTo);
+    cast->setExprType(ET_OBJECT, cast->getCastTypeTable());
+
     // precautionary check
-    assert(cast->isExprTypeObject());
     if(cast->isCastToArrayName()) {
         // reconfigure if this is a cast to an array of class
         // or interface
@@ -1548,6 +1550,13 @@ void AmbiguousLinker::setMethodForMethodInvokeFromCompilation(MethodInvoke* invo
         if(method != NULL) {
             invoke->setReferredInterfaceMethod(method);
         } else {
+            // then try from objects
+            ClassMethodTable* objectMethod = someType->getAnInterfaceMethodFromObject(methodSignature);
+            if(objectMethod != NULL) {
+                invoke->setReferredClassMethod(objectMethod);
+                return;
+            }
+            // else error
             ss << "Interface method with signature '" << methodSignature << "' could not be found in interface '"
                << someType->getCanonicalName() << "'.";
             Error(E_DISAMBIGUATION, tok, ss.str());

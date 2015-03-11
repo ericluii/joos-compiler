@@ -24,8 +24,6 @@ enum AMBIGUOUS_LINK_TYPE {
     ALT_ARRAYLENGTH,
     // pointing to NULL, only possible to be set in LiteralOrThis
     ALT_NULL,
-    // pointing to an expression, special case for BracketedExpression
-    ALT_EXPR,
     // indicates that linking has been resolved but no link entity
     // was made, manually check in these cases.
     // Applied in:

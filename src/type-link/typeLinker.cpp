@@ -43,6 +43,8 @@
 #include "forStmt.h"
 #include "interfaceBodyStar.h"
 #include "interfaceMethod.h"
+#include "argumentsStar.h"
+#include "arguments.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -481,6 +483,21 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodInvoke* invo
     if(invoke->isAccessedMethodCall()) {
         linkTypeNames(compilation, ((InvokeAccessedMethod*) invoke)->getAccessedMethod());
     }
+    linkTypeNames(compilation, invoke->getArgsForInvokedMethod());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ArgumentsStar* args) {
+    if(!args->isEpsilon()) {
+        linkTypeNames(compilation, args->getListOfArguments());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Arguments* arg) {
+    if(!arg->lastArgument()) {
+        linkTypeNames(compilation, arg->getNextArgs());
+    }
+
+    linkTypeNames(compilation, arg->getSelfArgumentExpr());
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* create) {
@@ -509,6 +526,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* ca
         if(linkType == NULL) {
             reportTypeNameLinkError("Casting to '", castName->getTypeToCastAsString(),
                                     castTo->getNameId()->getToken());
+            return;
         }
 
         castName->setCastTypeTable(linkType);
