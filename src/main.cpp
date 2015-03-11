@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     try {
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
-            if(filename.find_last_of(".java") == std::string::npos) {
+            if(filename.find(".java") == std::string::npos) {
                 std::stringstream ss;
                 ss << "File '" << filename << "' must end with .java extension.";
                 Error(E_DEFAULT, NULL, ss.str());
