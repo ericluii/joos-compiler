@@ -21,6 +21,31 @@ need to have it's string manually searched. That's why the getCorrespondingTypeS
 to a CompilationTable, it's for the purposes of printing the name of the class/interface type. Hence don't give
 ET_OBJECT/ET_OBJECTARRAY to getCorrespondingTypeString without giving it a proper CompilationTable pointer too.
 
+Aside from Expression AST nodes that have an EVALUATED_TYPE, and if it's an ET_OBJECT or ET_OBJECTARRAY it also
+has a compilation table to the class/interface the sxpression evaluates to, the ArrayAccess AST node also has
+an EVALUATED_TYPE the same way an Expression AST node has one. Details are there in arrayAccess.h but basically
+the type represents the type of each of the AST elements i.e an ArrayAccess AST node that represents
+(new int[4])[3] has as it's EVALUATED_TYPE and int, because it's accessing an array of ints. I think you get the gist
+of it
+
+Here is the break down of how the types of Expressions are currently evaluated and thus stored in the Expression AST node
+(though not checked for correctness):
+- All arithmetic expressions by default has as it's type ET_INT
+- For the arithmetic operation +, if any of it's operands is of type ET_OBJECT that refers to the class java.lang.String
+then the whole expression is of type ET_OBJECT referring to the class java.lang.String. Otherwise it's type is ET_INT
+- An expression that represents a numeric negation is always of type ET_INT
+- An expression that represents a boolean negation is always of type ET_BOOLEAN
+- An expression that is represented by a Name, i.e NameExpression, has as it's type the type of the entity that the
+Name refers to
+- An expression that is represented by a Primary, i.e PrimaryExpression, has as it's type the type of the entity
+that the Primary refers to
+- An Assignment expression has as it's type the type of the entity that it's left-hand side refers to. In the case when
+the left hand side refers to an array length (described below), then the expression's type is ET_INT. Presumably this should be an error,
+but for now I leave it as a possibility because I'm not sure whether it should be an error or not. If you want me to change
+it to an error tell me.
+- In an expression that represents a cast i.e CastExpression, then the type of the expression is the type of the cast.
+- An instanceof expression is always of type ET_BOOLEAN
+
 Files under include/disambiguation and src/disambiguation
 =========================================================
 
@@ -34,4 +59,101 @@ Here are explanations regarding some of the AMBIGUOUS_LINK_TYPE values:
 
 - ALT_POSTPONED -> mainly used in my part. The assumption is that if things went well, then aside from the exceptions
 later on pointed out, every Name or Primary AST node SHOULD NOT be linked to ALT_POSTPONED, since it indicates an error
-of not being able to link the name
+of not being able to link the name to something
+
+- ALT_TYPE -> denotes that the Name or Primary AST node refers to some class/interface. For such a Name or Primary node,
+there is a corresponding CompilationTable pointer to the entity it refers to. In addition in the case
+of Name AST node, ALT_TYPE means that the current name is of the form pkg.ClassName or pkg.InterfaceName, where
+pkg is the name of a package and may appear zero or more times. In the case of Primary AST node an ALT_TYPE denotes
+that the Primary AST node is actually a LiteralOrThis AST node that either represents:
+- a string literal, which then means the corresponding CompilationTable refers to java.lang.String
+- or this, which then means the corresponding CompilationTable refers to the current class
+
+- ALT_ARRAYLENGTH -> Though array method calls are not possible i.e int[] x; x.toString();, asking for array length is
+possible, i.e x.length. ALT_ARRAYLENGTH refers to this call. The length of an array is of type int and in Java it is
+final. Presumably then in Joos 1W we are not allowed to then assign to the length of an array since it goes against
+what Java will do. Since we do not have a class that refers to the class of an array, a name that links to the length
+of an array do not realy have a FieldTable, but hey it's not needed anyway since you know what an array length is supposed
+to be.
+
+- ALT_NULL -> refers to when there is a null literal. Thus the only time an AST node, more precisely a Primary AST node
+links to ALT_NULL is when it is a LiteralOrThis representing null
+
+- ALT_RESOLVEDNOENTITY -> this value indicates that the AST node has been resolved i.e it's not ALT_POSTPONED, but
+it just doesn't have something to refer to. This applies to the AST nodes BracketedExpression, QualifiedThis and ArrayAccess.
+The rationale is that a BracketedExpression and ArrayAccess really doesn't have anything that it links to, if anything
+ArrayAccess at most links to the element inside the array... but there's not way to represent this right now. QualifiedThis
+i.e something of the form ClassName.this, is really just referring to the current class being looked at (which by the way
+the CompilationtTable can be grabbed from the QualifiedThis AST node itself), so there really is no reason to link it since
+we know what it links to by default.
+
+
+Exceptions to some Name and Primary AST nodes
+=============================================
+
+Aside from the ones I'm going to list all other Name and Primary AST nodes link to some entity if the disambiguation stage
+is successful (runs without error):
+- The whole Name tree of the Name in a CastName: The rationale is that this part has been resolved in A2. If you see in castName.h,
+CastName has the CompilationTable of the entity (whether it's a cast to an array of class/interface or just a cast to a class/interface)
+to which the expression is being casted to. Note that the whole tree of the Name in a CastName is not linked to any entity.
+
+- The Name in a MethodNormalInvoke: The rationale is that the name of the method(the right most part of the name if it's a
+qualified name, or in the AST node structure, the top most Name), is already embedded as part of the MethodNormalInvoke node.
+Thus there is no need to link it to any entity because MethodNormalInvoke itself is going to be linked to some entity. Unlike
+the Name in a CastName, only the top-most Name node is not linked to any entity, the rest are.
+
+- The FieldAcccess in an InvokeAccessedMethod: The rationale is the same as that of the Name in a MethodNormalInvoke. Again the
+FieldAccess in the InvokeAccessedMethod node itself is not linked, but the Primary node of the FieldAccess is linked to some entity.
+
+- The whole Name tree of the Name in a NewClassCreation: By the end of A2 we know that if the type linking stage was successfully done
+then any NewClassCreation actually has it's Name part refer to an actual type given in the command line, so there's no reason to try to
+link it anymore. That is why there is a CompilationTable in the NewClassCreation AST node. The NewClassCreation node itself however
+is linked to a constructor of that class being created, given that the constructor can be found.
+
+What should you not expect assuming my part is fool proof?
+==========================================================
+
+Here are things that you should not expect from my part:
+- That static members are accessed in a static manner i.e of the form ClassName.MemberName. This includes fields and methods
+- Similarly that non-static members are not accessed in a static manner
+- That operands of an operation are actually of the correct type for that operation
+- That instance fields are never accessed in a static context
+- No bitwise operations occur i.e one of the operands for the | or & operation is an integer
+- That abstract objects are never instantiated
+- That the this variable is not seen in a static method or initializer of a static field
+- Correct public/protected member and/or constructor accesses
+- Assignment rules of Joos 1W are properly adhered
+- That the 
+
+Basically things that conform to Java's type rules and whether they hold for the program you should not expect being checked
+by my part
+
+What can you expect assuming my part is fool proof?
+===================================================
+
+Here are the things that you can expect from my part:
+- That every Name or Primary AST nodes link to some entity, except for the above exceptions, and that they link to the correct
+entities. This include methods
+- Expressions have the correct types according to the operations or entities it refers to (in the case of NameExpression
+and PrimaryExpression), assuming everything are OK (by this I mean the checks listed in the previous section)
+
+Miscellaneous classes
+=====================
+
+The classes defined in package.h and packagesManager.h are something that I added for the purpose of finding packages through
+a Name AST node. Basically it emulates the structure of Java's packages and subpackages. For example:
+
+java
+ |___lang
+      |___Object
+      |___String
+      |___etc.
+
+You can expect it to have logically that format. It's not too much code, so I believe you guys can understand it pretty easily.
+An instance of PackagesManager is right now in the main function and I used it personally because it was helpful for one of my parts,
+but feel free to not use it if you don't want to. It's not 100% needed.
+
+Closing off
+===========
+Further details are laid out in name.h, primary.h, ambiguousLinker.h, ambiguousLinkType.h, evaluatedType.h
+and of course ambiguousLinker.cpp, the implementation of the AmbiguousLinker class.

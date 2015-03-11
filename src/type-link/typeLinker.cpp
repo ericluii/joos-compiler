@@ -514,6 +514,9 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* 
         Error(E_TYPELINKING, create->getClassName()->getNameId()->getToken(), ss.str());
     }
     create->setTableOfCreatedClass(linkType);
+
+    // attempt to link arguments
+    linkTypeNames(compilation, create->getArgsToCreateClass());
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* castExpr) {
