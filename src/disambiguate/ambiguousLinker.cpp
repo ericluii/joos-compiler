@@ -162,13 +162,10 @@ void AmbiguousLinker::traverseAndLink(Expression* expr) {
         // or it is a type to some class/interface
         expr->setExprType(ET_BOOLEAN);
     } else if(expr->isNameExpression()) {
-        std::cout << "Name expression" << std::endl;
         Name* name = ((NameExpression*) expr)->getNameExpression();
-        std::cout << name << std::endl;
         traverseAndLink(name);
         setExpressionTypeBasedOnName(expr, name);
     } else if(expr->isPrimaryExpression()) {
-        std::cout << "Primary expression" << std::endl;
         Primary* prim = ((PrimaryExpression*) expr)->getPrimaryExpression();
         traverseAndLink(prim);
         setExpressionTypeBasedOnPrimary(expr, prim);
@@ -384,7 +381,6 @@ void AmbiguousLinker::traverseAndLink(Primary* prim) {
 }
 
 void AmbiguousLinker::traverseAndLink(LiteralOrThis* lit) {
-    std::vector<CompilationTable*>::iterator it;
     if(lit->isThis()) {
         lit->setReferredClass(curCompilation);
     } else if(lit->isStringLiteral()) {
@@ -1682,7 +1678,6 @@ void AmbiguousLinker::performLinking() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;
         for(it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-            std::cout << (*it2)->getCanonicalName() << std::endl;
             traverseAndLink(*it2);
         }
     }

@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
             delete newParseTrees;
             newParseTrees = NULL;
 
-            // AstPrinter::print(*completeASTs[filename]);
+            AstPrinter::print(*completeASTs[filename]);
             compilationTables[filename] = compilationBuilder.build(*completeASTs[filename], filename);
             CHECK_ERROR();
 
