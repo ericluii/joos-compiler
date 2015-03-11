@@ -67,7 +67,7 @@ class AmbiguousLinker {
         CompilationTable* curCompilation;
         // indicates if linking happens in static context
         // which really is only in an initializer of a static field in this case
-        bool isStaticContext;
+        bool asgmtFieldContext;
         // indicates if linking happens in a class method
         bool withinMethod;
 
@@ -128,7 +128,7 @@ class AmbiguousLinker {
         // Various helpers
         bool checkProperMemberAccessingFromVariable(const std::string& currName, Type* type, Token* tok);
         bool checkTypeIsClassDuringStaticAccess(CompilationTable* typeTable, const std::string& fullName, Token* tok);
-        FieldTable* findFieldPreviouslyDeclared(const std::string& fieldName);
+        FieldTable* findFieldDeclaredInClass(const std::string& fieldName, bool previous);
         CompilationTable* findTypeFromSingleImportsAndPackage(const std::string& typeName, Token* tok);
         void linkQualifiedName(Name* name);
         void linkSimpleName(Name* name);

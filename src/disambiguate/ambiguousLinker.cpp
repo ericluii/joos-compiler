@@ -65,7 +65,8 @@
 #include "interfaceDecl.h"
 
 AmbiguousLinker::AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations) :
-   manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL), isStaticContext(false), withinMethod(false) {}
+   manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL), 
+   asgmtFieldContext(false), withinMethod(false) {}
 
 AmbiguousLinker::~AmbiguousLinker() {}
 
@@ -105,12 +106,9 @@ void AmbiguousLinker::traverseAndLink(ClassBodyDecls* body) {
 
 void AmbiguousLinker::traverseAndLink(FieldDecl* field) {
     if(field->isInitialized()) {
-        isStaticContext = field->isStatic();
         traverseAndLink(field->getInitializingExpression());
-        // reset
-        isStaticContext = false;
     }
-    // update the symbol table
+    // update symbol table
     curSymTable = field->getFieldTable();
 }
 
@@ -179,7 +177,13 @@ void AmbiguousLinker::traverseAndLink(Expression* expr) {
 
 void AmbiguousLinker::traverseAndLink(Assignment* assign) {
     if(assign->isAssignName()) {
+        // indicate that this assignment may occur in
+        // a FieldDecl initializer expression
+        // True if we are not in a method, False otherwise
+        asgmtFieldContext = !withinMethod;
         traverseAndLink((AssignName*) assign);
+        // reset
+        asgmtFieldContext = false;
     } else if(assign->isAssignField()) {
         traverseAndLink((AssignField*) assign);
     } else {
@@ -762,49 +766,16 @@ void AmbiguousLinker::traverseAndLink(CastName* cast) {
     // an error in linking name, quietly return
     if(nameToCastTo->postponeLinking()) { return; }
 
-    if(nameToCastTo->isReferringToType()) {
-        // name links to some class/interface
-        setExpressionTypeBasedOnName(cast, nameToCastTo);
-        if(!cast->isExprTypeNotEvaluated()) {
-            // if the type can be evaluated, do the following
-            // precuationary check, the type of cast should now be 
-            // some class/interface
-            assert(cast->isExprTypeObject());
-            if(cast->isCastToArrayName()) {
-                // reconfigure if this is a cast to an array of class
-                // or interface
-                cast->reconfigureExprType(ET_OBJECTARRAY);
-            }
-        }
-    } else {
-        // attempting to cast to something which is not
-        // a class/object
-        std::stringstream ss;
-        ss << "Attempting to cast to a class, interface or some array, but instead got ";
-        Type* type = NULL;
-        Token* tok = nameToCastTo->getNameId()->getToken();
-        if(nameToCastTo->isReferringToField()) {
-            type = nameToCastTo->getReferredField()->getField()->getFieldType();
-            ss << "field '";
-        } else if(nameToCastTo->isReferringToParameter()) {
-            type = nameToCastTo->getReferredParameter()->getParameter()->getParameterType();
-            ss << "parameter '";
-        } else if(nameToCastTo->isReferringToLocalVar()) {
-            type = nameToCastTo->getReferredLocalVar()->getLocalDecl()->getLocalType();
-            ss << "local variable '";
-        } else if(nameToCastTo->isReferringToPackage()) {
-            ss << "package '" << nameToCastTo->getFullName() << "'.";
-            Error(E_DISAMBIGUATION, tok, ss.str());
-            return;
-        } else {
-            assert(nameToCastTo->linkToArrayLength());
-            ss << "field 'length' of type 'int'.";
-            Error(E_DISAMBIGUATION, tok, ss.str());
-            return;
-        }
-        ss << nameToCastTo->getFullName() << "' of type '" << type->getTypeAsString() << "'."; 
-        Error(E_DISAMBIGUATION, tok, ss.str());
-    }
+    // name must necesserarily now link to some class/interface
+    // due to A2's check
+    setExpressionTypeBasedOnName(cast, nameToCastTo);
+    // precautionary check
+    assert(cast->isExprTypeObject());
+    if(cast->isCastToArrayName()) {
+        // reconfigure if this is a cast to an array of class
+        // or interface
+        cast->reconfigureExprType(ET_OBJECTARRAY);
+    }    
 }
 
 void AmbiguousLinker::traverseAndLink(CastPrimitive* cast) {
@@ -1055,7 +1026,8 @@ bool AmbiguousLinker::checkTypeIsClassDuringStaticAccess(CompilationTable* typeT
     return true;
 }
 
-FieldTable* AmbiguousLinker::findFieldPreviouslyDeclared(const std::string& fieldName) {
+FieldTable* AmbiguousLinker::findFieldDeclaredInClass(const std::string& fieldName, bool previous) {
+    // search for Field in own class BUT not including inherited fields
     SymbolTable* symTable = curSymTable;
     while(symTable != NULL) {
         if(symTable->isFieldTable()) {
@@ -1063,7 +1035,13 @@ FieldTable* AmbiguousLinker::findFieldPreviouslyDeclared(const std::string& fiel
                 return (FieldTable*) symTable;
             }
         }
-        symTable = symTable->getPrevTable();
+        if(previous) {
+            // search mode is backwards
+            symTable = symTable->getPrevTable();
+        } else {
+            // search mode is forwards
+            symTable = symTable->getNextTable();
+        }
     }
     // if we ever reach here, then symTable must be NULL
     return NULL;
@@ -1194,22 +1172,43 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
             }
         }
     } else {
-        FieldTable* field = findFieldPreviouslyDeclared(currName);
+        FieldTable* field = findFieldDeclaredInClass(currName, true);
         if(field != NULL) {
             // the field was found
             name->setReferredField(field);
             return;
-        } else {
-            // previously declared field was not found
-            if(!isStaticContext) {
-                // if we reach here then we know this check is occurring for a field declaration
-                // and the field is not static, then it can access any static field
-                FieldTable* field = getFieldInAClass(curCompilation, currName, tok);
-                if(field != NULL) {
-                    name->setReferredField(field);
+        }
+        // field couldn't be gotten from previous declaration (not including self)
+        if(asgmtFieldContext) {
+            // check if we are in the context of an assignment in a FieldDecl initializer
+            // if we are then try to grab the field anywhere from the class, so now check for
+            // fields defined later
+            field = findFieldDeclaredInClass(currName, false);
+            if(field != NULL) {
+                // the field was found
+                name->setReferredField(field);
+                return;
+            }
+        }
+
+        // all in all if we still can't find it then search for inherited ones
+        field = curCompilation->getAField(currName);
+        if(field != NULL) {
+            if(!asgmtFieldContext) {
+                if(field == findFieldDeclaredInClass(currName, false)) {
+                    // if the field actually found is a field later on declared
+                    // AND we are not in a context of an assignment in a FieldDeclaration
+                    std::stringstream ss;
+                    ss << "Simple name '" << currName << "' refers to a field declared later on "
+                       << "in the class and is used not in the left-hand side of an assignment in an initialization of a "
+                       << "field declaration.";
+                    Error(E_DISAMBIGUATION, tok, ss.str());
                     return;
                 }
             }
+            // all is good
+            name->setReferredField(field);
+            return;
         }
     }
 
@@ -1241,7 +1240,7 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
     // if it's none of the above, then error
     std::stringstream ss;
     ss << "Simple name '" << currName
-       << "' does not refer to either a local variable, parameter, field, type nor package in the environment. Rule : " << name->getRule();
+       << "' does not refer to either a local variable, parameter, field, type nor package in the environment.";
     Error(E_DISAMBIGUATION, tok, ss.str());
 }
 
