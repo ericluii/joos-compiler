@@ -79,6 +79,7 @@ class Name : public Ast
 
         // used to check if no linking has been done
         bool postponeLinking() { return linkTo == ALT_POSTPONED; }
+        // refers to the static field 'length' of an array
         bool linkToArrayLength() { return linkTo == ALT_ARRAYLENGTH; }
 };
 

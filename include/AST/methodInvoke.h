@@ -15,6 +15,8 @@ class MethodInvoke : public Primary {
 
         ArgumentsStar* getArgsForInvokedMethod() { return args; }
         bool noArgumentsGiven() { return args->isEpsilon(); }
+
+        virtual std::string methodInvocationMatchToSignature() = 0;
 };
 
 #endif

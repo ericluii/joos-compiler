@@ -25,6 +25,10 @@ class NewClassCreation : public Primary {
         ArgumentsStar* getArgsToCreateClass() { return args; }
         void setTableOfCreatedClass(CompilationTable* set) { classCreatedTable = set; }
         CompilationTable* getTableOfCreatedClass() { return classCreatedTable; }
+
+        std::string constructorInvocationMatchToSignature() {
+            return "(" + args->stringifyArgumentsToType() + ")";
+        }
 };
 
 #endif

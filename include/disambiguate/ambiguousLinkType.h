@@ -31,6 +31,7 @@ enum AMBIGUOUS_LINK_TYPE {
     // Applied in:
     // - QualifiedThis, which has already been checked in A2
     // - BracketedExpression, which does not link to anything
+    // - ArrayAccess, which does not link to anything
     ALT_RESOLVEDNOENTITY,
 };
 

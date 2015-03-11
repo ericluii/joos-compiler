@@ -2,11 +2,15 @@
 #include <cassert>
 #include "error.h"
 #include "package.h"
+#include "typeString.h"
+
 #include "ambiguousLinkType.h"
-#include "evaluatedType.h"
 #include "ambiguousLinker.h"
 #include "paramTable.h"
 #include "classMethodTable.h"
+#include "interfaceMethodTable.h"
+#include "forTable.h"
+#include "constructorTable.h"
 
 #include "packagesManager.h"
 #include "compilationTable.h"
@@ -40,11 +44,26 @@
 #include "nameExpression.h"
 #include "primaryExpression.h"
 #include "classMethod.h"
+#include "blockStmtsStar.h"
+#include "blockStmts.h"
+#include "localDecl.h"
+#include "formalParamStar.h"
+#include "paramList.h"
+#include "returnStmt.h"
+#include "expressionStar.h"
+#include "stmtExprAssign.h"
+#include "stmtExprCreation.h"
+#include "stmtExprInvoke.h"
+#include "ifStmt.h"
+#include "whileStmt.h"
+#include "forStmt.h"
+#include "nestedBlock.h"
+#include "constructor.h"
 
 #include "interfaceDecl.h"
 
 AmbiguousLinker::AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations) :
-            manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL) {}
+   manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL), isStaticContext(false), withinMethod(false) {}
 
 AmbiguousLinker::~AmbiguousLinker() {}
 
@@ -69,31 +88,43 @@ void AmbiguousLinker::traverseAndLink(ClassBodyDecls* body) {
     if(body->isField()) {
         traverseAndLink((FieldDecl*) body);
     } else if(body->isClassMethod()) {
+        withinMethod = true;
+        traverseAndLink((ClassMethod*) body);
+        // reset
+        withinMethod = false;
     } else {
         // constructor
+        withinMethod = true;
+        traverseAndLink((Constructor*) body);
+        // reset
+        withinMethod = false;
     }
 }
 
 void AmbiguousLinker::traverseAndLink(FieldDecl* field) {
     if(field->isInitialized()) {
-        traverseAndLink(field->getInitializingExpression(), false);
+        isStaticContext = field->isStatic();
+        traverseAndLink(field->getInitializingExpression());
+        // reset
+        isStaticContext = false;
     }
     // update the symbol table
     curSymTable = field->getFieldTable();
 }
 
-void AmbiguousLinker::traverseAndLink(Expression* expr, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(Expression* expr) {
     if(expr->isRegularBinaryExpression()) {
         Expression* leftExpr = ((BinaryExpression*) expr)->getLeftExpression();
         Expression* rightExpr = ((BinaryExpression*) expr)->getRightExpression();
-        traverseAndLink(leftExpr, withinMethod);
-        traverseAndLink(rightExpr, withinMethod);
+        traverseAndLink(leftExpr);
+        traverseAndLink(rightExpr);
         if(expr->isLazyOr() || expr->isLazyAnd() || expr->isEagerOr() || expr->isEagerAnd() ||
            expr->isEqual() || expr->isNotEqual() || expr->isLT() || expr->isGT() || expr->isLTE() || expr->isGTE() ||
            expr->isInstanceOf()) {
             // specualate for now that expression type is boolean
             expr->setExprType(ET_BOOLEAN);
         } else if(expr->isAddition()) {
+            // by default the type of addition is int
             EVALUATED_TYPE type = ET_INT;
             CompilationTable* string = NULL;
             if(leftExpr->isExprTypeObject()) {
@@ -118,11 +149,11 @@ void AmbiguousLinker::traverseAndLink(Expression* expr, bool withinMethod) {
             expr->setExprType(ET_INT);
         }
     } else if(expr->isAssignName() || expr->isAssignField() || expr->isAssignArray()) {
-        traverseAndLink((Assignment*) expr, withinMethod);
+        traverseAndLink((Assignment*) expr);
     } else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
-        traverseAndLink((CastExpression*) expr, withinMethod);
+        traverseAndLink((CastExpression*) expr);
     } else if(expr->isInstanceOf()) {
-        traverseAndLink(((InstanceOf*) expr)->getExpressionToCheck(), withinMethod);
+        traverseAndLink(((InstanceOf*) expr)->getExpressionToCheck());
         // instance of expressions evaluate to boolean
         // By the design of the language, the type has to be a reference type
         // i.e it is an array of some type whether primitive or referential
@@ -130,18 +161,12 @@ void AmbiguousLinker::traverseAndLink(Expression* expr, bool withinMethod) {
         expr->setExprType(ET_BOOLEAN);
     } else if(expr->isNameExpression()) {
         Name* name = ((NameExpression*) expr)->getNameExpression();
-        traverseAndLink(name, withinMethod);
-        // if no error occurred in attempting to link name
-        if(!name->postponeLinking()) {
-            setExpressionTypeBasedOnName(expr, name);
-        }
+        traverseAndLink(name);
+        setExpressionTypeBasedOnName(expr, name);
     } else if(expr->isPrimaryExpression()) {
         Primary* prim = ((PrimaryExpression*) expr)->getPrimaryExpression();
-        traverseAndLink(prim, withinMethod);
-        // if no error occurred in attempting to link primary
-        if(!prim->postponeLinking()) {
-            setExpressionTypeBasedOnPrimary(expr, prim);
-        }
+        traverseAndLink(prim);
+        setExpressionTypeBasedOnPrimary(expr, prim);
     } else {
         // all that's left is negation expression, precautionary check
         assert(expr->isNumericNegation() || expr->isBooleanNegation());
@@ -150,42 +175,43 @@ void AmbiguousLinker::traverseAndLink(Expression* expr, bool withinMethod) {
     }
 }
 
-void AmbiguousLinker::traverseAndLink(Assignment* assign, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(Assignment* assign) {
     if(assign->isAssignName()) {
-        traverseAndLink((AssignName*) assign, withinMethod);
+        traverseAndLink((AssignName*) assign);
     } else if(assign->isAssignField()) {
-        traverseAndLink((AssignField*) assign, withinMethod);
+        traverseAndLink((AssignField*) assign);
     } else {
         // assign array
-        traverseAndLink((AssignArray*) assign, withinMethod);
+        traverseAndLink((AssignArray*) assign);
     }
-    traverseAndLink(assign->getExpressionToAssign(), withinMethod);
+    traverseAndLink(assign->getExpressionToAssign());
 }
 
-void AmbiguousLinker::traverseAndLink(AssignName* assign, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(AssignName* assign) {
     std::stringstream ss;
     Name* assignName = assign->getNameToAssign();
-    traverseAndLink(assignName, withinMethod);
+    traverseAndLink(assignName);
     setExpressionTypeBasedOnName(assign, assignName);
 }
 
-void AmbiguousLinker::traverseAndLink(Name* name, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(Name* name) {
     Name* nextName = NULL;
     if(name == NULL) { return; }
     if(!name->isLastPrefix()) {
-        traverseAndLink(name->getNextName(), withinMethod);
+        traverseAndLink(name->getNextName());
     }
 
     nextName = name->getNextName();
     if(nextName != NULL && !nextName->postponeLinking()) {
         linkQualifiedName(name);
     } else if(nextName == NULL) {
-        linkSimpleName(name, withinMethod);
+        // if name is simple name
+        linkSimpleName(name);
     }
 }
 
-void AmbiguousLinker::traverseAndLink(AssignField* assign, bool withinMethod) {
-    traverseAndLink(assign->getAssignedField(), withinMethod);
+void AmbiguousLinker::traverseAndLink(AssignField* assign) {
+    traverseAndLink(assign->getAssignedField());
     FieldAccess* accessed = assign->getAssignedField();
     // By the way we do things, acccessed must be pointing to a field
     // OR to array length
@@ -200,8 +226,8 @@ void AmbiguousLinker::traverseAndLink(AssignField* assign, bool withinMethod) {
     }
 }
 
-void AmbiguousLinker::traverseAndLink(FieldAccess* accessed, bool withinMethod) {
-    traverseAndLink(accessed->getAccessedFieldPrimary(), withinMethod);
+void AmbiguousLinker::traverseAndLink(FieldAccess* accessed) {
+    traverseAndLink(accessed->getAccessedFieldPrimary());
 
     Token* tok = accessed->getAccessedFieldId()->getToken();
     std::string currName = tok->getString();
@@ -210,28 +236,18 @@ void AmbiguousLinker::traverseAndLink(FieldAccess* accessed, bool withinMethod) 
     
     if(!prim->postponeLinking()) {
         // if primary part was linked
-        if(prim->isReferringToField()) {
+        if(prim->isReferringToClass()) {
+            // do some stuff here
+            CompilationTable* someClass = prim->getReferredClass();
+            FieldTable* field = getFieldInAClass(someClass, currName, tok);
+            // make the context static
+            if(field != NULL) {
+                accessed->setReferredField(field);
+            }
+        } else if(prim->isReferringToField()) {
             FieldDecl* field = prim->getReferredField()->getField();
             if(checkProperMemberAccessingFromVariable(currName, field->getFieldType(), tok)) {
                 if(setFieldAccessReferringToArrayLength(accessed, field->getFieldType())) {
-                } else {
-                    // array length was not set
-                }
-            }
-            // do some more stuff here
-        } else if(prim->isReferringToLocalVar()) {
-            LocalDecl* localVar = prim->getReferredLocalVar()->getLocalDecl();
-            if(checkProperMemberAccessingFromVariable(currName, localVar->getLocalType(), tok)) {
-                if(setFieldAccessReferringToArrayLength(accessed, localVar->getLocalType())) {
-                } else {
-                    // array length was not set
-                }
-            }
-            // do some more stuff here
-        } else if(prim->isReferringToParameter()) {
-            ParamList* param = prim->getReferredParameter()->getParameter();
-            if(checkProperMemberAccessingFromVariable(currName, param->getParameterType(), tok)) {
-                if(setFieldAccessReferringToArrayLength(accessed, param->getParameterType())) {
                 } else {
                     // array length was not set
                 }
@@ -243,20 +259,13 @@ void AmbiguousLinker::traverseAndLink(FieldAccess* accessed, bool withinMethod) 
             assert(prim->isNewClassCreation());
             // safe, we know this is a class since it's checked in A2
             CompilationTable* someClass = ((NewClassCreation*) prim)->getTableOfCreatedClass();
-            FieldTable* fieldGotten = getStaticFieldInAClass(someClass, currName, tok);
+            FieldTable* fieldGotten = getFieldInAClass(someClass, currName, tok);
             if(fieldGotten != NULL) {
                 accessed->setReferredField(fieldGotten);
             }
         } else if(prim->linkToPrimitiveLiteral()) {
-            LiteralOrThis* lit = (LiteralOrThis*) prim;
-            if(lit->isNumber()) {
-                ss << "Primitive type integer cannot be dereferenced.";
-            } else if(lit->isTrueBoolean() || lit->isFalseBoolean()) {
-                ss << "Primitive type boolean cannot be dereferenced.";
-            } else if(lit->isCharLiteral()) {
-                ss << "Primitive type char cannot be dereferenced.";
-            }
-            Error(E_DISAMBIGUATION, tok, ss.str());
+            // then must be LiteralOrThis
+            reportLiteralDereferencing((LiteralOrThis*) prim, tok);
         } else if(prim->linkToArray()) {
             // then prim must be a PrimaryNewArray
             assert(prim->isNewPrimitiveArray() || prim->isNewReferenceArray());
@@ -272,32 +281,34 @@ void AmbiguousLinker::traverseAndLink(FieldAccess* accessed, bool withinMethod) 
             ss << "Primitive type integer cannot be dereferenced.";
             Error(E_DISAMBIGUATION, tok, ss.str());
         } else if(prim->linkToNull()) {
-            ss << "null cannot be dereferenced.";
-            Error(E_DISAMBIGUATION, tok, ss.str());
+            reportLiteralDereferencing((LiteralOrThis*) prim, tok);
+        } else if(prim->isReferringToClassMethod() || prim->isReferringToInterfaceMethod()) {
+            // check for method
+        } else {
+            assert(prim->resolvedLinkButNoEntity());
         }
-        // defer check for class method to another time
     }
 }
 
-void AmbiguousLinker::traverseAndLink(Primary* prim, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(Primary* prim) {
     if(prim->isFieldAccess()) {
-        traverseAndLink((FieldAccess*) prim, withinMethod);
+        traverseAndLink((FieldAccess*) prim);
     } else if(prim->isThis() || prim->isNumber() || prim->isTrueBoolean() || prim->isFalseBoolean()
               || prim->isCharLiteral() || prim->isStringLiteral() || prim->isNull()) {
         traverseAndLink((LiteralOrThis*) prim);
     } else if(prim->isBracketedExpression()) {
-        traverseAndLink(((BracketedExpression*) prim)->getExpressionInside(), withinMethod);
+        traverseAndLink((BracketedExpression*) prim);
         // linking has been resolved, but BracketedExpression doesn't really link to anywhere
         // indicate this
         prim->ResolveLinkButNoEntity();
     } else if(prim->isNewClassCreation()) {
-        traverseAndLink((NewClassCreation*) prim, withinMethod);
+        traverseAndLink((NewClassCreation*) prim);
     } else if(prim->isNewPrimitiveArray() || prim->isNewReferenceArray()) {
-        traverseAndLink((PrimaryNewArray*) prim, withinMethod);
+        traverseAndLink((PrimaryNewArray*) prim);
     } else if(prim->isNormalMethodCall() || prim->isAccessedMethodCall()) {
-        traverseAndLink((MethodInvoke*) prim, withinMethod);
+        traverseAndLink((MethodInvoke*) prim);
     } else if(prim->isArrayAccessName() || prim->isArrayAccessPrimary()) {
-        traverseAndLink((ArrayAccess*) prim, withinMethod);
+        traverseAndLink((ArrayAccess*) prim);
     } else {
         // the remaining is qualified this, which has already been resolved
         // indicate this
@@ -319,75 +330,345 @@ void AmbiguousLinker::traverseAndLink(LiteralOrThis* lit) {
     }
 }
 
-void AmbiguousLinker::traverseAndLink(NewClassCreation* prim, bool withinMethod) {
-    traverseAndLink(prim->getArgsToCreateClass(), withinMethod);
+void AmbiguousLinker::traverseAndLink(BracketedExpression* brkExpr) {
+    traverseAndLink(brkExpr->getExpressionInside());
+    if(!brkExpr->getExpressionInside()->isExprTypeNotEvaluated()) {
+        // expression type can be evaluated
+        // indicate that this bracketed expression has been
+        // successfully resolved, even though it links to no entity
+        brkExpr->resolvedLinkButNoEntity();
+    }
+}
 
+void AmbiguousLinker::traverseAndLink(NewClassCreation* prim) {
+    traverseAndLink(prim->getClassName());
+    traverseAndLink(prim->getArgsToCreateClass());
+    
     // link constructor later on
+    Token* tok = prim->getClassName()->getNameId()->getToken();
+    std::string ctorSignature = prim->constructorInvocationMatchToSignature();
+    if(checkProperMethodOrConstructorSignature(ctorSignature, tok)) {
+        CompilationTable* someClass = prim->getTableOfCreatedClass();
+        ConstructorTable* ctorTable = someClass->getAConstructor(ctorSignature);
+        if(ctorTable != NULL) {
+            prim->setReferredConstructor(ctorTable);
+        } else {
+            std::stringstream ss;
+            ss << "Constructor of class '" << someClass->getCanonicalName()
+               << "' with signature '" << prim->getClassName()->getNameId()->getIdAsString()
+               << ctorSignature << "' could not be found.";
+            Error(E_DISAMBIGUATION, tok, ss.str());
+        }
+    }
 }
 
-void AmbiguousLinker::traverseAndLink(ArgumentsStar* args, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(ArgumentsStar* args) {
     if(!args->isEpsilon()) {
-        traverseAndLink(args->getListOfArguments(), withinMethod);
+        traverseAndLink(args->getListOfArguments());
     }
 }
-void AmbiguousLinker::traverseAndLink(Arguments* args, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(Arguments* args) {
     if(!args->lastArgument()) {
-        traverseAndLink(args->getNextArgs(), withinMethod);
+        traverseAndLink(args->getNextArgs());
     }
 
-    traverseAndLink(args->getSelfArgumentExpr(), withinMethod);
+    traverseAndLink(args->getSelfArgumentExpr());
     // fill in later, get type of expression
 }
 
-void AmbiguousLinker::traverseAndLink(PrimaryNewArray* newArray, bool withinMethod) {
-    traverseAndLink(newArray->getTheDimension(), withinMethod);
+void AmbiguousLinker::traverseAndLink(PrimaryNewArray* newArray) {
+    traverseAndLink(newArray->getTheDimension());
     newArray->setReferringToArray();
 }
 
-void AmbiguousLinker::traverseAndLink(MethodInvoke* invoke, bool withinMethod) {
-    if(invoke->isNormalMethodCall()) {
-        traverseAndLink((MethodNormalInvoke*) invoke, withinMethod);
-    } else {
-        traverseAndLink((InvokeAccessedMethod*) invoke, withinMethod);
-    }
+void AmbiguousLinker::traverseAndLink(MethodInvoke* invoke) {
+    // traverse the arguments first because we need it later on
+    traverseAndLink(invoke->getArgsForInvokedMethod());
 
-    traverseAndLink(invoke->getArgsForInvokedMethod(), withinMethod);
-    // link method after this
     if(invoke->isNormalMethodCall()) {
+        traverseAndLink((MethodNormalInvoke*) invoke);
     } else {
+        traverseAndLink((InvokeAccessedMethod*) invoke);
     }
 }
 
-void AmbiguousLinker::traverseAndLink(MethodNormalInvoke* invoke, bool withinMethod) {
-    traverseAndLink(invoke->getNameOfInvokedMethod()->getNextName(), withinMethod);
+void AmbiguousLinker::traverseAndLink(MethodNormalInvoke* invoke) {
+    Name* invokedName = invoke->getNameOfInvokedMethod();
+    Token* tok = invokedName->getNameId()->getToken();
+    traverseAndLink(invokedName->getNextName());
+    
+    std::string methodSignature = invoke->methodInvocationMatchToSignature();
+    CompilationTable* someType = NULL;
+
+    if(!checkProperMethodOrConstructorSignature(methodSignature, tok)) {
+        // improper method signature, either:
+        // - it contained void/null
+        // - or one of the arguments' type cannot be retrieved
+        return;
+    }
+    
+    if(invokedName->isSimpleName()) {
+        // then the method call should be of this class's
+        setMethodForMethodInvokeFromCompilation(invoke, curCompilation, methodSignature, tok); 
+    } else {
+        // qualified name
+        Type* type = NULL;
+        Name* nextName = invokedName->getNextName();
+        if(!nextName->postponeLinking()) {
+            // nextName was successfully linked to some entity, check for this entity
+            if(nextName->isReferringToType()) {
+                someType = nextName->getReferredType();
+                if(checkTypeIsClassDuringStaticAccess(someType, nextName->getFullName(), tok)) {
+                    // it is a class, then it's find to do the following
+                    // whether the method is static or not is not checked here
+                    setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
+                }
+            } else if(nextName->isReferringToField()) {
+                type = nextName->getReferredField()->getField()->getFieldType();
+                setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+            } else if(nextName->isReferringToLocalVar()) {
+                type = nextName->getReferredLocalVar()->getLocalDecl()->getLocalType();
+                setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+            } else if(nextName->isReferringToParameter()) {
+                type = nextName->getReferredParameter()->getParameter()->getParameterType();
+                setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+            } else if(nextName->isReferringToPackage()) {
+                reportIncompletePackageNameUsage(nextName->getFullName(), tok);
+            } else {
+                // nextName must have been linked to array length
+                // precautionary check
+                assert(nextName->linkToArrayLength());
+                std::stringstream ss;
+                ss << "Attempting to access method member of type 'int'.";
+                Error(E_DISAMBIGUATION, tok, ss.str());
+            } 
+        }
+    }
 }
 
-void AmbiguousLinker::traverseAndLink(InvokeAccessedMethod* invoke, bool withinMethod) {
-    traverseAndLink(invoke->getAccessedMethod()->getAccessedFieldPrimary(), withinMethod);
+void AmbiguousLinker::traverseAndLink(InvokeAccessedMethod* invoke) {
+    Primary* prim = invoke->getAccessedMethod()->getAccessedFieldPrimary();
+    Token* tok = invoke->getAccessedMethod()->getAccessedFieldId()->getToken();
+    traverseAndLink(prim);
+
+    std::string methodSignature = invoke->methodInvocationMatchToSignature();
+    CompilationTable* someType = NULL;
+    Type* type = NULL;
+
+    if(!checkProperMethodOrConstructorSignature(methodSignature, tok)) { return; }
+
+    std::stringstream ss;
+    if(!prim->postponeLinking()) {
+        // if primary part is properly linked
+        if(prim->isReferringToClass()) {
+            someType = prim->getReferredClass();
+            setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
+        } else if(prim->isReferringToField()) {
+            type = prim->getReferredField()->getField()->getFieldType();
+            setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+        } else if(prim->isReferringToClassMethod()) {
+            type =  prim->getReferredClassMethod()->getClassMethod()->getMethodHeader()->getReturnType();
+            setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+        } else if(prim->isReferringToInterfaceMethod()) {
+            type = prim->getReferredInterfaceMethod()->getInterfaceMethod()->getReturnType();
+            setMethodForMethodInvokeFromType(type, invoke, methodSignature, tok);
+        } else if(prim->isReferringToConstructor()) {
+            // must be NewClassCreation
+            someType = ((NewClassCreation*) prim)->getTableOfCreatedClass();
+            setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
+        } else if(prim->linkToPrimitiveLiteral()) {
+            reportLiteralDereferencing((LiteralOrThis*) prim, tok);
+        } else if(prim->linkToArray()) {
+            // must be PrimaryNewArray
+            ss << "Attempting to access method member of an array of '"
+               << ((PrimaryNewArray*) prim)->getArrayType()->getTypeAsString() << "' which does not exist.";
+            Error(E_DISAMBIGUATION, tok, ss.str());
+        } else if(prim->linkToArrayLength()) {
+            ss << "Attempting to access method member of type 'int' which does not exist.";
+            Error(E_DISAMBIGUATION, tok, ss.str());
+        } else if(prim->linkToNull()) {
+            reportLiteralDereferencing((LiteralOrThis*) prim, tok);
+        } else {
+            assert(prim->resolvedLinkButNoEntity());
+            // then three cases
+            if(prim->isBracketedExpression()) {
+                Expression* bracketed = ((BracketedExpression*) prim)->getExpressionInside();
+                if(!bracketed->isExprTypeNotEvaluated()) {
+                    if(!bracketed->isExprTypeObject()) {
+                        ss << "Expecting an expression that evaluated to a class or interface but instead got '"
+                           << bracketed->getExpressionTypeString() << "'.";
+                        Error(E_DISAMBIGUATION, tok, ss.str());
+                    } else {
+                        setMethodForMethodInvokeFromCompilation(invoke, bracketed->getTableTypeOfExpression(),
+                                        methodSignature, tok);
+                    }
+                }
+            } else if(prim->isQualifiedThis()) {
+                // QualifiedThis
+                setMethodForMethodInvokeFromCompilation(invoke, curCompilation, methodSignature, tok);;
+            } else {
+                // Array Access
+                assert(prim->isArrayAccessName() || prim->isArrayAccessPrimary());
+                ArrayAccess* accessPrim = (ArrayAccess*) prim;
+                someType = accessPrim->getTableOfArrayObjects();
+                if(someType != NULL) {
+                    setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
+                } else {
+                    // since someType == NULL, it must mean that the accessed array element
+                    // is not a class or interface type
+                    ss << "Expecting an array but instead got '"
+                       << getCorrespondingTypeString(accessPrim->getTypeOfArrayElements(), accessPrim->getTableOfArrayObjects())
+                       << "'.";
+                    Error(E_DISAMBIGUATION, tok, ss.str());
+                }
+            }
+        }
+    }
 }
 
-void AmbiguousLinker::traverseAndLink(ArrayAccess* access, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(ArrayAccess* access) {
     if(access->isArrayAccessName()) {
-        traverseAndLink((ArrayAccessName*) access, withinMethod);
+        traverseAndLink((ArrayAccessName*) access);
     } else {
-        traverseAndLink((ArrayAccessPrimary*) access, withinMethod);
+        traverseAndLink((ArrayAccessPrimary*) access);
     }
 
-    traverseAndLink(access->getAccessExpression(), withinMethod);
+    traverseAndLink(access->getAccessExpression());
 }
 
-void AmbiguousLinker::traverseAndLink(ArrayAccessName* access, bool withinMethod) {
-    traverseAndLink(access->getNameOfAccessedArray(), withinMethod);
+void AmbiguousLinker::traverseAndLink(ArrayAccessName* access) {
+    Name* name = access->getNameOfAccessedArray();
+    Token* tok = name->getNameId()->getToken();
+    traverseAndLink(name);
+    std::stringstream ss;
+    if(!name->postponeLinking()) {
+        // if linking went fine
+        Type* type = NULL;
+        EVALUATED_TYPE accessType = ET_NOTEVALUATED;
+        CompilationTable* table = NULL;
+        if(name->isReferringToField()) {
+            type = name->getReferredField()->getField()->getFieldType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type); 
+        } else if(name->isReferringToLocalVar()) {
+            type = name->getReferredLocalVar()->getLocalDecl()->getLocalType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type);
+        } else if(name->isReferringToParameter()) {
+            type = name->getReferredParameter()->getParameter()->getParameterType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type);
+        } else {
+            // Everything else is wrong
+            ss << "Expected an array but instead found ";
+            if(name->isReferringToType()) {
+                if(name->getReferredType()->isClassSymbolTable()) {
+                    ss << " the name of a class.";
+                } else { ss << " the name of an interface."; }
+            } else if(name->isReferringToPackage()) {
+                ss << " the name of a package.";
+            } else {
+                assert(name->linkToArrayLength());
+                ss << " an integer.";
+            }
+            Error(E_DISAMBIGUATION, tok, ss.str());
+            return;
+        }
+
+        if(accessType == ET_OBJECTARRAY || accessType == ET_OBJECT) {
+            table = ((ReferenceType*) type)->getReferenceTypeTable();
+        }
+
+        if(checkProperArrayAccess(access, table, accessType, tok)) {
+            // everything went fine and dandy
+            access->ResolveLinkButNoEntity();
+        }
+    }
 }
 
-void AmbiguousLinker::traverseAndLink(ArrayAccessPrimary* access, bool withinMethod) {
-    traverseAndLink(access->getAccessedPrimaryArray(), withinMethod);
+void AmbiguousLinker::traverseAndLink(ArrayAccessPrimary* access) {
+    Primary* prim = access->getAccessedPrimaryArray();
+    traverseAndLink(access->getAccessedPrimaryArray());
+    Token* tok = getTokenFromPrimary(prim);
+
+    if(!prim->postponeLinking()) {
+        // if linking went fine
+        Type* type = NULL;
+        CompilationTable* table = NULL;
+        EVALUATED_TYPE accessType = ET_NOTEVALUATED;
+        if(prim->isReferringToField()) {
+            type = prim->getReferredField()->getField()->getFieldType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type); 
+        } else if(prim->isReferringToClassMethod()) {
+            type = prim->getReferredClassMethod()->getClassMethod()->getMethodHeader()->getReturnType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type);
+        } else if(prim->isReferringToInterfaceMethod()) {
+            type = prim->getReferredInterfaceMethod()->getInterfaceMethod()->getReturnType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type);
+        } else if(prim->linkToArray()) {
+            // must be PrimaryNewArray
+            type = ((PrimaryNewArray*) prim)->getArrayType();
+            accessType = (EVALUATED_TYPE) returnEvalTypeFromTypeNode(type);
+            if(accessType != ET_OBJECT) {
+                // anything else whose type is not ET_OBJECT then +5
+                // in this case accessType can only be ET_INT, ET_CHAR, ET_BOOLEAN,
+                // ET_SHORT, ET_BYTE
+                // precautionary check
+                assert(accessType != ET_VOID && accessType != ET_NULL &&
+                       accessType != ET_NOTEVALUATED && accessType != ET_OBJECTARRAY);
+                accessType = (EVALUATED_TYPE) (accessType + 5);
+            } else { accessType = ET_OBJECTARRAY; }
+        } else {
+            // everything else is error
+            std::stringstream ss;
+            if(prim->isReferringToConstructor()) {
+                // then it's NewClassCreation
+                ss << "Expected an array but instead got a class instance creation expression.";
+            } else if(prim->linkToPrimitiveLiteral() || prim->linkToNull()) {
+                // must be LiteralOrThis
+                ss << "Expected an array but instead got literal '"
+                   << ((LiteralOrThis*) prim)->getLiteralAsString() << "'.";
+            } else if(prim->linkToArrayLength()) {
+                // must be a FieldAccess
+                ss << "Expected an array but instead got an int.";
+            } else {
+                assert(prim->resolvedLinkButNoEntity());
+                if(prim->isBracketedExpression()) {
+                    accessType = ((BracketedExpression*) prim)->getExpressionInside()->getExprType();
+                    table = ((BracketedExpression*) prim)->getExpressionInside()->getTableTypeOfExpression();
+                    if(accessType != ET_NOTEVALUATED) {
+                        if(checkProperArrayAccess(access, table, accessType, tok)) {
+                            // all fine and dandy
+                            access->resolvedLinkButNoEntity();
+                        }
+                    }
+                    return;
+                } else if(prim->isQualifiedThis()) {
+                    ss << "Expected an array but instead got qualified this which refers to '"
+                       << ((QualifiedThis*) prim)->getQualifyingClassTable() << "'.";
+                } else {
+                    assert(prim->isArrayAccessName() || prim->isArrayAccessPrimary());
+                    ArrayAccess* accessPrim = (ArrayAccess*) prim;
+                    ss << "Expected an array but instead got '"
+                       << getCorrespondingTypeString(accessPrim->getTypeOfArrayElements(), accessPrim->getTableOfArrayObjects())
+                       << "'.";
+                }
+                Error(E_DISAMBIGUATION, tok, ss.str());
+            }
+        }
+        
+        if(accessType == ET_OBJECTARRAY || accessType == ET_OBJECT) {
+            table = ((ReferenceType*) type)->getReferenceTypeTable();
+        }
+
+        if(checkProperArrayAccess(access, table, accessType, tok)) {
+            // everything went fine and dandy
+            access->ResolveLinkButNoEntity();
+        }
+    }
 }
 
-void AmbiguousLinker::traverseAndLink(AssignArray* assign, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(AssignArray* assign) {
     std::stringstream ss;
     ArrayAccess* assignArray = assign->getAssignedArray();
-    traverseAndLink(assignArray, withinMethod);
+    traverseAndLink(assignArray);
     if(assignArray->isArrayAccessName()) {
         Name* nameArray = ((ArrayAccessName*) assignArray)->getNameOfAccessedArray();
         Token* tok = nameArray->getNameId()->getToken();
@@ -402,17 +683,17 @@ void AmbiguousLinker::traverseAndLink(AssignArray* assign, bool withinMethod) {
     }
 }
 
-void AmbiguousLinker::traverseAndLink(CastExpression* cast, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(CastExpression* cast) {
     if(cast->isCastToArrayName()) {
-        traverseAndLink((CastName*) cast, withinMethod);
+        traverseAndLink((CastName*) cast);
     } else if(cast->isCastToReferenceType()) {
         traverseAndLink((CastPrimitive*) cast);
     }
 }
 
-void AmbiguousLinker::traverseAndLink(CastName* cast, bool withinMethod) {
+void AmbiguousLinker::traverseAndLink(CastName* cast) {
     Name* nameToCastTo = cast->getNameToCastTo();
-    traverseAndLink(nameToCastTo, withinMethod);
+    traverseAndLink(nameToCastTo);
     // an error in linking name, quietly return
     if(nameToCastTo->postponeLinking()) { return; }
 
@@ -444,10 +725,134 @@ void AmbiguousLinker::traverseAndLink(CastPrimitive* cast) {
     setExpressionTypeBasedOnType(cast, type);
 }
 
-// ----------------------------------------------------------------------------
-// Interface Part
+void AmbiguousLinker::traverseAndLink(ClassMethod* method) {
+    // update symbol table to point to class method
+    curSymTable = method->getClassMethodTable();
+    FormalParamStar* params = method->getMethodHeader()->getClassMethodParams();
+    if(!params->isEpsilon()) {
+        // update symbol table to point to the right most parameter, if there's any
+        curSymTable = params->getListOfParameters()->getParamTable();
+    }
+    traverseAndLink(method->getMethodBody());
+    // reset to class method table again, in case it was change while
+    // traversing the body
+    curSymTable = method->getClassMethodTable();
+}
 
-void AmbiguousLinker::traverseAndLink(InterfaceDecl* anInterface) {}
+void AmbiguousLinker::traverseAndLink(MethodBody* body) {
+    traverseAndLink(body->getBlockStmtsStar());
+}
+
+void AmbiguousLinker::traverseAndLink(BlockStmtsStar* block) {
+    if(!block->isEpsilon()) {
+        traverseAndLink(block->getStatements());
+    }
+}
+
+void AmbiguousLinker::traverseAndLink(BlockStmts* stmts) {
+    if(!stmts->isLastStatement()) {
+        traverseAndLink(stmts->getNextBlockStmt());
+    }
+
+    if(stmts->isLocalVarDecl()) {
+        traverseAndLink((LocalDecl*) stmts);
+    } else if(stmts->isReturnStmt()) {
+        traverseAndLink(((ReturnStmt*) stmts)->getReturnExpr());
+    } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isEmptyStmt()) {
+        traverseAndLink((StmtExpr*) stmts);
+    } else if(stmts->isIfStmt() || stmts->isIfThenElseStmt()) {
+        traverseAndLink((IfStmt*) stmts);
+    } else if(stmts->isWhileStmt()) {
+        traverseAndLink((WhileStmt*) stmts);
+    } else if(stmts->isForStmt()) {
+        traverseAndLink((ForStmt*) stmts);
+    } else if(stmts->isNestedBlock()) {
+        traverseAndLink((NestedBlock*) stmts);
+    }
+}
+
+void AmbiguousLinker::traverseAndLink(LocalDecl* local) {
+    // update symbol table
+    curSymTable = local->getLocalTable();
+    traverseAndLink(local->getLocalInitExpr());
+}
+
+void AmbiguousLinker::traverseAndLink(ExpressionStar* exprStar) {
+    if(!exprStar->isEpsilon()) {
+        traverseAndLink(exprStar->getExpression());
+    }
+}
+
+void AmbiguousLinker::traverseAndLink(StmtExpr* stmt) {
+    if(stmt->isAssignStmt()) {
+        traverseAndLink(((StmtExprAssign*) stmt)->getAssignmentExpression());
+    } else if(stmt->isClassCreationStmt()) {
+        traverseAndLink(((StmtExprCreation*) stmt)->getCreatedClass());
+    } else {
+        // a method invocation statement
+        traverseAndLink(((StmtExprInvoke*) stmt)->getMethodInvoked());
+    }
+}
+
+void AmbiguousLinker::traverseAndLink(IfStmt* stmt) {
+    traverseAndLink(stmt->getExpressionToEvaluate());
+    traverseAndLink(stmt->getExecuteTruePart());
+    if(!stmt->noElsePart()) {
+        traverseAndLink(stmt->getExecuteFalsePart());
+    }
+}
+
+void AmbiguousLinker::traverseAndLink(WhileStmt* stmt) {
+    traverseAndLink(stmt->getExpressionToEvaluate());
+    traverseAndLink(stmt->getLoopStmt());
+}
+
+void AmbiguousLinker::traverseAndLink(ForStmt* stmt) {
+    ForTable* table = stmt->getForTable();
+    curSymTable = table;
+    LocalTable* localForInit = table->getForInitTable();
+    if(localForInit != NULL) {
+        // if it actually was a local variable declaration in
+        // the ForInit, update the current symbol table
+        curSymTable = localForInit;
+    }
+    if(!stmt->emptyForInit()) {
+        // not empty for init
+        traverseAndLink(stmt->getForInit());
+    }
+    traverseAndLink(stmt->getExpressionToEvaluate());
+    if(!stmt->emptyForUpdate()) {
+        // not empty for update
+        traverseAndLink(stmt->getForUpdate());
+    }
+    traverseAndLink(stmt->getLoopStmt());
+    // reset the symbol table in case
+    // it was assigned to something else during the traversing
+    curSymTable = table;
+}
+
+void AmbiguousLinker::traverseAndLink(NestedBlock* nested) {
+    curSymTable = nested->getNestedBlockTable();
+    traverseAndLink(nested->getNestedBlock());
+    // reset
+    curSymTable = nested->getNestedBlockTable();
+}
+
+void AmbiguousLinker::traverseAndLink(Constructor* ctor) {
+    // update the table to constructor table
+    curSymTable = ctor->getConstructorTable();
+    FormalParamStar* params = ctor->getConstructorParameters();
+    if(!params->isEpsilon()) {
+        // update the symbol table to the right most parameter
+        curSymTable = params->getListOfParameters()->getParamTable();
+    }
+    traverseAndLink(ctor->getConstructorBody());
+    // reset the symbol table to the constructor table, in case
+    // it was changed when traversing the constructor's body
+    curSymTable = ctor->getConstructorTable();
+}
+
+// ----------------------------------------------------------------------------
 
 void AmbiguousLinker::traverseAndLink(CompilationTable* compilation) {
     curCompilation = compilation;
@@ -458,10 +863,9 @@ void AmbiguousLinker::traverseAndLink(CompilationTable* compilation) {
     }
 
     if(curSymTable->isClassTable()) {
+        // only link for classes, because there's really nothing to do
+        // in interfaces
         traverseAndLink(((ClassTable*) curSymTable)->getClass());
-    } else {
-        // must be an interface table
-        traverseAndLink(((InterfaceTable*) curSymTable)->getInterface());
     }
 }
 
@@ -481,6 +885,27 @@ void AmbiguousLinker::reportIllegalArrayMemberAccess(const std::string& memberNa
     std::stringstream ss;
     ss << "Attempting to access member '" << memberName << "' from array '"
        << type->getTypeAsString() << "' which is not length.";
+    Error(E_DISAMBIGUATION, tok, ss.str());
+}
+
+void AmbiguousLinker::reportIncompletePackageNameUsage(const std::string& pkgName, Token* tok) {
+    std::stringstream ss;
+    ss << "Incomplete use of package name '" << pkgName
+       << "'. Were you trying to access a type from that package?";
+    Error(E_DISAMBIGUATION, tok, ss.str());
+}
+
+void AmbiguousLinker::reportLiteralDereferencing(LiteralOrThis* lit, Token* tok) {
+    std::stringstream ss;
+    if(lit->isNumber()) {
+        ss << "Literal '" << lit->getLiteralAsString() << "' of primitive type integer cannot be dereferenced.";
+    } else if(lit->isTrueBoolean() || lit->isFalseBoolean()) {
+        ss << "Literal '" << lit->getLiteralAsString() << "' of primitive type boolean cannot be dereferenced.";
+    } else if(lit->isCharLiteral()) {
+        ss << "Literal '" << lit->getLiteralAsString() << "' of primitive type char cannot be dereferenced.";
+    } else if(lit->isNull()) {
+        ss << "Literal 'null' cannot be dereferenced.";
+    }
     Error(E_DISAMBIGUATION, tok, ss.str());
 }
 
@@ -532,8 +957,7 @@ bool AmbiguousLinker::checkProperMemberAccessingFromVariable(const std::string& 
 bool AmbiguousLinker::checkTypeIsClassDuringStaticAccess(CompilationTable* typeTable, const std::string& fullName, Token* tok) {
     if(!typeTable->isClassSymbolTable()) {
         std::stringstream ss;
-        ss << "Attempting to access static member of interface '" << fullName
-           << "'. Joos 1W has no interface constants.";
+        ss << "Attempting to access static member of interface '" << fullName << "'.";
         Error(E_DISAMBIGUATION, tok, ss.str());
         return false;
     }
@@ -590,7 +1014,8 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
             // then this refers to a subpackage
             name->setReferredPackage(subPkg);
         } else {
-            // then this should be a type
+            // then this should be a type, assumption is that packages and types don't
+            // clash, as it was checked in A2
             CompilationTable* typeTable = pkg->getACompilationWithName(currName);
             if(typeTable == NULL) {
                 // if it's still NULL, then error
@@ -598,6 +1023,9 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
                 ss << "No subpackage or type '" << currName << "' can be identified via package '"
                    << nextName->getFullName() << "'.";
                 Error(E_DISAMBIGUATION, tok, ss.str());
+            } else {
+                // referring to some type
+                name->setReferredType(typeTable);
             }
         }
     } else if(nextName->isReferringToType()) {
@@ -615,36 +1043,39 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
     } else if(nextName->isReferringToField()) {
         FieldDecl* field = nextName->getReferredField()->getField();
         if(checkProperMemberAccessingFromVariable(currName, field->getFieldType(), tok)) {
-            if(setNameReferringToArrayLength(name, field->getFieldType())) {
-            } else {
+            if(!setNameReferringToArrayLength(name, field->getFieldType())) {
+                // name wasn't linked to array length, when we get here we know
+                // that FieldDecl's type must be a ReferenceType to some class, and not
+                // an array nor interface
+                linkNameToFieldFromType(name, (ReferenceType*) field->getFieldType(), currName);
             }
         }
         // do some more stuff here
     } else if(nextName->isReferringToLocalVar()) {
         LocalDecl* localVar = nextName->getReferredLocalVar()->getLocalDecl();
         if(checkProperMemberAccessingFromVariable(currName, localVar->getLocalType(), tok)) {
-            if(setNameReferringToArrayLength(name, localVar->getLocalType())) {
-            } else {
+            if(!setNameReferringToArrayLength(name, localVar->getLocalType())) {
+                // same thing as above
+                linkNameToFieldFromType(name, (ReferenceType*) localVar->getLocalType(), currName);
             }
         }
-        // do some more stuff here
     } else if(nextName->isReferringToParameter()) {
         ParamList* param = nextName->getReferredParameter()->getParameter();
         if(checkProperMemberAccessingFromVariable(currName, param->getParameterType(), tok)) {
-            if(setNameReferringToArrayLength(name, param->getParameterType())) {
-            } else {
+            if(!setNameReferringToArrayLength(name, param->getParameterType())) {
+                // same thing as above
+                linkNameToFieldFromType(name, (ReferenceType*) param->getParameterType(), currName);
             }
         }
-        // do some more stuff here
-    } else if(nextName->linkToArrayLength()) {
+    } else {
         // atempting to access array length?
+        assert(name->linkToArrayLength());
         ss << "Primitive type int cannot be dereferenced.";
         Error(E_DISAMBIGUATION, tok, ss.str());
     }
-    // defer check for method at a a different stage
 }
 
-void AmbiguousLinker::linkSimpleName(Name* name, bool withinMethod) {
+void AmbiguousLinker::linkSimpleName(Name* name) {
     // pretty much a simple name, then do these checks
     // Order based on JLS 6.5.2
     
@@ -652,12 +1083,43 @@ void AmbiguousLinker::linkSimpleName(Name* name, bool withinMethod) {
     std::string currName = tok->getString();
     if(withinMethod) {
         // the check is occurring inside a method
+        SymbolTable* localOrParam = findLocalVarOrParameterPreviouslyDeclared(currName);
+        if(localOrParam != NULL) {
+            // local variable or parameter was found
+            if(localOrParam->isLocalTable()) {
+                name->setReferredLocalVar((LocalTable*) localOrParam);
+            } else { 
+                // not a local variable, but a parameter
+                name->setReferredParameter((ParamTable*) localOrParam);
+            }
+            return;
+        } else {
+            // name isn't referring to a local variable or parameter, search it as a field
+            // of this class, any field even if it was declared after the method being checked
+            FieldTable* field = curCompilation->getAField(currName);
+            if(field != NULL) {
+                // the field was found
+                name->setReferredField(field);
+                return;
+            }
+        }
     } else {
         FieldTable* field = findFieldPreviouslyDeclared(currName);
         if(field != NULL) {
             // the field was found
             name->setReferredField(field);
             return;
+        } else {
+            // previously declared field was not found
+            if(!isStaticContext) {
+                // if we reach here then we know this check is occurring for a field declaration
+                // and the field is not static, then it can access any static field
+                FieldTable* field = getFieldInAClass(curCompilation, currName, tok);
+                if(field != NULL) {
+                    name->setReferredField(field);
+                    return;
+                }
+            }
         }
     }
 
@@ -673,6 +1135,12 @@ void AmbiguousLinker::linkSimpleName(Name* name, bool withinMethod) {
         name->setReferredType(typeTable);
         return;
     }
+    
+    typeTable = curCompilation->checkTypePresenceFromImportOnDemand(currName, tok);
+    if(typeTable != NULL) {
+        name->setReferredType(typeTable);
+        return;
+    }
 
     Package* pkg = manager.getPackageViaName(name);
     if(pkg != NULL) {
@@ -682,16 +1150,17 @@ void AmbiguousLinker::linkSimpleName(Name* name, bool withinMethod) {
     
     // if it's none of the above, then error
     std::stringstream ss;
-    ss << "Simple name '" << currName << "' does not refer to either a local variable, parameter, field, type nor package.";
+    ss << "Simple name '" << currName
+       << "' does not refer to either a local variable, parameter, field, type nor package in the environment.";
     Error(E_DISAMBIGUATION, tok, ss.str());
 }
 
-FieldTable* AmbiguousLinker::getStaticFieldInAClass(CompilationTable* someClass, const std::string& findField, Token* tok) {
+FieldTable* AmbiguousLinker::getFieldInAClass(CompilationTable* someClass, const std::string& findField, Token* tok) {
     FieldTable* field = someClass->getAField(findField);
     if(field == NULL) {
         // if the field cannot be found
         std::stringstream ss;
-        ss << "Cannot locate static field '" << findField << "' in class '" << someClass->getCanonicalName() << "'.";
+        ss << "Unable to locate field '" << findField << "' in class '" << someClass->getCanonicalName() << "'.";
         Error(E_DISAMBIGUATION, tok, ss.str());
     }
     return field;
@@ -713,6 +1182,9 @@ bool AmbiguousLinker::setNameReferringToArrayLength(Name* name, Type* type) {
     if((type->isPrimitiveType() && ((PrimitiveType*) type)->isPrimitiveArray())
        || type->isReferenceArrayType()) {
         // either a primitive array or an array of some class/interface
+        // if it is, then we know that the accessed member MUST be length, because
+        // this is only called when the check of checkProperMemberAccessingFromVariable
+        // passed
         name->setReferringToArrayLength();
         return true;
     }
@@ -722,7 +1194,7 @@ bool AmbiguousLinker::setNameReferringToArrayLength(Name* name, Type* type) {
 bool AmbiguousLinker::setFieldAccessReferringToArrayLength(FieldAccess* access, Type* type) {
     if((type->isPrimitiveType() && ((PrimitiveType*) type)->isPrimitiveArray())
        || type->isReferenceArrayType()) {
-        // either a primitive array or an array of some class/interface
+        // either a primitive array or an array of some class/interface, same case as above
         access->setReferringToArrayLength();
         return true;
     }
@@ -730,6 +1202,11 @@ bool AmbiguousLinker::setFieldAccessReferringToArrayLength(FieldAccess* access, 
 }
 
 int AmbiguousLinker::returnEvalTypeFromTypeNode(Type* type) {
+    if(type == NULL) {
+        // in the case that it is a void return type of some method
+        // the only possible case theoretically speaking
+        return ET_VOID;
+    }
     EVALUATED_TYPE exprType = ET_NOTEVALUATED;
     if(type->isPrimitiveType()) {
         PrimitiveType* primType = (PrimitiveType*) type;
@@ -776,9 +1253,7 @@ void AmbiguousLinker::setExpressionTypeBasedOnName(Expression* expr, Name* name)
     Token* tok = name->getNameId()->getToken();
     Type* type = NULL;
     if(name->isReferringToType()) {
-        ss << "Incomplete use of type name '" << name->getFullName()
-           << "'. Were you trying to access a static member?";
-        Error(E_DISAMBIGUATION, tok, ss.str());
+        expr->setExprType(ET_OBJECT, name->getReferredType());
         return;
     } else if(name->isReferringToField()) {
         FieldTable* field = name->getReferredField();
@@ -794,9 +1269,7 @@ void AmbiguousLinker::setExpressionTypeBasedOnName(Expression* expr, Name* name)
         return;
     } else {
         // referring to a package
-        ss << "Incomplete use of package name '" << name->getFullName()
-           << "'. Were you trying to access a type from that package?";
-        Error(E_DISAMBIGUATION, tok, ss.str());
+        reportIncompletePackageNameUsage(name->getFullName(), tok);
         return;
     }
 
@@ -805,8 +1278,9 @@ void AmbiguousLinker::setExpressionTypeBasedOnName(Expression* expr, Name* name)
 
 void AmbiguousLinker::checkProperArrayAccessInExpression(Expression* expr, Token* tok) {
     // check if the expression type is set, if not
-    // then there must have been an error before
+    // then there must have been an error before -> silently return
     if(expr->isExprTypeNotEvaluated()) { return; }
+
     std::stringstream ss;
     ss << "Expected an array but instead got ";
     if(expr->isExprTypeInt()) {
@@ -827,6 +1301,13 @@ void AmbiguousLinker::checkProperArrayAccessInExpression(Expression* expr, Token
     } else if(expr->isExprTypeObject()) {
         ss << "'" << expr->getTableTypeOfExpression()->getCanonicalName() << "'.";
         Error(E_DISAMBIGUATION, tok, ss.str());
+    } else if(expr->isExprTypeVoid()) {
+        ss << "void.";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+    } else if(expr->isExprTypeNull()) {
+        ss << "null.";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+    
         // the above was error part
         // now everything is an array, thus need to
         // assign the correct type to assignArray since this is
@@ -869,14 +1350,6 @@ Token* AmbiguousLinker::setExpressionTypeBasedOnPrimary(Expression* expr, Primar
             tok = ((InvokeAccessedMethod*) prim)->getAccessedMethod()->getAccessedFieldId()->getToken();
         }
         setExpressionTypeBasedOnType(expr, type);
-    } else if(prim->isReferringToParameter() || prim->isReferringToLocalVar()) {
-        // must be an array access name
-        if(prim->isReferringToParameter()) {
-            type = prim->getReferredParameter()->getParameter()->getParameterType();
-        } else { type = prim->getReferredLocalVar()->getLocalDecl()->getLocalType(); }
-        
-        tok = ((ArrayAccessName*) prim)->getNameOfAccessedArray()->getNameId()->getToken();
-        setExpressionTypeBasedOnType(expr, type);
     } else if(prim->isReferringToConstructor()) {
         // then we know this can only be NewClassCreation
         // precuationary check
@@ -913,16 +1386,27 @@ Token* AmbiguousLinker::setExpressionTypeBasedOnPrimary(Expression* expr, Primar
             tok = ((ReferenceType*) type)->getReferenceName()->getNameId()->getToken();
         }
     } else if(prim->resolvedLinkButNoEntity()) {
-        // either QualifiedThis or BracketedExpression
+        // either QualifiedThis, BracketedExpression or ArrayAccess
         if(prim->isBracketedExpression()) {
             Expression* bracketed = ((BracketedExpression*) prim)->getExpressionInside();
             // just copy the type
             expr->setExprType(bracketed->getExprType(), bracketed->getTableTypeOfExpression());
             // getting a Token from an expression is too bothersome lol, maybe some other time
-        } else {
+        } else if(prim->isQualifiedThis()) {
             // QualifiedThis
             expr->setExprType(ET_OBJECT, ((QualifiedThis*) prim)->getQualifyingClassTable());
             tok = ((QualifiedThis*) prim)->getQualifyingClassName()->getNameId()->getToken();
+        } else {
+            // ArrayAccess
+            assert(prim->isArrayAccessName() || prim->isArrayAccessPrimary());
+            if(prim->isArrayAccessName()) {
+                Name* name = ((ArrayAccessName*) prim)->getNameOfAccessedArray();
+                setExpressionTypeBasedOnName(expr, name);
+                tok = name->getNameId()->getToken();
+            } else {
+                // recursion oh yea
+                tok = setExpressionTypeBasedOnPrimary(expr, ((ArrayAccessPrimary*) prim)->getAccessedPrimaryArray());
+            }
         }
     } else {
         // the only one remaining, precautionary check
@@ -932,6 +1416,149 @@ Token* AmbiguousLinker::setExpressionTypeBasedOnPrimary(Expression* expr, Primar
     }
 
     return tok;
+}
+
+SymbolTable* AmbiguousLinker::findLocalVarOrParameterPreviouslyDeclared(const std::string& currName) {
+    SymbolTable* table = curSymTable;
+    while(!table->isClassMethodTable() && !table->isConstructorTable()) {
+        // while the symbol table isn't referring to the class method or constructor
+        if(table->isLocalTable()) {
+            if(((LocalTable*) table)->getLocalDecl()->getLocalId()->getIdAsString() == currName) {
+                // got the local variable
+                return table;
+            }
+        } else if(table->isParamTable()) {
+            if(((ParamTable*) table)->getParameter()->getParameterId()->getIdAsString() == currName) {
+                // got the parameter
+                return table;
+            }
+        }
+        table = table->getPrevTable();
+    }
+    return NULL;
+}
+
+void AmbiguousLinker::setMethodForMethodInvokeFromCompilation(MethodInvoke* invoke, CompilationTable* someType,
+                    const std::string& methodSignature, Token* tok) {
+    std::stringstream ss;
+    if(someType->isClassSymbolTable()) {
+        ClassMethodTable* method = someType->getAClassMethod(methodSignature);
+        if(method != NULL) {
+            invoke->setReferredClassMethod(method);
+        } else {
+            ss << "Class method with signature '" << methodSignature << "' could not be found in class '"
+               << someType->getCanonicalName() << "'.";
+            Error(E_DISAMBIGUATION, tok, ss.str());
+        }
+    } else {
+        // an interface
+        InterfaceMethodTable* method = someType->getAnInterfaceMethod(methodSignature);
+        if(method != NULL) {
+            invoke->setReferredInterfaceMethod(method);
+        } else {
+            ss << "Interface method with signature '" << methodSignature << "' could not be found in interface '"
+               << someType->getCanonicalName() << "'.";
+            Error(E_DISAMBIGUATION, tok, ss.str());
+        }
+    }
+}
+
+void AmbiguousLinker::setMethodForMethodInvokeFromType(Type* type, MethodInvoke* invoke,
+                const std::string& methodSignature, Token* tok) {
+    if(type->isClassOrInterfaceType()) {
+        CompilationTable* someType = ((ReferenceType*) type)->getReferenceTypeTable();
+        setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
+    } else {
+        std::stringstream ss;
+        ss << "Attempting to access method member of type '" << type->getTypeAsString() << "' which does not exist";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+    }
+}
+
+bool AmbiguousLinker::checkProperMethodOrConstructorSignature(const std::string& methodSignature, Token* tok) {
+    bool proper = true;
+    std::stringstream ss;
+    if(methodSignature.find("null") != std::string::npos) {
+        // it was found
+        ss << "Invalid use of null literal in method invocation. Please cast it to an appropriate type first.";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+        proper = false;
+    } else if(methodSignature.find("void") != std::string::npos) {
+        ss << "Invalid use of void as one of the arguments given to the method.";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+        proper = false;
+    } else if(methodSignature.find("N/A") != std::string::npos) {
+        // one of the argument's type cannot be evaluated, a previous error
+        // occurred
+        proper = false;
+    }
+    return proper;
+}
+
+bool AmbiguousLinker::checkProperArrayAccess(ArrayAccess* access, CompilationTable* table, EVALUATED_TYPE accessType, Token* tok) {
+    std::stringstream ss;
+    if(accessType == ET_INTARRAY || accessType == ET_CHARARRAY || accessType == ET_BYTEARRAY
+       || accessType == ET_SHORTARRAY || accessType == ET_BOOLEANARRAY) {
+        // turn to non-array type
+        access->setTypeOfArrayElements((EVALUATED_TYPE) (accessType-5));
+    } else if(accessType == ET_OBJECTARRAY) {
+        // then type must have been a reference type
+        access->setTypeOfArrayElements(ET_OBJECT, table);
+    } else {
+        // everything else is an error
+        ss << "Expected an array but instead found an entity of type '"
+           << getCorrespondingTypeString(accessType, table) << "'.";
+        Error(E_DISAMBIGUATION, tok, ss.str());
+        return false;
+    }
+
+    return true;
+}
+
+Token* AmbiguousLinker::getTokenFromPrimary(Primary* prim) {
+    Token* tok = NULL;
+    if(prim->isQualifiedThis()) {
+        tok = ((QualifiedThis*) prim)->getQualifyingClassName()->getNameId()->getToken();
+    } else if(prim->isArrayAccessName()) {
+        tok = ((ArrayAccessName*) prim)->getNameOfAccessedArray()->getNameId()->getToken();
+    } else if(prim->isArrayAccessPrimary()) {
+        tok = getTokenFromPrimary(((ArrayAccessPrimary*) prim)->getAccessedPrimaryArray());
+    } else if(prim->isFieldAccess()) {
+        tok = ((FieldAccess*) prim)->getAccessedFieldId()->getToken();
+    } else if(prim->isBracketedExpression()) {
+        // too lazy to do this
+        tok = NULL;
+    } else if(prim->isNormalMethodCall()) {
+        tok = ((MethodNormalInvoke*) prim)->getNameOfInvokedMethod()->getNameId()->getToken();
+    } else if(prim->isAccessedMethodCall()) {
+        tok = ((InvokeAccessedMethod*) prim)->getAccessedMethod()->getAccessedFieldId()->getToken();
+    } else if(prim->isNewClassCreation()) {
+        tok = ((NewClassCreation*) prim)->getClassName()->getNameId()->getToken();
+    } else if(prim->isNewPrimitiveArray()) {
+        tok = ((PrimitiveType*) ((PrimaryNewArray*) prim)->getArrayType())->getPrimTypeToken();
+    } else if(prim->isNewReferenceArray()) {
+        tok = ((ReferenceType*) ((PrimaryNewArray*) prim)->getArrayType())->getReferenceName()->getNameId()->getToken();
+    } else {
+        // the remaining is LiteralOrThis
+        tok = ((LiteralOrThis*) prim)->getLiteralToken();
+    }
+    return tok;
+}
+
+void AmbiguousLinker::linkNameToFieldFromType(Name* name, ReferenceType* type, const std::string& fieldName) {
+    // no error checking needs to be done since they've all been done
+    // in checkProperMemberAccessingFromVariable and in setNameReferringToArrayLength
+    // and we've passed those stages by the time this is called
+    CompilationTable* table = type->getReferenceTypeTable();
+    FieldTable* field = table->getAField(fieldName);
+    if(field != NULL) {
+        name->setReferredField(field);
+    } else {
+        std::stringstream ss;
+        ss << "Unable to locate non-static field '" << fieldName
+           << "' in class '" << table->getCanonicalName() << "'.";
+        Error(E_DISAMBIGUATION, name->getNameId()->getToken(), ss.str());
+    }
 }
 
 // --------------------------------------------------------------------------------------------

@@ -15,6 +15,11 @@ class MethodNormalInvoke : public MethodInvoke {
         }
 
         Name* getNameOfInvokedMethod() { return methodInvoked; }
+
+        std::string methodInvocationMatchToSignature() {
+            return methodInvoked->getNameId()->getIdAsString() + "(" +
+                   args->stringifyArgumentsToType() + ")";
+        }
 };
 
 #endif

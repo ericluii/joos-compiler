@@ -4,7 +4,8 @@
 #include "ast.h"
 #include "evaluatedType.h"
 
-class CompilationTable;
+#include "compilationTable.h"
+#include "typeString.h"
 
 class Expression : public Ast {
     protected:
@@ -36,7 +37,16 @@ class Expression : public Ast {
         bool isExprTypeNull() { return exprType == ET_NULL; }
         bool isExprTypeObject() { return exprType == ET_OBJECT; }
         bool isExprTypeObjectArray() { return exprType == ET_OBJECTARRAY; }
+        bool isExprTypeVoid() { return exprType == ET_VOID; }
         bool isExprTypeNotEvaluated() { return exprType == ET_NOTEVALUATED; }
+
+        std::string getExpressionTypeString() {
+            std::string ret = getCorrespondingTypeString(exprType, typeTable);
+            if(isExprTypeObjectArray()) {
+                ret+= "[]";
+            }
+            return ret;
+        }
 };
 
 #endif

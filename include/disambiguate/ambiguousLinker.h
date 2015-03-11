@@ -4,11 +4,13 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "evaluatedType.h"
 
 class PackagesManager;
 class CompilationTable;
 class SymbolTable;
 class FieldTable;
+class LocalTable;
 
 class ClassDecl;
 class InterfaceDecl;
@@ -23,6 +25,7 @@ class AssignField;
 class FieldAccess;
 class Primary;
 class LiteralOrThis;
+class BracketedExpression;
 class NewClassCreation;
 class ArgumentsStar;
 class Arguments;
@@ -40,6 +43,19 @@ class ArrayAccessPrimary;
 class CastExpression;
 class CastName;
 class CastPrimitive;
+class ClassMethod;
+class MethodBody;
+class BlockStmtsStar;
+class BlockStmts;
+class LocalDecl;
+class ExpressionStar;
+class StmtExpr;
+class IfStmt;
+class WhileStmt;
+class ForStmt;
+class NestedBlock;
+class Constructor;
+class ReferenceType;
 
 class Token;
 
@@ -49,6 +65,11 @@ class AmbiguousLinker {
         std::map<std::string, std::vector<CompilationTable*> >& compilations;
         SymbolTable* curSymTable;
         CompilationTable* curCompilation;
+        // indicates if linking happens in static context
+        // which really is only in an initializer of a static field in this case
+        bool isStaticContext;
+        // indicates if linking happens in a class method
+        bool withinMethod;
 
         // -----------------------------------------------------------------
         // Class part
@@ -56,32 +77,41 @@ class AmbiguousLinker {
         void traverseAndLink(ClassBodyStar* body);
         void traverseAndLink(ClassBodyDecls* body);
         void traverseAndLink(FieldDecl* field);
-        void traverseAndLink(Expression* expr, bool withinMethod);
-        void traverseAndLink(Assignment* assign, bool withinMethod);
-        void traverseAndLink(AssignName* assign, bool withinMethod);
-        void traverseAndLink(Name* name, bool withinMethod);
-        void traverseAndLink(AssignField* assign, bool withinMethod);
-        void traverseAndLink(FieldAccess* assign, bool withinMethod);
-        void traverseAndLink(Primary* prim, bool withinMethod);
+        void traverseAndLink(Expression* expr);
+        void traverseAndLink(Assignment* assign);
+        void traverseAndLink(AssignName* assign);
+        void traverseAndLink(Name* name);
+        void traverseAndLink(AssignField* assign);
+        void traverseAndLink(FieldAccess* assign);
+        void traverseAndLink(Primary* prim);
+        void traverseAndLink(BracketedExpression* brkExpr);
         void traverseAndLink(LiteralOrThis* lit);
-        void traverseAndLink(NewClassCreation* create, bool withinMethod);
-        void traverseAndLink(ArgumentsStar* args, bool withinMethod);
-        void traverseAndLink(Arguments* args, bool withinMethod);
-        void traverseAndLink(PrimaryNewArray* newArray, bool withinMethod);
-        void traverseAndLink(MethodInvoke* invoke, bool withinMethod);
-        void traverseAndLink(MethodNormalInvoke* invoke, bool withinMethod);
-        void traverseAndLink(InvokeAccessedMethod* invoke, bool withinMethod);
-        void traverseAndLink(ArrayAccess* access, bool withinMethod);
-        void traverseAndLink(ArrayAccessName* access, bool withinMethod);
-        void traverseAndLink(ArrayAccessPrimary* access, bool withinMethod);
-        void traverseAndLink(AssignArray* assign, bool withinMethod);
-        void traverseAndLink(CastExpression* cast, bool withinMethod);
-        void traverseAndLink(CastName* cast, bool withinMethod);
+        void traverseAndLink(NewClassCreation* create);
+        void traverseAndLink(ArgumentsStar* args);
+        void traverseAndLink(Arguments* args);
+        void traverseAndLink(PrimaryNewArray* newArray);
+        void traverseAndLink(MethodInvoke* invoke);
+        void traverseAndLink(MethodNormalInvoke* invoke);
+        void traverseAndLink(InvokeAccessedMethod* invoke);
+        void traverseAndLink(ArrayAccess* access);
+        void traverseAndLink(ArrayAccessName* access);
+        void traverseAndLink(ArrayAccessPrimary* access);
+        void traverseAndLink(AssignArray* assign);
+        void traverseAndLink(CastExpression* cast);
+        void traverseAndLink(CastName* cast);
         void traverseAndLink(CastPrimitive* cast);
-
-        // ------------------------------------------------------------------
-        // Interface part
-        void traverseAndLink(InterfaceDecl* anInterface);
+        void traverseAndLink(ClassMethod* method);
+        void traverseAndLink(MethodBody* body);
+        void traverseAndLink(BlockStmtsStar* block);
+        void traverseAndLink(BlockStmts* stmts);
+        void traverseAndLink(LocalDecl* local);
+        void traverseAndLink(ExpressionStar* exprStar);
+        void traverseAndLink(StmtExpr* stmt);
+        void traverseAndLink(IfStmt* stmt);
+        void traverseAndLink(WhileStmt* stmt);
+        void traverseAndLink(ForStmt* stmt);
+        void traverseAndLink(NestedBlock* nested);
+        void traverseAndLink(Constructor* ctor);
         
         // ------------------------------------------------------------------
         // starts from here
@@ -91,6 +121,8 @@ class AmbiguousLinker {
         // error reporting
         void reportIllegalPrimitiveMemberAccess(const std::string& memberName, PrimitiveType* type, Token* tok);
         void reportIllegalArrayMemberAccess(const std::string& memberName, Type* type, Token* tok);
+        void reportIncompletePackageNameUsage(const std::string& pkgName, Token* tok);
+        void reportLiteralDereferencing(LiteralOrThis* lit, Token* tok);
 
         // ------------------------------------------------------------------
         // Various helpers
@@ -99,8 +131,8 @@ class AmbiguousLinker {
         FieldTable* findFieldPreviouslyDeclared(const std::string& fieldName);
         CompilationTable* findTypeFromSingleImportsAndPackage(const std::string& typeName, Token* tok);
         void linkQualifiedName(Name* name);
-        void linkSimpleName(Name* name, bool withinMethod);
-        FieldTable* getStaticFieldInAClass(CompilationTable* someClass, const std::string& findField, Token* tok);
+        void linkSimpleName(Name* name);
+        FieldTable* getFieldInAClass(CompilationTable* someClass, const std::string& findField, Token* tok);
         CompilationTable* retrieveCompilation(const std::string& package, const std::string& typeName);
         bool setNameReferringToArrayLength(Name* name, Type* type);
         bool setFieldAccessReferringToArrayLength(FieldAccess* access, Type* type);
@@ -109,6 +141,15 @@ class AmbiguousLinker {
         void checkProperArrayAccessInExpression(Expression* expr, Token* tok);
         void setExpressionTypeBasedOnName(Expression* expr, Name* name);
         Token* setExpressionTypeBasedOnPrimary(Expression* expr, Primary* prim);
+        SymbolTable* findLocalVarOrParameterPreviouslyDeclared(const std::string& currName);
+        void setMethodForMethodInvokeFromCompilation(MethodInvoke* invoke, CompilationTable* someType,
+                        const std::string& methodSignature, Token* tok);
+        void setMethodForMethodInvokeFromType(Type* type, MethodInvoke* invoke, const std::string& methodSignature, Token* tok);
+        bool checkProperMethodOrConstructorSignature(const std::string& methodSignature, Token* tok);
+        bool checkProperArrayAccess(ArrayAccess* access, CompilationTable* table, EVALUATED_TYPE accessType, Token* tok);
+        std::string getCorrespongindTypeString(EVALUATED_TYPE type, CompilationTable* table);
+        Token* getTokenFromPrimary(Primary* prim);
+        void linkNameToFieldFromType(Name* name, ReferenceType* type, const std::string& fieldName);
     public:
         AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations);
         ~AmbiguousLinker();
