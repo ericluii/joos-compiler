@@ -194,7 +194,6 @@ void AmbiguousLinker::traverseAndLink(Assignment* assign) {
 }
 
 void AmbiguousLinker::traverseAndLink(AssignName* assign) {
-    std::stringstream ss;
     Name* assignName = assign->getNameToAssign();
     traverseAndLink(assignName);
     setExpressionTypeBasedOnName(assign, assignName);

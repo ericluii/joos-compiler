@@ -65,4 +65,3 @@ void printSymbolTable(SymbolTable* table, int depth) {
         printSymbolTable(table->getNextTable(), depth);
     }
 }
-
