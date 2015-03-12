@@ -18,6 +18,7 @@
 #include "negationExpression.h"
 #include "assignField.h"
 #include "assignArray.h"
+#include "assignName.h"
 #include "arrayAccessPrimary.h"
 #include "bracketedExpression.h"
 #include "invokeAccessedMethod.h"
@@ -424,6 +425,9 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Assignment* assign
         linkTypeNames(compilation, ((AssignField*) assign)->getAssignedField());
     } else if(assign->isAssignArray()) {
         linkTypeNames(compilation, ((AssignArray*) assign)->getAssignedArray());
+    } else {
+        // assign name
+        linkTypeNames(compilation, ((AssignName*) assign)->getNameToAssign());
     }
 
     linkTypeNames(compilation, assign->getExpressionToAssign());
@@ -591,7 +595,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmts* stmts)
         linkTypeNames(compilation, (StmtExpr*) stmts);
     } else if(stmts->isNestedBlock()) {
         linkTypeNames(compilation, ((NestedBlock*) stmts)->getNestedBlock());
-    } else if(stmts->isIfStmt()) {
+    } else if(stmts->isIfStmt() || stmts->isIfThenElseStmt()) {
         linkTypeNames(compilation, (IfStmt*) stmts);
     } else if(stmts->isWhileStmt()) {
         linkTypeNames(compilation, (WhileStmt*) stmts);
