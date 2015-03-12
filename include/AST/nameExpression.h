@@ -9,7 +9,7 @@ class NameExpression : public Expression {
     private:
         Name* expr;
     public:
-        NameExpression(Name* expr) : expr(expr) {}
+        NameExpression(Name* expr) : Expression(), expr(expr) {}
         ~NameExpression() {
             delete expr;
         }

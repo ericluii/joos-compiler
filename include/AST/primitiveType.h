@@ -13,6 +13,7 @@ class PrimitiveType : public Type {
         PrimitiveType(Token* primitiveType, bool isArray) : primitiveType(primitiveType), isArray(isArray) {}
         ~PrimitiveType() {}
 
+        Token* getPrimTypeToken() { return primitiveType; }
         std::string getTypeAsString() {
             std::string type = primitiveType->getString();
             if(isArray) {

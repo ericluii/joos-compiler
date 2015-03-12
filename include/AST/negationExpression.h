@@ -8,7 +8,7 @@ class NegationExpression : public Expression {
     private:
         Expression* negate;
     public:
-        NegationExpression(Expression* negate) : negate(negate) {}
+        NegationExpression(Expression* negate) : Expression(), negate(negate) {}
         ~NegationExpression() {
             delete negate;
         }

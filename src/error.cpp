@@ -34,10 +34,13 @@ void Error::print()
             case E_SYMTABLE:
             case E_TYPELINKING:
             case E_HIERARCHY:
-                std::cerr << all_errors[i].token->getFile() << ":"
-                          << all_errors[i].token->getLocation().first << ":"
-                          << all_errors[i].token->getLocation().second << ": error: "
-                          << all_errors[i].message << std::endl;
+            case E_DISAMBIGUATION:
+                if(all_errors[i].token != NULL) {
+                    std::cerr << all_errors[i].token->getFile() << ":"
+                              << all_errors[i].token->getLocation().first << ":"
+                              << all_errors[i].token->getLocation().second << ": error: ";
+                }
+                std::cerr << all_errors[i].message << std::endl;
                 break;
             case E_DEFAULT:
                 std::cerr << all_errors[i].message << std::endl;

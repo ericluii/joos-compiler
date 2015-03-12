@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -27,19 +27,27 @@ TYPELINK_O = $(addprefix build/src/type-link/, $(notdir $(TYPELINK_C:.cpp=.o)))
 HC_C = $(wildcard src/hierarchy-checking/*.cpp)
 HC_O = $(addprefix build/src/hierarchy-checking/, $(notdir $(HC_C:.cpp=.o)))
 
+# DISAMBIGUATION CODE
+DIS_C = $(wildcard src/disambiguate/*.cpp)
+DIS_O = $(addprefix build/src/disambiguate/, $(notdir $(DIS_C:.cpp=.o)))
+
+# TYPE CHECKING CODE
+TYPECHECK_C = $(wildcard src/type-checking/*.cpp)
+TYPECHECK_O = $(addprefix build/src/type-checking/, $(notdir $(TYPECHECK_C:.cpp=.o)))
+
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
-SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O)
+SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O) $(DIS_O) $(TYPECHECK_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
 # Include
-SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h)
+SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h) $(wildcard include/disambiguate/*.h) $(wildcard include/type-checking/*.h)
 TEST_INC = $(wildcard tests/include/*.h)
 
 # Static Lib for Tests
@@ -56,7 +64,7 @@ compiler: init $(OUT_FILE)
 tests: init $(TEST_OUT_FILE)
 
 init:
-	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking
+	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking
 	@$(foreach TEST_CASE, $(TEST_CASES), python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
 
@@ -75,6 +83,12 @@ build/src/type-link/%.o: src/type-link/%.cpp $(SRC_INC)
 
 build/src/hierarchy-checking/%.o: src/hierarchy-checking/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/hierarchy-checking/$(notdir $(@:.cpp=.o))
+
+build/src/disambiguate/%.o: src/disambiguate/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/disambiguate/$(notdir $(@:.cpp=.o))
+
+build/src/type-checking/%.o: src/type-checking/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/type-checking/$(notdir $(@:.cpp=.o))
 
 build/src/%.o: src/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/$(notdir $(@:.cpp=.o))

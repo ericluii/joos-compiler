@@ -11,6 +11,7 @@ enum E_TYPE {
     E_SYMTABLE,
     E_TYPELINKING,
     E_HIERARCHY,
+    E_DISAMBIGUATION,
     E_DEFAULT
 };
 

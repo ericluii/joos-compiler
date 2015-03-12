@@ -43,6 +43,8 @@
 #include "forStmt.h"
 #include "interfaceBodyStar.h"
 #include "interfaceMethod.h"
+#include "argumentsStar.h"
+#include "arguments.h"
 
 TypeLinker::TypeLinker(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {}
 
@@ -410,7 +412,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) 
     } else if(expr->isAssignField() || expr->isAssignArray() || expr->isAssignName()) {
         linkTypeNames(compilation, (Assignment*) expr);
     } else if(expr->isPrimaryExpression()) {
-        linkTypeNames(compilation, ((PrimaryExpression*) expr)->getPrimaryExpression());
+        linkTypeNames(compilation, (PrimaryExpression*) expr);
     } else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
         linkTypeNames(compilation, (CastExpression*) expr);
     }
@@ -481,6 +483,21 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, MethodInvoke* invo
     if(invoke->isAccessedMethodCall()) {
         linkTypeNames(compilation, ((InvokeAccessedMethod*) invoke)->getAccessedMethod());
     }
+    linkTypeNames(compilation, invoke->getArgsForInvokedMethod());
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, ArgumentsStar* args) {
+    if(!args->isEpsilon()) {
+        linkTypeNames(compilation, args->getListOfArguments());
+    }
+}
+
+void TypeLinker::linkTypeNames(CompilationTable* compilation, Arguments* arg) {
+    if(!arg->lastArgument()) {
+        linkTypeNames(compilation, arg->getNextArgs());
+    }
+
+    linkTypeNames(compilation, arg->getSelfArgumentExpr());
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* create) {
@@ -488,6 +505,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* 
     if(linkType == NULL) {
         reportTypeNameLinkError("Creating class '", create->getClassName()->getFullName(),
                                 create->getClassName()->getNameId()->getToken());
+        return;
     }
 
     if(linkType->aTypeWasDefined() && !linkType->isClassSymbolTable()) {
@@ -496,6 +514,9 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* 
         Error(E_TYPELINKING, create->getClassName()->getNameId()->getToken(), ss.str());
     }
     create->setTableOfCreatedClass(linkType);
+
+    // attempt to link arguments
+    linkTypeNames(compilation, create->getArgsToCreateClass());
 }
 
 void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* castExpr) {
@@ -508,6 +529,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, CastExpression* ca
         if(linkType == NULL) {
             reportTypeNameLinkError("Casting to '", castName->getTypeToCastAsString(),
                                     castTo->getNameId()->getToken());
+            return;
         }
 
         castName->setCastTypeTable(linkType);
@@ -561,6 +583,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, BlockStmts* stmts)
     }
     if(stmts->isLocalVarDecl()) {
         linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalType());
+        linkTypeNames(compilation, ((LocalDecl*) stmts)->getLocalInitExpr());
     } else if(stmts->isReturnStmt()) {
         linkTypeNames(compilation, ((ReturnStmt*) stmts)->getReturnExpr());
     } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isMethodInvokeStmt()) {

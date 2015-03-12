@@ -8,6 +8,7 @@ enum SYMBOL_TABLE_TYPE {
     STT_CLASSMETHOD,
     STT_INTERFACEMETHOD,
     STT_CONSTRUCTOR,
+    STT_PARAM,
     STT_LOCAL,
     STT_NESTEDBLOCK,
     STT_FOR,
@@ -34,7 +35,8 @@ class SymbolTable {
         bool isConstructorTable();
         bool isNestedBlockTable(); 
         bool isForTable(); 
-        bool isLocalTable(); 
+        bool isLocalTable();
+        bool isParamTable();
         SYMBOL_TABLE_TYPE getTableType(); 
 
         bool isTopMostEntry();

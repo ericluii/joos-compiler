@@ -10,7 +10,7 @@ class BinaryExpression : public Expression {
         Expression* leftExpr;
         Expression* rightExpr;
     public:
-        BinaryExpression(Expression* leftExpr, Expression* rightExpr) : leftExpr(leftExpr), rightExpr(rightExpr) {}
+        BinaryExpression(Expression* leftExpr, Expression* rightExpr) : Expression(), leftExpr(leftExpr), rightExpr(rightExpr) {}
         ~BinaryExpression() {
             delete leftExpr;
             delete rightExpr;

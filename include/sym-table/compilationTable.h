@@ -14,6 +14,7 @@ class FieldTable;
 class LocalTable;
 class NestedBlockTable;
 class ForTable;
+class ParamTable;
 class InterfaceMethodTable;
 class ParamList;
 class Identifier;
@@ -26,6 +27,9 @@ class CompilationTable {
         SymbolTable* symTable;
         std::string filename;
         CompilationUnit* unit;
+        // This is the compilation table to java.lang.Object
+        // for the purposes of interfaces
+        CompilationTable* extendFromObject;
         bool established;
         // other compilations in the same package
         std::vector<CompilationTable*>* compilationsInPackage;
@@ -41,10 +45,10 @@ class CompilationTable {
         std::map<std::string, InterfaceMethodTable*> interfaceMethods;
 
         void reportLocalError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken);
-        void registerFormalParameters(ParamList*, std::map<std::string, Token*>& localVars);
         void iterateThroughTable(SymbolTable* table, std::vector<std::map<std::string, Token*>* >& blockScopes);
         void checkBodyForOverlappingScope(SymbolTable* body, std::map<std::string, Token*>& localVars);
-        
+       
+        void checkParamTable(ParamTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes);
         void checkLocalTable(LocalTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes);
         void checkNestedBlockTable(NestedBlockTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes);
         void checkForTable(ForTable& table, std::vector<std::map<std::string, Token*>* >& blockScopes);
@@ -52,10 +56,13 @@ class CompilationTable {
         void checkMethodForOverlappingScope(ClassMethodTable* methodTable);
         void checkConstructorForOverlappingScope(ConstructorTable* constructorTable);
 
-        // Small helper during registering inherited fields and methods
-        // Called from function inheritFieldsAndMethods
+        // Small helper during registering inherited class fields and methods
+        // Called from function inheritClassFieldsAndMethods
         void registerInheritedField(const std::string& field, FieldTable* table);
         void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table);
+        // Small helper during registering inherited interface methods
+        // Called from function inheritInterfaceMethods
+        void registerInheritedInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table);
 
     public:
         CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit);
@@ -63,6 +70,7 @@ class CompilationTable {
 
         SymbolTable* getSymbolTable();
         std::string getPackageName();
+        PackageDecl* getPackageRawForm();
         std::string getClassOrInterfaceName();
         std::string getCanonicalName();
         std::string getFilename();
@@ -80,22 +88,20 @@ class CompilationTable {
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
         void registerAField(const std::string& field, FieldTable* table);
         void registerClassMethodsAndConstructors();
-        bool checkForFieldPresence(const std::string& field);
-        bool checkForClassMethodPresence(const std::string& methodSignature);
-        bool checkForConstructorPresence(const std::string& constructorSignature);
-
+        
         // This part is to be called after hierarchy checking, involved with superclass extensions
         // Called to check if this compilation unit's inheritance have been properly resolved
-        // i.e methods and fields have been properly inherited, applies only to compilations of classes
+        // i.e methods and fields have been properly inherited
         bool isInheritanceEstablished();
         // Called after registering class methods, fields and constructors
-        void inheritFieldsAndMethods();
+        void inheritClassFieldsAndMethods();
 
         // ---------------------------------------------------------------------
         // Interface if symbol table is an interface table
         InterfaceMethodTable* getAnInterfaceMethod(const std::string& methodSignature);
+        ClassMethodTable* getAnInterfaceMethodFromObject(const std::string& methodSignature);
         void registerInterfaceMethods();
-        bool checkForInterfaceMethodPresence(const std::string& methodSignature);
+        void inheritInterfaceMethods(CompilationTable* object);
 
         // ---------------------------------------------------------------------
         // Interface to check if symbol table is NULL or not

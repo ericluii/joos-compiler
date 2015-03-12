@@ -13,6 +13,8 @@
 #include "buildCompilationTable.h"
 #include "typeLinker.h"
 #include "hierarchyChecking.h"
+#include "packagesManager.h"
+#include "ambiguousLinker.h"
 
 void cleanUpTokens(std::map<std::string, std::vector<Token*> *>& tokens)
 {
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
     try {
         for (int i = 1; i < argc; i++) {
             filename = argv[i];
-            if(filename.find_last_of(".java") == std::string::npos) {
+            if(filename.find(".java") == std::string::npos) {
                 std::stringstream ss;
                 ss << "File '" << filename << "' must end with .java extension.";
                 Error(E_DEFAULT, NULL, ss.str());
@@ -177,6 +179,11 @@ int main(int argc, char *argv[])
 
         HierarchyChecking(packagesCompilations).check();
         CHECK_ERROR();
+
+        PackagesManager pkgManager(packagesCompilations);
+        AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
+        CHECK_ERROR();
+
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;

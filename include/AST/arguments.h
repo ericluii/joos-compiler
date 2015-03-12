@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "expression.h"
 
+
 class Arguments : public Ast
 {
     private:
@@ -21,6 +22,17 @@ class Arguments : public Ast
 
         void setNextArgs(Arguments* set) { nextArgs = set; }
         bool lastArgument() { return nextArgs == NULL; }
+
+        std::string stringifyToType() {
+            std::string ret = "";
+            if(nextArgs != NULL) {
+                ret+= nextArgs->stringifyToType() + ',';
+            } else {
+                return selfExpr->getExpressionTypeString();
+            }
+
+            return ret + selfExpr->getExpressionTypeString();
+        }
 };
 
 #endif

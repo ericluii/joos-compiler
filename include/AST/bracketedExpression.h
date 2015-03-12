@@ -9,7 +9,7 @@ class BracketedExpression : public Primary {
     private:
         Expression* expr;
     public:
-        BracketedExpression(Expression* expr) : expr(expr) {}
+        BracketedExpression(Expression* expr) : Primary(), expr(expr) {}
         ~BracketedExpression() {
             delete expr;
         }

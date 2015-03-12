@@ -7,7 +7,7 @@ class Assignment : public Expression {
     protected:
         Expression* RHS;
     public:
-        Assignment(Expression* RHS) : RHS(RHS) {}
+        Assignment(Expression* RHS) : Expression(), RHS(RHS) {}
         virtual ~Assignment() {
             delete RHS;
         }

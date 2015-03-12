@@ -16,6 +16,11 @@ class InvokeAccessedMethod : public MethodInvoke {
         }
 
         FieldAccess* getAccessedMethod() { return accessedMethod; }
+
+        std::string methodInvocationMatchToSignature() {
+            return accessedMethod->getAccessedFieldId()->getIdAsString() + "(" +
+                   args->stringifyArgumentsToType() + ")";
+        }
 };
 
 #endif

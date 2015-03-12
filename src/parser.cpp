@@ -169,7 +169,12 @@ ParseTree* Parser::Parse(std::string& parseFile) {
         TOKEN_TYPE tokType = token->getType();
         std::string toParse;
         if(tokType == TT_ID) {
-            toParse = "ID";
+            if(token->getString() == "false" || token->getString() == "true") {
+                // true and false was being set to ID -> incorrect
+                toParse = token->getString();
+            } else {
+                toParse = "ID";
+            }
         } else if(tokType == TT_CHARACTER) {
             toParse = "CHAR";
         } else if(tokType == TT_STRING) {

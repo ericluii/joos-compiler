@@ -9,10 +9,11 @@ class LiteralOrThis : public Primary {
     private:
         Token* litOrThis;
     public:
-        LiteralOrThis(Token* tok) : litOrThis(tok) {}
+        LiteralOrThis(Token* tok) : Primary(), litOrThis(tok) {}
         ~LiteralOrThis() {}
 
         std::string getLiteralAsString() { return litOrThis->getString(); }
+        Token* getLiteralToken() { return litOrThis; }
 };
 
 

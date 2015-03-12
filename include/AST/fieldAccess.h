@@ -5,13 +5,16 @@
 #include "primary.h"
 #include "identifier.h"
 
+class FieldTable;
+
 class FieldAccess : public Primary {
     // Rule: FIELD_ACCESS
     private:
         Primary* primary;
         Identifier* id;
+
     public:
-        FieldAccess(Identifier* id) : primary(NULL), id(id) {}
+        FieldAccess(Identifier* id) : Primary(), primary(NULL), id(id) {}
         ~FieldAccess() {
             delete primary;
             delete id;
