@@ -68,7 +68,7 @@ class NoAbstractFinal : public Weed
         {
             if (hasAbstractMod(node) && hasFinalMod(node)) {
                 std::stringstream ss;
-                ss << "class '" << getClassName(node) << "' cannot be declared as both final and abstract.";
+                ss << "Class '" << getClassName(node) << "' cannot be declared as both final and abstract.";
 
                 Error(E_WEEDER, token, ss.str());
             }

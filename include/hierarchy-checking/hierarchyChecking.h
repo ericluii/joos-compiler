@@ -25,6 +25,10 @@ class HierarchyChecking {
         void classNotExtendFinalClass(CompilationTable* compilation);
         void checkMethodModifiers(CompilationTable* compilation);
         void checkForCycles(CompilationTable* compilation);
+
+        // To be called after checks
+        // Bring down inherited methods and fields from superclass (only for classes)
+        void establishInheritance(CompilationTable* compilation);
     public:
         HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 

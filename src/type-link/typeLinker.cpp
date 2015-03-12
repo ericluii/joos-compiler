@@ -490,6 +490,11 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, NewClassCreation* 
                                 create->getClassName()->getNameId()->getToken());
     }
 
+    if(linkType->aTypeWasDefined() && !linkType->isClassSymbolTable()) {
+        std::stringstream ss;
+        ss << "Cannot create interface '" << create->getClassName()->getFullName() << "' through a class instance creation expression.";
+        Error(E_TYPELINKING, create->getClassName()->getNameId()->getToken(), ss.str());
+    }
     create->setTableOfCreatedClass(linkType);
 }
 
@@ -659,7 +664,7 @@ CompilationTable* TypeLinker::linkTypeNames(CompilationTable* compilation, Name*
             if(!typeExist) { return NULL; }
             if(checkIfNameConflictsWithType(compilation, name->getNextName(), true)) {
                 std::stringstream ss;
-                ss << "Fully qualified name '" << qualifier+typeName
+                ss << "Fully qualified name '" << name->getFullName()
                    << "' resolves to a type, but it's strict prefix is also a type itself in this compilation unit's environment.";
                 Error(E_TYPELINKING, name->getNameId()->getToken(), ss.str());
             }

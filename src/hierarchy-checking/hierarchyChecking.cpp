@@ -266,6 +266,7 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
     std::set<std::string> public_methods;
     std::set<std::string> non_static_methods;
     std::set<std::string> static_methods;
+    std::set<std::string> abstract_methods;
     CompilationTable* processing;
     while (!traverse.empty()) {
         processing = traverse.front();
@@ -294,15 +295,23 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                             MethodHeader* mh = static_cast<ClassMethod*>(cbd)->getMethodHeader();
                             std::string signature = mh->methodSignatureAsString();
 
-                            // Check Static vs. Instance Overriding
+                            // Check Static vs. Instance Overriding vs. Abstract overriding
                             if (cbd->isStatic()) {
                                 static_methods.insert(signature);
                                 
                                 if (non_static_methods.count(signature)) {
                                     std::stringstream ss;
                                     ss << "Static method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
-                                       << "' cannot be overriden as a instance method.";
+                                       << "' cannot be overriden as an instance method.";
 
+                                    Error(E_HIERARCHY, token, ss.str());
+                                    break;
+                                }
+
+                                if(abstract_methods.count(signature)) {
+                                    std::stringstream ss;
+                                    ss << "Static method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                       << "' cannot be overriden as an abstract method.";
                                     Error(E_HIERARCHY, token, ss.str());
                                     break;
                                 }
@@ -330,6 +339,18 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                                     ss << "Public method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                        << "' cannot be overriden as protected.";
 
+                                    Error(E_HIERARCHY, token, ss.str());
+                                    break;
+                                }
+                            }
+
+                            // check Abstract vs. Static overriding
+                            if(cbd->isAbstract()) {
+                                abstract_methods.insert(signature);
+                                if(static_methods.count(signature)) {
+                                    std::stringstream ss;
+                                    ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                       << "' cannot be overriden or implemented as a static method.";
                                     Error(E_HIERARCHY, token, ss.str());
                                     break;
                                 }
@@ -370,45 +391,26 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                     while (im != NULL) {
                         std::string signature = im->methodSignatureAsString();
 
-                        // Check Static vs. Instance Overriding
-                        if (im->isStatic()) {
-                            static_methods.insert(signature);
-                            
-                            if (non_static_methods.count(signature)) {
-                                std::stringstream ss;
-                                ss << "Static method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
-                                   << "' cannot be overriden as a instance method.";
+                        // Check Protected vs. Public Overriding, by default interface method is public
+                        public_methods.insert(signature);
 
-                                Error(E_HIERARCHY, token, ss.str());
-                                break;
-                            }
-                        } else {
-                            non_static_methods.insert(signature);
+                        if (protected_methods.count(signature)) {
+                            std::stringstream ss;
+                            ss << "Interface method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                               << "' cannot be overriden as protected.";
 
-                            if (static_methods.count(signature)) {
-                                std::stringstream ss;
-                                ss << "Instance method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
-                                   << "' cannot be overriden as a static method.";
-
-                                Error(E_HIERARCHY, token, ss.str());
-                                break;
-                            }
+                            Error(E_HIERARCHY, token, ss.str());
+                            break;
                         }
 
-                        // Check Protected vs. Public Overriding
-                        if (im->isProtected()) {
-                            protected_methods.insert(signature);
-                        } else {
-                            public_methods.insert(signature);
-
-                            if (protected_methods.count(signature)) {
-                                std::stringstream ss;
-                                ss << "Public method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
-                                   << "' cannot be overriden as protected.";
-
-                                Error(E_HIERARCHY, token, ss.str());
-                                break;
-                            }
+                        // Check Abstract vs. Static overriding, by default interface methods are abstract
+                        abstract_methods.insert(signature);
+                        if(static_methods.count(signature)) {
+                            std::stringstream ss;
+                            ss << "Interface method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                               << "' cannot be overriden or implemented as static.";
+                            Error(E_HIERARCHY, token, ss.str());
+                            break;
                         }
 
                         im = im->getNextInterfaceMethod();
@@ -539,14 +541,25 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                                 Error(E_HIERARCHY, token, ss.str());
                                 break;
                             }
-                            if(methods.count(signature) == 0 && checkAbstract && cbd->isAbstract())
-                            {
-                                std::stringstream ss;
-                                ss << compilation->getClassOrInterfaceName() << ": Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
-                                   << "' must be overriden.";
-                                Error(E_HIERARCHY, token, ss.str());
-                                break;
+
+                            if(checkAbstract) {
+                                if(processing == compilation) {
+                                    // if it's actually itself being checked
+                                    if(cbd->isAbstract()) {
+                                        std::stringstream ss;
+                                        ss << "Abstract method '" << signature << "' cannot be declared in class '"
+                                           << processing->getClassOrInterfaceName() << "' because the class is not abstract.";
+                                        Error(E_HIERARCHY, token, ss.str());
+                                    }
+                                } else if(methods.count(signature) == 0 && cbd->isAbstract()) {
+                                    std::stringstream ss;
+                                    ss << "Abstract method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
+                                       << "' must be overriden.";
+                                    Error(E_HIERARCHY, token, ss.str());
+                                    break;
+                                }
                             }
+
                             if(mh->isVoidReturnType())
                             {
                                 methods[signature] = "";
@@ -745,24 +758,52 @@ void HierarchyChecking::checkForCycles(CompilationTable* compilation){
     }
 }
 
+void HierarchyChecking::establishInheritance(CompilationTable* compilation) {
+    if(compilation->isClassSymbolTable() && !compilation->isInheritanceEstablished()) {
+        // if this is a compilation of a class and it's inheritance has
+        // not yet been established, then register the class's own methods and constructors
+        compilation->registerClassMethodsAndConstructors();
+        ClassDecl* aClass = ((ClassTable*) compilation->getSymbolTable())->getClass();
+        if(!aClass->noSuperClass() || aClass->getSuper()->isImplicitlyExtending()) {
+            // if there is a superclass either explicitly extended or implicitly
+            // recursively establish the superclass's constructors and methods first
+            establishInheritance(aClass->getSuper()->getSuperClassTable());
+        }
+        // make sure this class inherits all the methods and fields of its superclass, if any
+        compilation->inheritFieldsAndMethods();
+    }
+}
+
 void HierarchyChecking::check() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
+    std::vector<CompilationTable*>::iterator it2;
     for (it = packages.begin(); it != packages.end(); it++) {
-        std::vector<CompilationTable*>::iterator it2;
         for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             // PLACE CHECKS HERE
-            
-            classNotImplementClass(*it2);
-            classNotExtendInterface(*it2);
-            classNotExtendFinalClass(*it2);
-            duplicateInterface(*it2);
-            interfaceNotExtendClass(*it2);
-            noDuplicateSignature(*it2);
-            OverrideChecks(*it2);
-            checkMethodModifiers(*it2);
-            checkForCycles(*it2);
+            if((*it2)->aTypeWasDefined()) {
+                // only do the checks if a type was defined
+                classNotImplementClass(*it2);
+                classNotExtendInterface(*it2);
+                classNotExtendFinalClass(*it2);
+                duplicateInterface(*it2);
+                interfaceNotExtendClass(*it2);
+                noDuplicateSignature(*it2);
+                OverrideChecks(*it2);
+                checkMethodModifiers(*it2);
+                checkForCycles(*it2);
+            }
 
             if (Error::count() > 0) { return; }
+        }
+    }
+
+    // checks have been done and no error, establish inheritance
+    for (it = packages.begin(); it != packages.end(); it++) {
+        for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+            if((*it2)->aTypeWasDefined()) {
+                // if a type was defined
+                establishInheritance(*it2);
+            }
         }
     }
 }
