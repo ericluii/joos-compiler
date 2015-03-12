@@ -1,6 +1,6 @@
 #include "joos_stdlib.h"
 
-std::string stdlibFiles [] = {
+std::vector<std::string> stdlibFilesA2 = {
     "2.0/java/io/OutputStream.java",
 	"2.0/java/io/PrintStream.java",
 	"2.0/java/io/Serializable.java",
@@ -15,8 +15,11 @@ std::string stdlibFiles [] = {
 	"2.0/java/lang/Short.java",
 	"2.0/java/lang/String.java",
 	"2.0/java/lang/System.java",
-	"2.0/java/util/Arrays.java",
-/*	"3.0/java/io/OutputStream.java",
+	"2.0/java/util/Arrays.java"
+};
+
+std::vector<std::string> stdlibFilesA3 = {
+	"3.0/java/io/OutputStream.java",
 	"3.0/java/io/PrintStream.java",
 	"3.0/java/io/Serializable.java",
 	"3.0/java/lang/Boolean.java",
@@ -30,8 +33,9 @@ std::string stdlibFiles [] = {
 	"3.0/java/lang/Short.java",
 	"3.0/java/lang/String.java",
 	"3.0/java/lang/System.java",
-	"3.0/java/util/Arrays.java",
-	"4.0/java/io/OutputStream.java",
+	"3.0/java/util/Arrays.java"
+};
+	/*"4.0/java/io/OutputStream.java",
 	"4.0/java/io/PrintStream.java",
 	"4.0/java/io/Serializable.java",
 	"4.0/java/lang/Boolean.java",
@@ -61,4 +65,3 @@ std::string stdlibFiles [] = {
 	"5.0/java/lang/String.java",
 	"5.0/java/lang/System.java",
 	"5.0/java/util/Arrays.java",*/
-};
