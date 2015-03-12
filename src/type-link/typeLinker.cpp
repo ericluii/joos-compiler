@@ -406,6 +406,7 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Expression* expr) 
         linkTypeNames(compilation, ((BinaryExpression*) expr)->getLeftExpression());
         linkTypeNames(compilation, ((BinaryExpression*) expr)->getRightExpression());
     } else if(expr->isInstanceOf()) {
+        linkTypeNames(compilation, ((InstanceOf*) expr)->getExpressionToCheck());
         linkTypeNames(compilation, ((InstanceOf*) expr)->getTypeToCheck());
     } else if(expr->isNumericNegation() || expr->isBooleanNegation()) {
         linkTypeNames(compilation, ((NegationExpression*) expr)->getNegatedExpression());
