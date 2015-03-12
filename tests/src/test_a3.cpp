@@ -1,7 +1,7 @@
-#include "a2TestFiles.h"
+#include "a3TestFiles.h"
 #include "test_main_common.h"
 #include "joos_stdlib.h"
-#include "test_a2.h"
+#include "test_a3.h"
 #include "error.h"
 #include "token.h"
 #include "parseTree.h"
@@ -14,17 +14,19 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include "packagesManager.h"
+#include "ambiguousLinker.h"
 
-Test_A2::Test_A2(std::string& stdlibPath, std::string& directoryPath) :
+Test_A3::Test_A3(std::string& stdlibPath, std::string& directoryPath) :
     directoryPath(directoryPath),
     stdlibPath(stdlibPath) {}
 
-void Test_A2::init() {
-    test_name = "Test Environment Building, Type Linking, and Hierarchy Checking";
-    test_description = "This tests encapsualtes all A2 required tests.";
+void Test_A3::init() {
+    test_name = "Disambiguation, Linking of Names, and Type Checking";
+    test_description = "This tests encapsualtes all A3 required tests.";
 }
 
-void Test_A2::test() {
+void Test_A3::test() {
     std::ifstream file;
     ParseTree* newParseTree = NULL;
     std::string fileContent = "File too long.";
@@ -35,9 +37,8 @@ void Test_A2::test() {
 
 
     // Build Test File Only
-    for(unsigned int i = 0; i < a2TestFiles.size(); i++) {
+    for(unsigned int i = 0; i < a3TestFiles.size(); i++) {
         Error::resetErrors();
-
 
         std::map<std::string, std::vector<Token*> *> tokens;
         std::map<std::string, CompilationUnit*> completeASTs;
@@ -45,11 +46,11 @@ void Test_A2::test() {
         std::vector<Token*>* tokenList;
         parser = new Parser(tokens);
         std::vector<std::string> files;
-        for (unsigned int j = 0; j < stdlibFilesA2.size(); j++) {
-            files.push_back(stdlibPath + "/" + stdlibFilesA2[j]);
+        for (unsigned int j = 0; j < stdlibFilesA3.size(); j++) {
+            files.push_back(stdlibPath + "/" + stdlibFilesA3[j]);
         }
-        for (unsigned int j = 0; j < a2TestFiles[i].size(); j++) {
-            files.push_back(directoryPath + "/" + a2TestFiles[i][j]); 
+        for (unsigned int j = 0; j < a3TestFiles[i].size(); j++) {
+            files.push_back(directoryPath + "/" + a3TestFiles[i][j]); 
         }
 
         for (unsigned int j = 0; j < files.size(); j++) {
@@ -87,12 +88,17 @@ void Test_A2::test() {
             HierarchyChecking(packagesCompilations).check();
         }
 
+        if (Error::count() == 0) {
+            PackagesManager pkgManager(packagesCompilations);
+            AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
+        }
 
-        if (a2TestFiles[i][0][1] == 'e') {
-            checkTrue("A2: " + a2TestFiles[i][0], Error::count() != 0,
+
+        if (a3TestFiles[i][0][1] == 'e') {
+            checkTrue("A3: " + a3TestFiles[i][0], Error::count() != 0,
                       "Check that we fail this file", "\n" + fileContent);
         } else {
-            checkTrue("A2: " + a2TestFiles[i][0], Error::count() == 0,
+            checkTrue("A3: " + a3TestFiles[i][0], Error::count() == 0,
                       "Check that we pass this file", "\n" + fileContent);
         }
 

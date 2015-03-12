@@ -1,9 +1,10 @@
 #ifndef __JOOS_STDLIB_H__
 #define __JOOS_STDLIB_H__
-#define STDLIB_NUM_FILES 15
 
 #include <string>
+#include <vector>
 
-extern std::string stdlibFiles[];
+extern std::vector<std::string> stdlibFilesA2;
+extern std::vector<std::string> stdlibFilesA3;
 
 #endif
