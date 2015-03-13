@@ -1495,14 +1495,7 @@ Token* AmbiguousLinker::setExpressionTypeBasedOnPrimary(Expression* expr, Primar
         } else {
             // ArrayAccess
             assert(prim->isArrayAccessName() || prim->isArrayAccessPrimary());
-            if(prim->isArrayAccessName()) {
-                Name* name = ((ArrayAccessName*) prim)->getNameOfAccessedArray();
-                setExpressionTypeBasedOnName(expr, name);
-                tok = name->getNameId()->getToken();
-            } else {
-                // recursion oh yea
-                tok = setExpressionTypeBasedOnPrimary(expr, ((ArrayAccessPrimary*) prim)->getAccessedPrimaryArray());
-            }
+            expr->setExprType(((ArrayAccess*) prim)->getTypeOfArrayElements(), ((ArrayAccess*) prim)->getTableOfArrayObjects());
         }
     } else if(prim->isReferringToClass()) {
         expr->setExprType(ET_OBJECT, prim->getReferredClass());
