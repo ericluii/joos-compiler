@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     test_list.push_back(new Test_Scanner(a1TestPath));
     test_list.push_back(new Test_Parser(a1TestPath));
     test_list.push_back(new Test_A2(stdlibPath, a2TestPath));
-    //test_list.push_back(new Test_A3(stdlibPath, a3TestPath));
+    test_list.push_back(new Test_A3(stdlibPath, a3TestPath));
 
     for_each(test_list.begin(), test_list.end(), run_test);
     std::cout << base;

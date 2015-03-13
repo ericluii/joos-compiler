@@ -1,4 +1,5 @@
 #include "typeChecker.h"
+#include <queue>
 #include "error.h"
 #include <sstream>
 #include <cassert>
@@ -110,6 +111,7 @@ bool TypeChecking::check(BlockStmts* blockStmts) {
 
 bool TypeChecking::check(LocalDecl* localDecl) {
     std::string type = localDecl->getLocalType()->getTypeAsString();
+    std::string expr_type = localDecl->getLocalInitExpr()->getExpressionTypeString();
 
     switch (localDecl->getLocalInitExpr()->getExprType()) {
         case ET_INT:
@@ -124,10 +126,10 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_BOOLEANARRAY: {
             // Deal with primitive types first
             if (isPrimitive(type) || isPrimitiveArray(type)) {
-                if (localDecl->getLocalInitExpr()->getExpressionTypeString() == type) {
+                if (expr_type == type) {
                     return true;
                 }
-            } else if (isArray(localDecl->getLocalInitExpr()->getExpressionTypeString())) {
+            } else if (isArray(expr_type)) {
                 // Arrays extend Objects who implement Cloneable
                 if (type == "java.lang.Cloneable") {
                     return true;
@@ -154,17 +156,33 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_VOID:
              break;
         case ET_OBJECT:
-            if (!isPrimitive(type) && !isArray(type)) {
+            if ((!isPrimitive(type) && !isArray(type)) ||
+                (type == "java.lang.Object" || type == "java.lang.Cloneable") ||
+                (expr_type == type) ||
+                (!isArray(type) && inheritsOrExtendsOrImplements(expr_type, type))) {
                 return true;
             }
 
             break;
-        case ET_OBJECTARRAY:
-            if (!isPrimitive(type) && !isPrimitiveArray(type)) {
+        case ET_OBJECTARRAY:{
+            if ((type == "java.lang.Object" || type == "java.lang.String") ||
+                (expr_type == type)) {
                 return true;
             }
 
+            if (isArray(type)) {
+                expr_type.erase(expr_type.end() - 2, expr_type.end());
+                type.erase(type.end() - 2, type.end());
+
+                if (inheritsOrExtendsOrImplements(expr_type, type)) {
+                    return true;
+                }
+
+                type += "[]";
+            }
+
             break;
+        }
         case ET_NOTEVALUATED:
         default:
             assert(false);
@@ -175,5 +193,68 @@ bool TypeChecking::check(LocalDecl* localDecl) {
        << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
 
     Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
+    return false;
+}
+
+bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
+    std::string qualifier;
+    if (classname.find('.') != std::string::npos) {
+        qualifier = classname.substr(0, classname.find_last_of('.'));
+    } else {
+        qualifier = "";
+    }
+
+    std::queue<CompilationTable*> traverse;
+    std::vector<CompilationTable*>& types = packages[qualifier];
+    for (unsigned int i = 0; i < types.size(); i++) {
+        if (types[i]->getClassOrInterfaceName() == classname.substr(classname.find_last_of('.') + 1)) {
+            traverse.push(types[i]);
+            break;
+        }
+    }
+
+    CompilationTable* current_table;
+    while (!traverse.empty()) {
+        current_table = traverse.front();
+        traverse.pop();
+
+        if (current_table->getCanonicalName() == searchname) {
+            return true;
+        }
+
+        SymbolTable* st = current_table->getSymbolTable();
+        if (current_table->isClassSymbolTable()) {
+            ClassDecl* cd = static_cast<ClassTable*>(st)->getClass();
+
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+
+            if (!cd->noSuperClass()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+
+            if (cd->getSuper()->isImplicitlyExtending()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+        } else if (st) {
+            InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
+
+            if (!id->noExtendedInterfaces()) {
+                Interfaces* il = id->getExtendedInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }
+        }
+    }
+
     return false;
 }
