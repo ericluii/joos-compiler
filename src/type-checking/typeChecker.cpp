@@ -217,44 +217,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                     return true;
                 // Non-Static Invoke, Check to see if method is static
                 } else {
-                    std::string typeName;
-
-                    // Look for class field declaration
-                    // Check Local Declarations
-                    MethodBody* cm = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodBody();
-                    BlockStmts* bs = cm->getBlockStmtsStar()->getStatements();
-                    while (bs != NULL) {
-                        if (bs->isLocalVarDecl()) {
-                            LocalDecl* ld = static_cast<LocalDecl*>(bs);
-                            if (ld->getLocalId()->getIdAsString() == nextName->getFullName()) {
-                                typeName = static_cast<LocalDecl*>(bs)->getLocalType()->getTypeAsString();
-                                break;
-                            }
-                        }
-
-                        bs = bs->getNextBlockStmt();
-                    }
-
-                    // Check Method Parameters
-                    if (typeName == "") {
-                        ParamList* pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
-                                                                                      ->getClassMethodParams()->getListOfParameters();
-
-                        while (pl != NULL) {
-                            if (pl->getParameterId()->getIdAsString() == nextName->getFullName()) {
-                                typeName = pl->getParameterType()->getTypeAsString();
-                                break;
-                            }
-
-                            pl = pl->getNextParameter();
-                        }
-                    }
-                    
-                    // Check Class Field Declarations
-                    if (typeName == "" && processing->getAField(nextName->getFullName())) {
-                        typeName = processing->getAField(nextName->getFullName())->getField()->getFieldType()->getTypeAsString();
-                    }
-
+                    std::string typeName = tryToGetTypename(nextName, processing);
                     if (typeName == "") {
                         traceback.push(nextName);
                         nextName = nextName->getNextName();
@@ -283,6 +246,19 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                 Error(E_TYPECHECKING, name->getNameId()->getToken(), ss.str());
                 return false;
             }
+        } else {
+            // Simple name
+            // Just need to check that the method being called is not static, if it exists in the class
+            ClassMethodTable* cmt = processing->getAClassMethod(static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
+            if (cmt != NULL) {
+                if (cmt->getClassMethod()->isStatic()) {
+                    std::stringstream ss;
+                    ss << "Static method '" << cmt->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       << "' cannot be invoked non-statically.";
+                    Error(E_TYPECHECKING, name->getNameId()->getToken(), ss.str());
+                    return false;
+                }
+            }
         }
         return true;
     } else {
@@ -291,8 +267,20 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
     }
 }
 
-bool TypeChecking::check(NewClassCreation* stmtExprCreation) {
-    // TODO
+bool TypeChecking::check(NewClassCreation* newClassCreation) {
+    CompilationTable* table = newClassCreation->getTableOfCreatedClass();
+    if (table->isClassSymbolTable()) {
+        ClassTable* ct = static_cast<ClassTable*>(table->getSymbolTable());
+        ClassDecl* cd = ct->getClass();
+
+        if (cd->isAbstract()) {
+            std::stringstream ss;
+            ss << "Abstract class '" << cd->getClassId()->getIdAsString() << "' cannot be constructed.";
+            Error(E_TYPECHECKING, newClassCreation->getClassName()->getNameId()->getToken(), ss.str());
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -302,32 +290,36 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
 }
 
 bool TypeChecking::check(Assignment* assignment) {
-    /*std::string lefths;
-    Expression* righths = assignment->getExpressionToAssign();
-    Token* token;
+    std::string lhs_type;
+    Name* lhs_name;
 
-    if (assignment->isAssignName()) {
+    if(assignment->isAssignName()) {
         AssignName* an = static_cast<AssignName*>(assignment);
-        lefths = an->getNameToAssign()->getFullName();
-        token = an->getNameToAssign()->getNameId()->getToken();
-        std::cout << lefths << std::endl;
-    } else if (assignment->isAssignArray()) {
-        //TODO
-        lefths = static_cast<AssignArray*>(assignment)->getAssignedArray()->getAccessExpression()->getExpressionTypeString();
+        lhs_name = an->getNameToAssign();
+
+        if (lhs_name->isSimpleName()) {
+            lhs_type = tryToGetTypename(lhs_name, processing);
+
+            if (!assignmentCheck(lhs_type, assignment->getExpressionToAssign())) {
+                std::stringstream ss;
+                ss << "Assignment of '" << lhs_name->getFullName() << "' of type '"
+                   << lhs_type
+                   << "' cannot be assigned the type '" << assignment->getExpressionToAssign()->getExpressionTypeString() << ".'";
+                Error(E_TYPECHECKING, lhs_name->getNameId()->getToken(), ss.str());
+                return false;
+            }
+        } else {
+        std::cout << "complex: " << lhs_name->getFullName() << std::endl;
+        }
+    } else if(assignment->isAssignField()) {
+        AssignField* af = static_cast<AssignField*>(assignment);
         return true;
     } else {
-        //TODO
+        AssignArray* aa = static_cast<AssignArray*>(assignment);
         return true;
     }
-
-    if (assignmentCheck(lefths, righths)) {
-        return true;
-    }
-
-    std::stringstream ss;
-    ss << "Assignment of '" << lefths << "' cannot be assigned as '" << righths->getExpressionTypeString() << ".'";
-    Error(E_TYPECHECKING, token, ss.str());*/
-    return false;
+    
+    return true;
 }
 
 bool TypeChecking::check(LocalDecl* localDecl) {
@@ -342,6 +334,41 @@ bool TypeChecking::check(LocalDecl* localDecl) {
 
     Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
     return false;
+}
+
+std::string TypeChecking::tryToGetTypename(Name* name, CompilationTable* cur_table) {
+    // Check Local Declarations
+    MethodBody* cm = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodBody();
+    BlockStmts* bs = cm->getBlockStmtsStar()->getStatements();
+    while (bs != NULL) {
+        if (bs->isLocalVarDecl()) {
+            LocalDecl* ld = static_cast<LocalDecl*>(bs);
+            if (ld->getLocalId()->getIdAsString() == name->getFullName()) {
+                return static_cast<LocalDecl*>(bs)->getLocalType()->getTypeAsString();
+            }
+        }
+
+        bs = bs->getNextBlockStmt();
+    }
+
+    // Check Method Parameters
+    ParamList* pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
+                                                                  ->getClassMethodParams()->getListOfParameters();
+
+    while (pl != NULL) {
+        if (pl->getParameterId()->getIdAsString() == name->getFullName()) {
+            return pl->getParameterType()->getTypeAsString();
+        }
+
+        pl = pl->getNextParameter();
+    }
+    
+    // Check Class Field Declarations
+    if (cur_table->getAField(name->getFullName())) {
+        return cur_table->getAField(name->getFullName())->getField()->getFieldType()->getTypeAsString();
+    }
+
+    return "";
 }
 
 bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
