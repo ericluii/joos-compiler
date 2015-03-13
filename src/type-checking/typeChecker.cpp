@@ -163,27 +163,27 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_OBJECT:
             if ((!isPrimitive(lefths) && !isArray(lefths)) ||
                 (lefths == "java.lang.Object" || lefths == "java.lang.Cloneable") ||
-                (expr_type == lefths) ||
-                (!isArray(lefths) && inheritsOrExtendsOrImplements(expr_type, lefths))) {
+                (righths == lefths) ||
+                (!isArray(lefths) && inheritsOrExtendsOrImplements(righths, lefths))) {
                 return true;
             }
 
             break;
         case ET_OBJECTARRAY:{
             if ((lefths == "java.lang.Object" || lefths == "java.lang.String") ||
-                (expr_type == lefths)) {
+                (righths == lefths)) {
                 return true;
             }
 
-            if (isArray(type)) {
-                expr_type.erase(expr_type.end() - 2, expr_type.end());
-                type.erase(type.end() - 2, type.end());
+            if (isArray(lefths)) {
+                righths.erase(righths.end() - 2, righths.end());
+                lefths.erase(lefths.end() - 2, lefths.end());
 
-                if (inheritsOrExtendsOrImplements(expr_type, type)) {
+                if (inheritsOrExtendsOrImplements(righths, lefths)) {
                     return true;
                 }
 
-                type += "[]";
+                lefths += "[]";
             }
 
             break;
