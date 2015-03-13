@@ -4,6 +4,12 @@ tests/src/a1TestFiles.cpp
 tests/include/a1TestFiles.h
 tests/src/a2TestFiles.cpp
 tests/include/a2TestFiles.h
+tests/src/a3TestFiles.cpp
+tests/include/a3TestFiles.h
+tests/src/a5TestFiles.cpp
+tests/include/a5TestFiles.h
+tests/src/a4TestFiles.cpp
+tests/include/a4TestFiles.h
 
 *.swp
 *.swo

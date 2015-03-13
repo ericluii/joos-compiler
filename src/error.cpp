@@ -35,6 +35,7 @@ void Error::print()
             case E_TYPELINKING:
             case E_HIERARCHY:
             case E_DISAMBIGUATION:
+            case E_TYPECHECKING:
                 if(all_errors[i].token != NULL) {
                     std::cerr << all_errors[i].token->getFile() << ":"
                               << all_errors[i].token->getLocation().first << ":"
