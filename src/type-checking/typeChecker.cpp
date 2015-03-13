@@ -1,6 +1,7 @@
 #include "typeChecker.h"
-#include <queue>
+#include "primitiveTypeConversions.h"
 #include "error.h"
+#include <queue>
 #include <sstream>
 #include <cassert>
 
@@ -110,8 +111,8 @@ bool TypeChecking::check(BlockStmts* blockStmts) {
 }
 
 bool TypeChecking::check(LocalDecl* localDecl) {
-    std::string type = localDecl->getLocalType()->getTypeAsString();
-    std::string expr_type = localDecl->getLocalInitExpr()->getExpressionTypeString();
+    std::string lefths = localDecl->getLocalType()->getTypeAsString();
+    std::string righths = localDecl->getLocalInitExpr()->getExpressionTypeString();
 
     switch (localDecl->getLocalInitExpr()->getExprType()) {
         case ET_INT:
@@ -125,21 +126,25 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_CHARARRAY:
         case ET_BOOLEANARRAY: {
             // Deal with primitive types first
-            if (isPrimitive(type) || isPrimitiveArray(type)) {
-                if (expr_type == type) {
+            if (isPrimitive(lefths)){
+                if(PrimitiveTypeConversions::isWideningConversion(lefths, righths) || lefths == righths){
+                    return true;
+                }    
+            } else if(isPrimitiveArray(lefths)) {
+                if (righths == lefths) {
                     return true;
                 }
-            } else if (isArray(expr_type)) {
+            } else if (isArray(righths)) {
                 // Arrays extend Objects who implement Cloneable
-                if (type == "java.lang.Cloneable") {
+                if (lefths == "java.lang.Cloneable") {
                     return true;
                 }
                 // Arrays implicitly implement serializable
-                if (type == "java.io.Serializable") {
+                if (lefths == "java.io.Serializable") {
                     return true;
                 }
                 // Arrays extend Objects
-                if (type == "java.lang.Object") {
+                if (lefths == "java.lang.Object") {
                     return true;
                 }
                 
@@ -148,7 +153,7 @@ bool TypeChecking::check(LocalDecl* localDecl) {
             break;
         }
         case ET_NULL:
-             if (!isPrimitive(type)) {
+             if (!isPrimitive(lefths)) {
                 return true;
              }
 
@@ -156,29 +161,29 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_VOID:
              break;
         case ET_OBJECT:
-            if ((!isPrimitive(type) && !isArray(type)) ||
-                (type == "java.lang.Object" || type == "java.lang.Cloneable") ||
-                (expr_type == type) ||
-                (!isArray(type) && inheritsOrExtendsOrImplements(expr_type, type))) {
+            if ((!isPrimitive(lefths) && !isArray(lefths)) ||
+                (lefths == "java.lang.Object" || lefths == "java.lang.Cloneable") ||
+                (righths == lefths) ||
+                (!isArray(lefths) && inheritsOrExtendsOrImplements(righths, lefths))) {
                 return true;
             }
 
             break;
         case ET_OBJECTARRAY:{
-            if ((type == "java.lang.Object" || type == "java.lang.String") ||
-                (expr_type == type)) {
+            if ((lefths == "java.lang.Object" || lefths == "java.lang.String") ||
+                (righths == lefths)) {
                 return true;
             }
 
-            if (isArray(type)) {
-                expr_type.erase(expr_type.end() - 2, expr_type.end());
-                type.erase(type.end() - 2, type.end());
+            if (isArray(lefths)) {
+                righths.erase(righths.end() - 2, righths.end());
+                lefths.erase(lefths.end() - 2, lefths.end());
 
-                if (inheritsOrExtendsOrImplements(expr_type, type)) {
+                if (inheritsOrExtendsOrImplements(righths, lefths)) {
                     return true;
                 }
 
-                type += "[]";
+                lefths += "[]";
             }
 
             break;
@@ -189,7 +194,7 @@ bool TypeChecking::check(LocalDecl* localDecl) {
     };
 
     std::stringstream ss;
-    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << type
+    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << lefths
        << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
 
     Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
