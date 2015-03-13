@@ -16,6 +16,7 @@
 #include "localDecl.h"
 #include "interfaceDecl.h"
 #include "interfaceTable.h"
+#include "methodInvoke.h"
 
 class TypeChecking {
     private:
@@ -31,6 +32,7 @@ class TypeChecking {
         bool check(BlockStmtsStar* blockStmtsStar);
         bool check(BlockStmts* blockStmts);
         bool check(LocalDecl* localDecl);
+        bool check(MethodInvoke* methodInvoke); //TODO hook this up
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
     public:
