@@ -58,6 +58,7 @@ class TypeChecking {
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);
+        std::string tryToGetTypename(Name* name, CompilationTable* cur_table);
     public:
         TypeChecking(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& packages);
 
