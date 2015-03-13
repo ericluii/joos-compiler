@@ -1,6 +1,7 @@
 #include "typeChecker.h"
-#include <queue>
+#include "primitiveTypeConversions.h"
 #include "error.h"
+#include <queue>
 #include <sstream>
 #include <cassert>
 
@@ -110,8 +111,8 @@ bool TypeChecking::check(BlockStmts* blockStmts) {
 }
 
 bool TypeChecking::check(LocalDecl* localDecl) {
-    std::string type = localDecl->getLocalType()->getTypeAsString();
-    std::string expr_type = localDecl->getLocalInitExpr()->getExpressionTypeString();
+    std::string lefths = localDecl->getLocalType()->getTypeAsString();
+    std::string righths = localDecl->getLocalInitExpr()->getExpressionTypeString();
 
     switch (localDecl->getLocalInitExpr()->getExprType()) {
         case ET_INT:
@@ -125,21 +126,36 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_CHARARRAY:
         case ET_BOOLEANARRAY: {
             // Deal with primitive types first
-            if (isPrimitive(type) || isPrimitiveArray(type)) {
-                if (expr_type == type) {
+            if (isPrimitive(lefths)){
+                if(PrimitiveTypeConversions::isWideningConversion(lefths, righths)){
                     return true;
                 }
-            } else if (isArray(expr_type)) {
+                
+                if(lefths == "byte" || lefths == "short" || lefths == "char"){
+                    if(righths == "byte" || righths == "short" || righths == "char" || righths == "int"){
+                        if(localDecl->getLocalInitExpr()->isNumber() || localDecl->getLocalInitExpr()->isCharLiteral()){
+                            return true; //TODO: we ned a check to see if the constant value can fit into the lefths
+                        }
+                    }
+                }
+                
+                return false;
+                
+            } else if(isPrimitiveArray(lefths)) {
+                if (righths == lefths) {
+                    return true;
+                }
+            } else if (isArray(righths)) {
                 // Arrays extend Objects who implement Cloneable
-                if (type == "java.lang.Cloneable") {
+                if (lefths == "java.lang.Cloneable") {
                     return true;
                 }
                 // Arrays implicitly implement serializable
-                if (type == "java.io.Serializable") {
+                if (lefths == "java.io.Serializable") {
                     return true;
                 }
                 // Arrays extend Objects
-                if (type == "java.lang.Object") {
+                if (lefths == "java.lang.Object") {
                     return true;
                 }
                 
@@ -148,7 +164,7 @@ bool TypeChecking::check(LocalDecl* localDecl) {
             break;
         }
         case ET_NULL:
-             if (!isPrimitive(type)) {
+             if (!isPrimitive(lefths)) {
                 return true;
              }
 
@@ -156,17 +172,17 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_VOID:
              break;
         case ET_OBJECT:
-            if ((!isPrimitive(type) && !isArray(type)) ||
-                (type == "java.lang.Object" || type == "java.lang.Cloneable") ||
-                (expr_type == type) ||
-                (!isArray(type) && inheritsOrExtendsOrImplements(expr_type, type))) {
+            if ((!isPrimitive(lefths) && !isArray(lefths)) ||
+                (lefths == "java.lang.Object" || lefths == "java.lang.Cloneable") ||
+                (expr_type == lefths) ||
+                (!isArray(lefths) && inheritsOrExtendsOrImplements(expr_type, lefths))) {
                 return true;
             }
 
             break;
         case ET_OBJECTARRAY:{
-            if ((type == "java.lang.Object" || type == "java.lang.String") ||
-                (expr_type == type)) {
+            if ((lefths == "java.lang.Object" || lefths == "java.lang.String") ||
+                (expr_type == lefths)) {
                 return true;
             }
 
@@ -189,7 +205,7 @@ bool TypeChecking::check(LocalDecl* localDecl) {
     };
 
     std::stringstream ss;
-    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << type
+    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << lefths
        << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
 
     Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
