@@ -127,20 +127,9 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_BOOLEANARRAY: {
             // Deal with primitive types first
             if (isPrimitive(lefths)){
-                if(PrimitiveTypeConversions::isWideningConversion(lefths, righths)){
+                if(PrimitiveTypeConversions::isWideningConversion(lefths, righths) || lefths == righths){
                     return true;
-                }
-                
-                if(lefths == "byte" || lefths == "short" || lefths == "char"){
-                    if(righths == "byte" || righths == "short" || righths == "char" || righths == "int"){
-                        if(localDecl->getLocalInitExpr()->isNumber() || localDecl->getLocalInitExpr()->isCharLiteral()){
-                            return true; //TODO: we ned a check to see if the constant value can fit into the lefths
-                        }
-                    }
-                }
-                
-                return false;
-                
+                }    
             } else if(isPrimitiveArray(lefths)) {
                 if (righths == lefths) {
                     return true;

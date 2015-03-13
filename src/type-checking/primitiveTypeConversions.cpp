@@ -1,12 +1,12 @@
 #include "primitiveTypeConversions.h"
 
-std::set<std::string> PrimitiveTypeConversions::byteWideningConversions = std::set<std::string>({"byte", "short", "int", "long", "float", "double"});
-std::set<std::string> PrimitiveTypeConversions::shortWideningConversions = std::set<std::string>({"short", "int", "long", "float", "double"});
-std::set<std::string> PrimitiveTypeConversions::charWideningConversions = std::set<std::string>({"char", "int", "long", "float", "double"});
-std::set<std::string> PrimitiveTypeConversions::intWideningConversions = std::set<std::string>({"int", "long", "float", "double"});
-std::set<std::string> PrimitiveTypeConversions::longWideningConversions = std::set<std::string>({"long", "float", "double"});
-std::set<std::string> PrimitiveTypeConversions::floatWideningConversions = std::set<std::string>({"float", "double"});
-std::set<std::string> PrimitiveTypeConversions::doubleWideningConversions = std::set<std::string>({"double"});
+std::set<std::string> PrimitiveTypeConversions::byteWideningConversions = std::set<std::string>({"short", "int", "long", "float", "double"});
+std::set<std::string> PrimitiveTypeConversions::shortWideningConversions = std::set<std::string>({"int", "long", "float", "double"});
+std::set<std::string> PrimitiveTypeConversions::charWideningConversions = std::set<std::string>({"int", "long", "float", "double"});
+std::set<std::string> PrimitiveTypeConversions::intWideningConversions = std::set<std::string>({"long", "float", "double"});
+std::set<std::string> PrimitiveTypeConversions::longWideningConversions = std::set<std::string>({"float", "double"});
+std::set<std::string> PrimitiveTypeConversions::floatWideningConversions = std::set<std::string>({"double"});
+std::set<std::string> PrimitiveTypeConversions::doubleWideningConversions = std::set<std::string>({});
 
 bool PrimitiveTypeConversions::isWideningConversion(std::string to, std::string from)
 {
