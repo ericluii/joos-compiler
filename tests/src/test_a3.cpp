@@ -91,10 +91,9 @@ void Test_A3::test() {
         if (Error::count() == 0) {
             PackagesManager pkgManager(packagesCompilations);
             AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
-        }
-
-        if (Error::count() == 0) {
-            TypeChecking(packagesCompilations).check();
+            if (Error::count() == 0) {
+                TypeChecking(pkgManager, packagesCompilations).check();
+            }
         }
 
         if (a3TestFiles[i][0][1] == 'e') {

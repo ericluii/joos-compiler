@@ -13,8 +13,7 @@ public class Je_6_NonStaticAccessToStatic_Method {
 
     public static int test() {
 	Integer integer = new Integer(42);
-    integer.parseInt("123");
-    return 6;
+    return integer.parseInt("123");
     }
     
 }

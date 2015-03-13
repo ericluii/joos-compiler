@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         PackagesManager pkgManager(packagesCompilations);
         AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
         CHECK_ERROR();
-        TypeChecking(packagesCompilations).check();
+        TypeChecking(pkgManager, packagesCompilations).check();
         CHECK_ERROR();
 
     } catch (std::exception &e) {
