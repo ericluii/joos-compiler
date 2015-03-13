@@ -180,10 +180,13 @@ void AmbiguousLinker::traverseAndLink(Assignment* assign) {
         // indicate that this assignment may occur in
         // a FieldDecl initializer expression
         // True if we are not in a method, False otherwise
+        
+        // store the current value of asgmtFieldContext
+        bool tmpAsgmtContext = asgmtFieldContext;
         asgmtFieldContext = !withinMethod;
         traverseAndLink((AssignName*) assign);
         // reset
-        asgmtFieldContext = false;
+        asgmtFieldContext = tmpAsgmtContext;
     } else if(assign->isAssignField()) {
         traverseAndLink((AssignField*) assign);
     } else {
@@ -218,16 +221,19 @@ void AmbiguousLinker::traverseAndLink(Name* name) {
 void AmbiguousLinker::traverseAndLink(AssignField* assign) {
     traverseAndLink(assign->getAssignedField());
     FieldAccess* accessed = assign->getAssignedField();
-    // By the way we do things, acccessed must be pointing to a field
-    // OR to array length
-    // Following that assumption, precautionary check
-    assert(accessed->isReferringToField() || accessed->linkToArrayLength());
-    if(accessed->linkToArrayLength()) {
-        assign->setExprType(ET_INT);
-    } else {
-        // referring to a field
-        FieldTable* field = accessed->getReferredField();
-        setExpressionTypeBasedOnType(assign, field->getField()->getFieldType());
+    // checked if FieldAccess can be linked
+    if(!accessed->postponeLinking()) {
+        // By the way we do things, acccessed must be pointing to a field
+        // OR to array length
+        // Following that assumption, precautionary check
+        assert(accessed->isReferringToField() || accessed->linkToArrayLength());
+        if(accessed->linkToArrayLength()) {
+            assign->setExprType(ET_INT);
+        } else {
+            // referring to a field
+            FieldTable* field = accessed->getReferredField();
+            setExpressionTypeBasedOnType(assign, field->getField()->getFieldType());
+        }
     }
 }
 
