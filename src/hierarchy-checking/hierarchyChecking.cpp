@@ -12,6 +12,7 @@
 #include <queue>
 #include <sstream>
 #include <set>
+#include <stack>
 #include <cassert>
 
 HierarchyChecking::HierarchyChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) : packages(packages) {
@@ -259,17 +260,19 @@ void HierarchyChecking::noDuplicateSignature(CompilationTable* compilation) {
 void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
     std::set<CompilationTable*> visited;
     std::pair<std::set<CompilationTable*>::iterator,bool> visited_ret;
-    std::queue<CompilationTable*> traverse;
+    std::stack<CompilationTable*> traverse;
     traverse.push(compilation);
 
-    std::set<std::string> protected_methods;
+    std::set<std::string> protected_nonabstract_methods;
+    std::map<std::string, bool> protected_abstract_methods;
     std::set<std::string> public_methods;
     std::set<std::string> non_static_methods;
     std::set<std::string> static_methods;
     std::set<std::string> abstract_methods;
     CompilationTable* processing;
+    bool initial = true;
     while (!traverse.empty()) {
-        processing = traverse.front();
+        processing = traverse.top();
         traverse.pop();
 
         visited_ret= visited.insert(processing);
@@ -329,12 +332,18 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                             }
 
                             // Check Protected vs. Public Overriding
-                            if (cbd->isProtected()) {
-                                protected_methods.insert(signature);
-                            } else {
+                            if (cbd->isProtected() && cbd->isAbstract()) {
+                                protected_abstract_methods[signature] = initial;
+                            } 
+                            else if(cbd->isProtected() && !cbd->isAbstract())
+                            {
+                                protected_nonabstract_methods.insert(signature);
+                            }
+                            else 
+                            {
                                 public_methods.insert(signature);
 
-                                if (protected_methods.count(signature)) {
+                                if (protected_abstract_methods.count(signature) || protected_nonabstract_methods.count(signature)) {
                                     std::stringstream ss;
                                     ss << "Public method '" << signature << "' in class '" << processing->getClassOrInterfaceName()
                                        << "' cannot be overriden as protected.";
@@ -362,14 +371,6 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                 }
             }
 
-            if (!cd->noSuperClass()) {
-                traverse.push(cd->getSuper()->getSuperClassTable());
-            }
-
-            if (cd->getSuper()->isImplicitlyExtending()) {
-                traverse.push(cd->getSuper()->getSuperClassTable());
-            }
-
             if (!cd->noImplementedInterfaces()) {
                 Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
 
@@ -378,6 +379,15 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                     il = il->getNextInterface();
                 }
             }
+            
+            if (!cd->noSuperClass()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+
+            if (cd->getSuper()->isImplicitlyExtending()) {
+                traverse.push(cd->getSuper()->getSuperClassTable());
+            }
+            
         } else if (st) {
             InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
 
@@ -394,7 +404,7 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                         // Check Protected vs. Public Overriding, by default interface method is public
                         public_methods.insert(signature);
 
-                        if (protected_methods.count(signature)) {
+                        if (protected_nonabstract_methods.count(signature)  || (protected_abstract_methods.count(signature) && protected_abstract_methods[signature] == true)) {
                             std::stringstream ss;
                             ss << "Interface method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
                                << "' cannot be overriden as protected.";
@@ -427,6 +437,7 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                 }
             }
         }
+        initial = false;
     }
 }
 
@@ -483,13 +494,13 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
 
     std::set<CompilationTable*> visited;
     std::pair<std::set<CompilationTable*>::iterator,bool> visited_ret;
-    std::queue<CompilationTable*> traverse;
+    std::stack<CompilationTable*> traverse;
     traverse.push(compilation);
 
     std::map<std::string, std::string> methods;
     CompilationTable* processing;
     while (!traverse.empty()) {
-        processing = traverse.front();
+        processing = traverse.top();
         traverse.pop();
 
         visited_ret= visited.insert(processing);
@@ -575,6 +586,15 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                 }
             }
             //Do not change the order in which these are added to traverse ***************************************************
+            if (!cd->noImplementedInterfaces()) {
+                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
+
+                while (il != NULL) {
+                    traverse.push(il->getImplOrExtInterfaceTable());
+                    il = il->getNextInterface();
+                }
+            }  
+            
             if (!cd->noSuperClass()) {
                 processing = cd->getSuper()->getSuperClassTable();
                 if (processing == NULL) { break; }
@@ -584,15 +604,6 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
             if (cd->getSuper()->isImplicitlyExtending()) {
                 traverse.push(cd->getSuper()->getSuperClassTable());
             }
-            
-            if (!cd->noImplementedInterfaces()) {
-                Interfaces* il = cd->getImplementInterfaces()->getListOfInterfaces();
-
-                while (il != NULL) {
-                    traverse.push(il->getImplOrExtInterfaceTable());
-                    il = il->getNextInterface();
-                }
-            }  
             //****************************************************************
         } else if (st) {
             InterfaceDecl* id = static_cast<InterfaceTable*>(st)->getInterface();
