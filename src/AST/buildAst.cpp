@@ -204,8 +204,8 @@ Modifiers* BuildAst::makeModifiers(ParseTree* tree) {
             case MODIFIERS_LIST:
             case MEMBER_MOD_LIST:
                 nextModifier = new Modifiers(tree->children[1]->children[0]->token);
-                nextModifier->setNextModifier(nextModifier);
-                currentModifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+                nextModifier->setRuleAndLexeme(tree->rule, tree->treeLexeme);
+                currentModifier->setNextModifier(nextModifier);
                 currentModifier = nextModifier;
                 tree = tree->children[0];
                 break;
