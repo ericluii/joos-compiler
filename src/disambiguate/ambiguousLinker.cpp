@@ -472,7 +472,6 @@ void AmbiguousLinker::traverseAndLink(MethodNormalInvoke* invoke) {
     
     std::string methodSignature = invoke->methodInvocationMatchToSignature();
     CompilationTable* someType = NULL;
-
     if(!checkProperMethodOrConstructorSignature(methodSignature, tok)) {
         // improper method signature, either:
         // - it contained void/null
@@ -826,7 +825,7 @@ void AmbiguousLinker::traverseAndLink(BlockStmts* stmts) {
         traverseAndLink((LocalDecl*) stmts);
     } else if(stmts->isReturnStmt()) {
         traverseAndLink(((ReturnStmt*) stmts)->getReturnExpr());
-    } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isEmptyStmt()) {
+    } else if(stmts->isAssignStmt() || stmts->isClassCreationStmt() || stmts->isMethodInvokeStmt()) {
         traverseAndLink((StmtExpr*) stmts);
     } else if(stmts->isIfStmt() || stmts->isIfThenElseStmt()) {
         traverseAndLink((IfStmt*) stmts);
