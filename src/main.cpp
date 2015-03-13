@@ -16,6 +16,7 @@
 #include "hierarchyChecking.h"
 #include "packagesManager.h"
 #include "ambiguousLinker.h"
+#include "typeChecker.h"
 
 int main(int argc, char *argv[])
 {
@@ -117,6 +118,8 @@ int main(int argc, char *argv[])
 
         PackagesManager pkgManager(packagesCompilations);
         AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
+        CHECK_ERROR();
+        TypeChecking(packagesCompilations).check();
         CHECK_ERROR();
 
     } catch (std::exception &e) {

@@ -16,6 +16,7 @@
 #include <iostream>
 #include "packagesManager.h"
 #include "ambiguousLinker.h"
+#include "typeChecker.h"
 
 Test_A3::Test_A3(std::string& stdlibPath, std::string& directoryPath) :
     directoryPath(directoryPath),
@@ -34,8 +35,6 @@ void Test_A3::test() {
     std::cout << test_name << ": " << test_description << std::endl;
     std::cout << "---------------------------------------------------------------------------------------" << std::endl;
 
-
-
     // Build Test File Only
     for(unsigned int i = 0; i < a3TestFiles.size(); i++) {
         Error::resetErrors();
@@ -50,6 +49,7 @@ void Test_A3::test() {
             files.push_back(stdlibPath + "/" + stdlibFilesA3[j]);
         }
         for (unsigned int j = 0; j < a3TestFiles[i].size(); j++) {
+            std::cout << a3TestFiles[i][j] << std::endl;
             files.push_back(directoryPath + "/" + a3TestFiles[i][j]); 
         }
 
@@ -93,13 +93,16 @@ void Test_A3::test() {
             AmbiguousLinker(pkgManager, packagesCompilations).performLinking();
         }
 
+        if (Error::count() == 0) {
+            TypeChecking(packagesCompilations).check();
+        }
 
         if (a3TestFiles[i][0][1] == 'e') {
             checkTrue("A3: " + a3TestFiles[i][0], Error::count() != 0,
-                      "Check that we fail this file", "\n" + fileContent);
+                      "Check that we fail this file", fileContent);
         } else {
             checkTrue("A3: " + a3TestFiles[i][0], Error::count() == 0,
-                      "Check that we pass this file", "\n" + fileContent);
+                      "Check that we pass this file", fileContent);
         }
 
         for (unsigned int j = 0; j < files.size(); j++) {
