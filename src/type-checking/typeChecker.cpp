@@ -3,6 +3,18 @@
 #include <sstream>
 #include <cassert>
 
+bool isPrimitive(std::string type) {
+    return type == "int" || type == "short" || type == "byte" || type == "char" || type == "boolean";
+}
+
+bool isPrimitiveArray(std::string type) {
+    return type == "int[]" || type == "short[]" || type == "byte[]" || type == "char[]" || type == "boolean[]";
+}
+
+bool isArray(std::string type) {
+    return type.find("[]") != std::string::npos;
+}
+
 TypeChecking::TypeChecking(std::map<std::string, std::vector<CompilationTable*> >& packages) :
     packages(packages) {}
 
@@ -97,6 +109,8 @@ bool TypeChecking::check(BlockStmts* blockStmts) {
 }
 
 bool TypeChecking::check(LocalDecl* localDecl) {
+    std::string type = localDecl->getLocalType()->getTypeAsString();
+
     switch (localDecl->getLocalInitExpr()->getExprType()) {
         case ET_INT:
         case ET_SHORT:
@@ -108,34 +122,58 @@ bool TypeChecking::check(LocalDecl* localDecl) {
         case ET_BYTEARRAY:
         case ET_CHARARRAY:
         case ET_BOOLEANARRAY: {
-            std::string type = localDecl->getLocalType()->getTypeAsString();
-
             // Deal with primitive types first
-            if (type == "int" || type == "short" || type == "byte" || type == "char" || type == "boolean" ||
-                type == "int[]" || type == "short[]" || type == "byte[]" || type == "char[]" || type == "boolean[]") {
-                if (localDecl->getLocalInitExpr()->getExpressionTypeString() != type) {
-                    std::stringstream ss;
-                    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << type
-                       << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
-
-                    Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
-                    return false;
-                } else {
+            if (isPrimitive(type) || isPrimitiveArray(type)) {
+                if (localDecl->getLocalInitExpr()->getExpressionTypeString() == type) {
                     return true;
                 }
-            } else {
-                //TODO: DEAL WITH NON-PRIMITIVEES
-                return true;
+            } else if (isArray(localDecl->getLocalInitExpr()->getExpressionTypeString())) {
+                // Arrays extend Objects who implement Cloneable
+                if (type == "java.lang.Cloneable") {
+                    return true;
+                }
+                // Arrays implicitly implement serializable
+                if (type == "java.io.Serializable") {
+                    return true;
+                }
+                // Arrays extend Objects
+                if (type == "java.lang.Object") {
+                    return true;
+                }
+                
             }
+
+            break;
         }
         case ET_NULL:
+             if (!isPrimitive(type)) {
+                return true;
+             }
+
+             break;
         case ET_VOID:
-            return true;
+             break;
         case ET_OBJECT:
+            if (!isPrimitive(type) && !isArray(type)) {
+                return true;
+            }
+
+            break;
         case ET_OBJECTARRAY:
-            return true;
+            if (!isPrimitive(type) && !isPrimitiveArray(type)) {
+                return true;
+            }
+
+            break;
         case ET_NOTEVALUATED:
         default:
             assert(false);
     };
+
+    std::stringstream ss;
+    ss << "Declaration of '" << localDecl->getLocalId()->getIdAsString() << "' of type '" << type
+       << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
+
+    Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
+    return false;
 }
