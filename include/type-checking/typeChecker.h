@@ -14,6 +14,8 @@
 #include "blockStmtsStar.h"
 #include "blockStmts.h"
 #include "localDecl.h"
+#include "interfaceDecl.h"
+#include "interfaceTable.h"
 
 class TypeChecking {
     private:
@@ -29,6 +31,8 @@ class TypeChecking {
         bool check(BlockStmtsStar* blockStmtsStar);
         bool check(BlockStmts* blockStmts);
         bool check(LocalDecl* localDecl);
+
+        bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
     public:
         TypeChecking(std::map<std::string, std::vector<CompilationTable*> >& packages);
 
