@@ -27,11 +27,38 @@
 #include "methodInvoke.h"
 #include "methodNormalInvoke.h"
 #include "invokeAccessedMethod.h"
+#include "bracketedExpression.h"
 #include "packagesManager.h"
 #include "fieldTable.h"
+#include "fieldAccess.h"
 #include "fieldDecl.h"
 #include "newClassCreation.h"
+#include "arrayAccessName.h"
+#include "binaryExpression.h"
+#include "primaryExpression.h"
+#include "ifStmt.h"
+#include "whileStmt.h"
+#include "forStmt.h"
+#include "nestedBlock.h"
+#include "expressionStar.h"
+#include "literalOrThis.h"
 #include <stack>
+
+enum ST_TYPE {
+    CLASS_TABLE,
+    CLASSMETHOD_TABLE,
+    CONSTRUCTOR_TABLE,
+    FIELDDECL_TABLE,
+    NONE
+};
+
+#define CHECK_PUSH(expr, symboltable, symbol_table_type) st_stack.push(symboltable);\
+    ST_TYPE last_type = cur_st_type;\
+    cur_st_type = symbol_table_type;\
+    bool ra = check(expr);\
+    cur_st_type = last_type;\
+    st_stack.pop();\
+    return ra;
 
 class TypeChecking {
     private:
@@ -39,6 +66,11 @@ class TypeChecking {
         std::map<std::string, std::vector<CompilationTable*> >& packages;
         CompilationTable* processing;
         std::stack<SymbolTable*> st_stack;
+
+        ST_TYPE cur_st_type;
+
+        bool restrict_this;
+        bool restrict_null;
 
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
@@ -55,6 +87,16 @@ class TypeChecking {
         bool check(StmtExprCreation* stmtExprCreation);
         bool check(MethodInvoke* methodInvoke);
         bool check(NewClassCreation* newClassCreation);
+        bool check(Expression* expression);
+        bool check(ExpressionStar* expressionStar);
+        bool check(Primary* primary);
+        bool check(FieldDecl* fieldDecl);
+        bool check(IfStmt* ifStmt);
+        bool check(WhileStmt* whileStmt);
+        bool check(ForStmt* forStmt);
+        bool check(NestedBlock* nestedBlock);
+        bool check(StmtExpr* stmtExpr);
+        bool check(LiteralOrThis* literalOrThis);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);
