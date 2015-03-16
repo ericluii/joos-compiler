@@ -38,10 +38,13 @@
 #include "primaryExpression.h"
 #include "ifStmt.h"
 #include "whileStmt.h"
+#include "nameExpression.h"
 #include "forStmt.h"
 #include "nestedBlock.h"
 #include "expressionStar.h"
+#include "qualifiedThis.h"
 #include "literalOrThis.h"
+#include "instanceOf.h"
 #include <stack>
 
 enum ST_TYPE {
@@ -60,6 +63,16 @@ enum ST_TYPE {
     st_stack.pop();\
     return ra;
 
+#define CHECK_PUSH_AND_SET(expr, symboltable, symbol_table_type, extra_bool, condition) st_stack.push(symboltable);\
+    ST_TYPE last_type = cur_st_type;\
+    cur_st_type = symbol_table_type;\
+    extra_bool = condition;\
+    bool ra = check(expr);\
+    cur_st_type = last_type;\
+    extra_bool = false;\
+    st_stack.pop();\
+    return ra;
+
 class TypeChecking {
     private:
         PackagesManager& manager;
@@ -71,6 +84,7 @@ class TypeChecking {
 
         bool restrict_this;
         bool restrict_null;
+        bool static_context_only;
 
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
@@ -97,6 +111,10 @@ class TypeChecking {
         bool check(NestedBlock* nestedBlock);
         bool check(StmtExpr* stmtExpr);
         bool check(LiteralOrThis* literalOrThis);
+        bool check(QualifiedThis* qualifiedThis);
+        bool check(InstanceOf* instanceOf);
+        bool check(FieldAccess* fieldAccess);
+        bool check(NameExpression* nameExpression);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);

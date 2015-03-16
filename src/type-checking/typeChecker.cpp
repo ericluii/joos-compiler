@@ -32,7 +32,8 @@ TypeChecking::TypeChecking(PackagesManager& manager, std::map<std::string, std::
     packages(packages),
     cur_st_type(NONE),
     restrict_this(false),
-    restrict_null(false)
+    restrict_null(false),
+    static_context_only(false)
 {}
 
 void TypeChecking::check() {
@@ -92,15 +93,15 @@ bool TypeChecking::check(ClassBodyDecls* classBodyDecls) {
         bool rv = check(static_cast<FieldDecl*>(classBodyDecls)) && rest_of_body;
         restrict_this = false;
         return rv;
-    } else {
-        return true;
     }
+
+    return true;
 }
 
 bool TypeChecking::check(FieldDecl* fieldDecl) {
     if (fieldDecl->isInitialized()) {
-        //return check(fieldDecl->getInitializingExpression());
-        CHECK_PUSH(fieldDecl->getInitializingExpression(), fieldDecl->getFieldTable(), FIELDDECL_TABLE);
+        CHECK_PUSH_AND_SET(fieldDecl->getInitializingExpression(), fieldDecl->getFieldTable(), FIELDDECL_TABLE,
+                           static_context_only, fieldDecl->isStatic());
     }
 
     return true;
@@ -402,7 +403,6 @@ bool TypeChecking::check(Expression* expression) {
 
         if((leftExpr->getExprType() == ET_INT || rightExpr->getExprType() == ET_INT) &&
            (expression->isEagerOr() || expression->isEagerAnd())) {
-            //TODO
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Use of | or &.");
             return false;
         }
@@ -410,6 +410,10 @@ bool TypeChecking::check(Expression* expression) {
         return check(rightExpr) && check(leftExpr);
     } else if(expression->isAssignName() || expression->isAssignField() || expression->isAssignArray()) {
         return check(static_cast<Assignment*>(expression));
+    } else if (expression->isInstanceOf()) {
+        return check(static_cast<InstanceOf*>(expression));
+    } else if (expression->isNameExpression()) {
+        return check(static_cast<NameExpression*>(expression));
     /*} else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
         traverseAndLink((CastExpression*) expr);
     } else if(expr->isInstanceOf()) {
@@ -421,6 +425,26 @@ bool TypeChecking::check(Expression* expression) {
     }
 
     return true;
+}
+
+bool TypeChecking::check(NameExpression* nameExpression) {
+    if (static_context_only) {
+        // If I can't find it as a field decl in the class, it MUST be a static reference
+        if (processing->getAField(nameExpression->getNameExpression()->getFullName())) {
+            FieldDecl* fd = processing->getAField(nameExpression->getNameExpression()->getFullName())->getField();
+
+            if (!fd->isStatic()) {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] non-static variable cannot be referenced in a static context.");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool TypeChecking::check(InstanceOf* instanceOf) {
+    return check(instanceOf->getExpressionToCheck());
 }
 
 bool TypeChecking::check(Primary* primary) {
@@ -448,7 +472,7 @@ bool TypeChecking::check(Primary* primary) {
         prim->ResolveLinkButNoEntity();
     }*/
     if (primary->isFieldAccess()) {
-        return check(static_cast<FieldAccess*>(primary)->getAccessedFieldPrimary());
+        return check(static_cast<FieldAccess*>(primary));
     } else if(primary->isThis() || primary->isNumber() || primary->isTrueBoolean() || primary->isFalseBoolean()
               || primary->isCharLiteral() || primary->isStringLiteral() || primary->isNull()) {
         return check(static_cast<LiteralOrThis*>(primary)); 
@@ -456,11 +480,21 @@ bool TypeChecking::check(Primary* primary) {
         return check(static_cast<BracketedExpression*>(primary)->getExpressionInside());
     } else if (primary->isNewClassCreation()) {
         return check(static_cast<NewClassCreation*>(primary));
-    } else if(primary->isNormalMethodCall() || primary->isAccessedMethodCall()) {
+    } else if (primary->isNormalMethodCall() || primary->isAccessedMethodCall()) {
         return check(static_cast<MethodInvoke*>(primary));
+    } else if (primary->isQualifiedThis()) {
+        return check(static_cast<QualifiedThis*>(primary));
     }
 
     return true;
+}
+
+bool TypeChecking::check(QualifiedThis* qualifiedThis) {
+    return true;
+}
+
+bool TypeChecking::check(FieldAccess* fieldAccess) {
+    return check(fieldAccess->getAccessedFieldPrimary());
 }
 
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
@@ -478,7 +512,7 @@ bool TypeChecking::check(LiteralOrThis* literalOrThis) {
 bool TypeChecking::check(Assignment* assignment) {
     std::string lhs_type = assignment->getExpressionTypeString();
     if (assignmentCheck(lhs_type, assignment->getExpressionToAssign())) {
-        return true;
+        return check(assignment->getExpressionToAssign());
     }
     
     // for now it isn't worth the effort to try to get the token...
@@ -492,7 +526,7 @@ bool TypeChecking::check(Assignment* assignment) {
 
 bool TypeChecking::check(LocalDecl* localDecl) {
     if (assignmentCheck(localDecl->getLocalType()->getTypeAsString(), localDecl->getLocalInitExpr())) {
-        return true;
+        return check(localDecl->getLocalInitExpr());
     }
 
     std::stringstream ss;
