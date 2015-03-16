@@ -42,6 +42,7 @@
 #include "nestedBlock.h"
 #include "expressionStar.h"
 #include "literalOrThis.h"
+#include "castExpression.h"
 #include <stack>
 
 enum ST_TYPE {
@@ -97,6 +98,7 @@ class TypeChecking {
         bool check(NestedBlock* nestedBlock);
         bool check(StmtExpr* stmtExpr);
         bool check(LiteralOrThis* literalOrThis);
+        bool check(CastExpression* castExpression);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);

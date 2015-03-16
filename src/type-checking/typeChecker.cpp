@@ -7,7 +7,11 @@
 #include <cassert>
 
 bool isPrimitive(std::string type) {
-    return type == "int" || type == "short" || type == "byte" || type == "char" || type == "boolean";
+    return type == "int" || type == "short" || type == "byte" || type == "char" || type == "boolean" || type == "float" || type == "double";
+}
+
+bool isNumeric(std::string type) {
+    return type == "int" || type == "short" || type == "byte" || type == "char" || type == "float" || type == "double";
 }
 
 bool isPrimitiveArray(std::string type) {
@@ -406,13 +410,21 @@ bool TypeChecking::check(Expression* expression) {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Use of | or &.");
             return false;
         }
+        
+        if(expression->isMinus()){
+            if(!isNumeric(leftExpr->getExpressionTypeString()) || !isNumeric(rightExpr->getExpressionTypeString())){
+                //TODO
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Non numeric type used in binary minus");
+                return false;
+            }
+        }
 
         return check(rightExpr) && check(leftExpr);
     } else if(expression->isAssignName() || expression->isAssignField() || expression->isAssignArray()) {
         return check(static_cast<Assignment*>(expression));
-    /*} else if(expr->isCastToArrayName() || expr->isCastToReferenceType() || expr->isCastToPrimitiveType()) {
-        traverseAndLink((CastExpression*) expr);
-    } else if(expr->isInstanceOf()) {
+    } else if(expression->isCastToArrayName() || expression->isCastToReferenceType() || expression->isCastToPrimitiveType()) {
+        check(static_cast<CastExpression*>(expression));
+    /*} else if(expr->isInstanceOf()) {
 
     } else if(expr->isNameExpression()) {
 */
@@ -460,6 +472,44 @@ bool TypeChecking::check(Primary* primary) {
         return check(static_cast<MethodInvoke*>(primary));
     }
 
+    return true;
+}
+
+bool TypeChecking::check(CastExpression* castExpression){
+    Expression* paramaterExpression = castExpression->getExpressionToCast();
+    std::cout << "Casting: " << paramaterExpression->getExpressionTypeString();
+    if(castExpression->isCastToArrayName()){
+        return true;
+    } else if(castExpression->isCastToReferenceType()){
+        std::cout << " to Reference type" << std::endl;
+        if(paramaterExpression->isExprTypeInt() || 
+            paramaterExpression->isExprTypeShort() ||
+            paramaterExpression->isExprTypeByte() ||
+            paramaterExpression->isExprTypeChar() ||
+            paramaterExpression->isExprTypeBoolean())
+        {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast primitive to reference type");
+        }
+        else
+        {
+            if(!inheritsOrExtendsOrImplements(paramaterExpression->getExpressionTypeString(), castExpression->getExpressionTypeString()) && !inheritsOrExtendsOrImplements(castExpression->getExpressionTypeString(), paramaterExpression->getExpressionTypeString()))
+            {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] invalid reference type cast");
+            }
+        }
+    } else if(castExpression->isCastToPrimitiveType()){
+        std::cout << " to Primitive type" << std::endl;
+        if(!(paramaterExpression->isExprTypeInt() || 
+            paramaterExpression->isExprTypeShort() ||
+            paramaterExpression->isExprTypeByte() ||
+            paramaterExpression->isExprTypeChar() ||
+            paramaterExpression->isExprTypeBoolean()))
+        {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast reference type to primitive type");
+        }
+    } else {
+        assert(false);
+    }
     return true;
 }
 
@@ -658,7 +708,7 @@ bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
     return false;
 }
 
-bool TypeChecking::check(MethodInvoke* methodInvoke) {
+/*bool TypeChecking::check(MethodInvoke* methodInvoke) {
     ClassMethod *method = methodInvoke->getReferredClassMethod()->getClassMethod();
     if(methodInvoke->isNormalMethodCall() && !method->isStatic()){
         return true;
@@ -672,7 +722,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
 
     Error(E_TYPECHECKING, method->getMethodHeader()->getClassMethodId()->getToken(), ss.str());
     return false;
-}
+}*/
 
 bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
     std::queue<CompilationTable*> traverse;
