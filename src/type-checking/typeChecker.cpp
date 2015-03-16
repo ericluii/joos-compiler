@@ -484,9 +484,32 @@ bool TypeChecking::check(Primary* primary) {
         return check(static_cast<MethodInvoke*>(primary));
     } else if (primary->isQualifiedThis()) {
         return check(static_cast<QualifiedThis*>(primary));
+    } else if (primary->isArrayAccessName() || primary->isArrayAccessPrimary()) {
+        return check(static_cast<ArrayAccess*>(primary));
+    } else if (primary->isNewPrimitiveArray() || primary->isNewReferenceArray()) {
+        return check(static_cast<PrimaryNewArray*>(primary));
     }
 
     return true;
+}
+
+bool TypeChecking::check(PrimaryNewArray* primaryNewArray) {
+    restrict_null = true;
+    bool rv = check(primaryNewArray->getTheDimension());
+    restrict_null = false;
+    return rv;
+}
+
+bool TypeChecking::check(ArrayAccess* arrayAccess) {
+    restrict_null = true;
+    bool rv = check(arrayAccess->getAccessExpression());
+    restrict_null = false;
+
+    if (arrayAccess->isArrayAccessPrimary()) {
+        return check(static_cast<ArrayAccessPrimary*>(arrayAccess)->getAccessedPrimaryArray()) && rv;
+    }
+
+    return rv;
 }
 
 bool TypeChecking::check(QualifiedThis* qualifiedThis) {
@@ -502,7 +525,7 @@ bool TypeChecking::check(LiteralOrThis* literalOrThis) {
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] this in field init or static method.");
         return false;
     } else if (literalOrThis->isNull() && restrict_null) {
-        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] NULL in the loops.");
+        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] NULL in the loops or null array access.");
         return false;
     }
 
