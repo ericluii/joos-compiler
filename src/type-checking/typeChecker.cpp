@@ -569,7 +569,7 @@ bool TypeChecking::check(CastExpression* castExpression){
             //std::cout << "Error on casting " << paramaterExpression->getExpressionTypeString() << " to Primitive type" << std::endl;
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast reference type to primitive type");
         }
-        else if(paramaterExpression->isExprTypeBoolean())
+        else if(paramaterExpression->isExprTypeBoolean() && (castExpression->getExprType() != ET_BOOLEAN))
         {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a boolean");
         }
