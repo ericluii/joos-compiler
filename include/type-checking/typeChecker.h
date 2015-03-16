@@ -42,9 +42,11 @@
 #include "forStmt.h"
 #include "nestedBlock.h"
 #include "expressionStar.h"
+#include "primaryNewArray.h"
 #include "qualifiedThis.h"
 #include "literalOrThis.h"
 #include "instanceOf.h"
+#include "arrayAccessPrimary.h"
 #include <stack>
 
 enum ST_TYPE {
@@ -115,6 +117,8 @@ class TypeChecking {
         bool check(InstanceOf* instanceOf);
         bool check(FieldAccess* fieldAccess);
         bool check(NameExpression* nameExpression);
+        bool check(ArrayAccess* arrayAccess);
+        bool check(PrimaryNewArray* primaryNewArray);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);
