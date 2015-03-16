@@ -36,10 +36,10 @@ TypeChecking::TypeChecking(PackagesManager& manager, std::map<std::string, std::
     packages(packages),
     cur_st_type(NONE),
     restrict_this(false),
-    restrict_null(false),
     restrict_num(false),
     static_context_only(false),
-    numeric_expression_only(false)
+    numeric_expression_only(false),
+    boolean_expression_only(false)
 {}
 
 void TypeChecking::check() {
@@ -176,13 +176,18 @@ bool TypeChecking::check(IfStmt* ifStmt) {
         else_result = check(ifStmt->getExecuteFalsePart());
     }
 
-    return check(ifStmt->getExpressionToEvaluate()) && check(ifStmt->getExecuteTruePart()) && else_result;
+    bool if_result = true;
+    boolean_expression_only = true;
+    if_result = check(ifStmt->getExpressionToEvaluate());
+    boolean_expression_only = false;
+
+    return if_result && check(ifStmt->getExecuteTruePart()) && else_result;
 }
 
 bool TypeChecking::check(WhileStmt* whileStmt) {
-    restrict_null = true;
+    boolean_expression_only = true;
     bool evaluate_result = check(whileStmt->getExpressionToEvaluate());
-    restrict_null = false;
+    boolean_expression_only = false;
 
     return evaluate_result && check(whileStmt->getLoopStmt());
 }
@@ -194,9 +199,9 @@ bool TypeChecking::check(ForStmt* forStmt) {
 
     if (!forStmt->emptyForInit()) { init_result = check(forStmt->getForInit()); }
     if (!forStmt->emptyExpression()) {
-        restrict_null = true;
+        boolean_expression_only = true;
         expression_result = check(forStmt->getExpressionToEvaluate());
-        restrict_null = false;
+        boolean_expression_only = false;
     }
     if (!forStmt->emptyForUpdate()) { update_result = check(forStmt->getForUpdate()); }
 
@@ -384,10 +389,18 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
         // Check that there is no return type?
         return true;
     } else {
+        bool void_return = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->isVoidReturnType();
         ExpressionStar* es = returnStmt->getReturnExpr();
-
         if (es->isEpsilon()) {
-            return true;
+            if (void_return) {
+                return true;
+            } else {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Return type is void but returning stuff.");
+                return false;
+            }
+        } else if (void_return) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Return type is not void but not returning stuff.");
+            return false;
         }
 
         return check(es->getExpression());
@@ -400,12 +413,16 @@ bool TypeChecking::check(Expression* expression) {
          expression->getExprType() != ET_BYTE && expression->getExprType() != ET_CHAR)) {
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Array access with non numeric.");
         return false;
+    } else if (boolean_expression_only && expression->getExprType() != ET_BOOLEAN) {
+        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Condition is not a boolean.");
+        return false;
+    } else {
+        boolean_expression_only = false;
+        numeric_expression_only = false;
     }
-    numeric_expression_only = false;
 
     if(expression->isRegularBinaryExpression()) {
         // Something more than just NULL is happening
-        restrict_null = false;
         restrict_num = false;
 
         Expression* leftExpr = static_cast<BinaryExpression*>(expression)->getLeftExpression();
@@ -578,9 +595,6 @@ bool TypeChecking::check(CastExpression* castExpression){
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
     if (literalOrThis->isThis() && restrict_this) {
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] this in field init or static method.");
-        return false;
-    } else if (literalOrThis->isNull() && restrict_null) {
-        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] NULL in the loops or null array access.");
         return false;
     } else if (literalOrThis->isNumber() && restrict_num) {
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Number after '!'.");
