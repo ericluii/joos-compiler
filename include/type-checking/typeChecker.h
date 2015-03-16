@@ -45,6 +45,7 @@
 #include "primaryNewArray.h"
 #include "qualifiedThis.h"
 #include "literalOrThis.h"
+#include "negationExpression.h"
 #include "instanceOf.h"
 #include "arrayAccessPrimary.h"
 #include "castExpression.h"
@@ -87,7 +88,10 @@ class TypeChecking {
 
         bool restrict_this;
         bool restrict_null;
+        bool restrict_num;
+
         bool static_context_only;
+        bool numeric_expression_only;
 
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
@@ -121,6 +125,7 @@ class TypeChecking {
         bool check(ArrayAccess* arrayAccess);
         bool check(PrimaryNewArray* primaryNewArray);
         bool check(CastExpression* castExpression);
+        bool check(NegationExpression* negationExpression);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);

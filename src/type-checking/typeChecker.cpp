@@ -37,7 +37,9 @@ TypeChecking::TypeChecking(PackagesManager& manager, std::map<std::string, std::
     cur_st_type(NONE),
     restrict_this(false),
     restrict_null(false),
-    static_context_only(false)
+    restrict_num(false),
+    static_context_only(false),
+    numeric_expression_only(false)
 {}
 
 void TypeChecking::check() {
@@ -393,9 +395,18 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
 }
 
 bool TypeChecking::check(Expression* expression) {
+    if (numeric_expression_only &&
+        (expression->getExprType() != ET_INT && expression->getExprType() != ET_SHORT &&
+         expression->getExprType() != ET_BYTE && expression->getExprType() != ET_CHAR)) {
+        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Array access with non numeric.");
+        return false;
+    }
+    numeric_expression_only = false;
+
     if(expression->isRegularBinaryExpression()) {
         // Something more than just NULL is happening
         restrict_null = false;
+        restrict_num = false;
 
         Expression* leftExpr = static_cast<BinaryExpression*>(expression)->getLeftExpression();
         Expression* rightExpr = static_cast<BinaryExpression*>(expression)->getRightExpression();
@@ -428,12 +439,13 @@ bool TypeChecking::check(Expression* expression) {
         return check(static_cast<NameExpression*>(expression));
     } else if(expression->isCastToArrayName() || expression->isCastToReferenceType() || expression->isCastToPrimitiveType()) {
         check(static_cast<CastExpression*>(expression));
-    /*} else if(expr->isInstanceOf()) {
-
-    } else if(expr->isNameExpression()) {
-*/
     } else if(expression->isPrimaryExpression()) {
         return check(static_cast<PrimaryExpression*>(expression)->getPrimaryExpression());
+    } else if (expression->isNumericNegation() || expression->isBooleanNegation()) {
+        restrict_num = expression->isBooleanNegation();
+        bool rv = check(static_cast<NegationExpression*>(expression)->getNegatedExpression());
+        restrict_num = false;
+        return rv;
     }
 
     return true;
@@ -506,16 +518,16 @@ bool TypeChecking::check(Primary* primary) {
 }
 
 bool TypeChecking::check(PrimaryNewArray* primaryNewArray) {
-    restrict_null = true;
+    numeric_expression_only = true;
     bool rv = check(primaryNewArray->getTheDimension());
-    restrict_null = false;
+    numeric_expression_only = false;
     return rv;
 }
 
 bool TypeChecking::check(ArrayAccess* arrayAccess) {
-    restrict_null = true;
+    numeric_expression_only = true;
     bool rv = check(arrayAccess->getAccessExpression());
-    restrict_null = false;
+    numeric_expression_only = false;
 
     if (arrayAccess->isArrayAccessPrimary()) {
         return check(static_cast<ArrayAccessPrimary*>(arrayAccess)->getAccessedPrimaryArray()) && rv;
@@ -569,6 +581,9 @@ bool TypeChecking::check(LiteralOrThis* literalOrThis) {
         return false;
     } else if (literalOrThis->isNull() && restrict_null) {
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] NULL in the loops or null array access.");
+        return false;
+    } else if (literalOrThis->isNumber() && restrict_num) {
+        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Number after '!'.");
         return false;
     }
 
