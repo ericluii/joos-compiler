@@ -534,11 +534,11 @@ bool TypeChecking::check(FieldAccess* fieldAccess) {
 
 bool TypeChecking::check(CastExpression* castExpression){
     Expression* paramaterExpression = castExpression->getExpressionToCast();
-    std::cout << "Casting: " << paramaterExpression->getExpressionTypeString();
+    //std::cout << "Casting: " << paramaterExpression->getExpressionTypeString();
     if(castExpression->isCastToArrayName()){
         return true;
     } else if(castExpression->isCastToReferenceType()){
-        std::cout << " to Reference type" << std::endl;
+        //std::cout << " to Reference type" << std::endl;
         if(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString()))
         {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast primitive to reference type");
@@ -551,10 +551,10 @@ bool TypeChecking::check(CastExpression* castExpression){
             }
         }
     } else if(castExpression->isCastToPrimitiveType()){
-        std::cout << " to Primitive type" << std::endl;
+        //std::cout << " to Primitive type" << std::endl;
         if(!(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString())))
         {
-            std::cout << "Error on casting " << paramaterExpression->getExpressionTypeString() << " to Primitive type" << std::endl;
+            //std::cout << "Error on casting " << paramaterExpression->getExpressionTypeString() << " to Primitive type" << std::endl;
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast reference type to primitive type");
         }
     } else {
