@@ -23,8 +23,7 @@
 #include "constructor.h"
 
 Reachable::Reachable(std::map<std::string, std::vector<CompilationTable*> >& compilations) : compilations(compilations),
-        curCompilation(NULL), prevStmtReachable(true), prevStmtComplete(true), curReturnType(NULL),
-        unreachableStmt(false), inConstructor(false) {}
+        curCompilation(NULL), curReturnType(NULL), inConstructor(false), unreachableStmt(false) {}
 
 // -----------------------------------------------------------
 // Private use
@@ -60,6 +59,11 @@ void Reachable::checkReachability(ClassBodyDecls* body) {
             checkReachability((Constructor*) body);
         }
     }
+    if(body->isClassMethod()) {
+        checkReachability((ClassMethod*) body);
+    } else if(body->isConstructor()) {
+        checkReachability((Constructor*) body);
+    }
 }
 
 void Reachable::checkReachability(ClassMethod* method) {
@@ -86,7 +90,7 @@ void Reachable::checkReachability(BlockStmts* stmt) {
     }
 
     if(unreachableStmt) {
-        // a previous stmt is unreachable and has been checked, then silently return
+        // a previous stmt is unreachable, then silently return
         return;
     }
 
@@ -469,7 +473,11 @@ int Reachable::evaluateBinaryNumericOperation(const std::string& leftOp, const s
     return leftNum % rightNum;
 }
 
-// -----------------------------------------------------------------------
+void checkReachability(Constructor* ctor) {
+    checkReachability(ctor->getConstructorBody());
+}
+
+// ------------------------------------------------------------
 // Called by main
 
 Reachable::checkReachability() {

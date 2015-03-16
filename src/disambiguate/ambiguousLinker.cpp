@@ -843,9 +843,9 @@ void AmbiguousLinker::traverseAndLink(BlockStmts* stmts) {
 }
 
 void AmbiguousLinker::traverseAndLink(LocalDecl* local) {
-    // update symbol table
-    curSymTable = local->getLocalTable();
     traverseAndLink(local->getLocalInitExpr());
+    // update symbol table (needed for A4)
+    curSymTable = local->getLocalTable();
 }
 
 void AmbiguousLinker::traverseAndLink(ExpressionStar* exprStar) {
@@ -1250,7 +1250,7 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
     // if it's none of the above, then error
     std::stringstream ss;
     ss << "Simple name '" << currName
-       << "' does not refer to either a local variable, parameter, field, type nor package in the environment.";
+       << "' does not refer to either a local variable, parameter, field, type nor package in the environment previously declared.";
     Error(E_DISAMBIGUATION, tok, ss.str());
 }
 

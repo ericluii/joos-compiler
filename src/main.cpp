@@ -17,6 +17,7 @@
 #include "packagesManager.h"
 #include "ambiguousLinker.h"
 #include "typeChecker.h"
+#include "reachable.h"
 
 int main(int argc, char *argv[])
 {

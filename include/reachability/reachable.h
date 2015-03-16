@@ -29,6 +29,9 @@ class Constructor;
 
 class Token;
 
+
+class Constructor;
+
 class Reachable {
     private:
         std::map<std::string, std::vector<CompilationTable*> >& compilations;
@@ -72,6 +75,8 @@ class Reachable {
         // helper functions
         void convertConstantValueToIntOrChar(const std::string& constExprVal, int& n, char& c);
         int evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, RuleNumbers ruleOp);
+
+        void checkReachability(Constructor* ctor);
     public:
         Reachable(std::map<std::string, std::vector<CompilationTable*> >& compilations);
         
