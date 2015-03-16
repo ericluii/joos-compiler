@@ -92,6 +92,7 @@ class TypeChecking {
 
         bool static_context_only;
         bool numeric_expression_only;
+        bool boolean_expression_only;
 
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
