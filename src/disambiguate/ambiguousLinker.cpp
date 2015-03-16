@@ -493,6 +493,8 @@ void AmbiguousLinker::traverseAndLink(MethodNormalInvoke* invoke) {
                 if(checkTypeIsClassDuringStaticAccess(someType, nextName->getFullName(), tok)) {
                     // it is a class, then it's find to do the following
                     // whether the method is static or not is not checked here
+                    // note that though Interfaces have java.lang.Object's methods,
+                    // java.lang.Object has no static methods
                     setMethodForMethodInvokeFromCompilation(invoke, someType, methodSignature, tok);
                 }
             } else if(nextName->isReferringToField()) {
