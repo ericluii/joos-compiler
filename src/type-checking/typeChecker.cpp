@@ -389,10 +389,18 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
         // Check that there is no return type?
         return true;
     } else {
+        bool void_return = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->isVoidReturnType();
         ExpressionStar* es = returnStmt->getReturnExpr();
-
         if (es->isEpsilon()) {
-            return true;
+            if (void_return) {
+                return true;
+            } else {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Return type is void but returning stuff.");
+                return false;
+            }
+        } else if (void_return) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Return type is not void but not returning stuff.");
+            return false;
         }
 
         return check(es->getExpression());
