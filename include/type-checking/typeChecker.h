@@ -49,6 +49,7 @@
 #include "instanceOf.h"
 #include "arrayAccessPrimary.h"
 #include "castExpression.h"
+#include "castPrimitive.h"
 #include <stack>
 
 enum ST_TYPE {
