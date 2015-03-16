@@ -708,22 +708,6 @@ bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
     return false;
 }
 
-/*bool TypeChecking::check(MethodInvoke* methodInvoke) {
-    ClassMethod *method = methodInvoke->getReferredClassMethod()->getClassMethod();
-    if(methodInvoke->isNormalMethodCall() && !method->isStatic()){
-        return true;
-    }
-    if(methodInvoke->isAccessedMethodCall() && method->isStatic()){
-        return true;
-    }
-    
-    std::stringstream ss;
-    ss << "Access of '" << method->getMethodHeader()->methodSignatureAsString() << "is illegal";
-
-    Error(E_TYPECHECKING, method->getMethodHeader()->getClassMethodId()->getToken(), ss.str());
-    return false;
-}*/
-
 bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
     std::queue<CompilationTable*> traverse;
     std::vector<CompilationTable*>& types = packages[getQualifierFromString(classname)];
