@@ -765,7 +765,7 @@ bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
     return false;
 }
 
-bool TypeChecking::check(MethodInvoke* methodInvoke) {
+/*bool TypeChecking::check(MethodInvoke* methodInvoke) {
     ClassMethod *method = methodInvoke->getReferredClassMethod()->getClassMethod();
     if(methodInvoke->isNormalMethodCall() && !method->isStatic()){
         return true;
@@ -779,7 +779,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
 
     Error(E_TYPECHECKING, method->getMethodHeader()->getClassMethodId()->getToken(), ss.str());
     return false;
-}
+}*/
 
 bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
     std::queue<CompilationTable*> traverse;
