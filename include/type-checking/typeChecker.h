@@ -47,6 +47,7 @@
 #include "literalOrThis.h"
 #include "instanceOf.h"
 #include "arrayAccessPrimary.h"
+#include "castExpression.h"
 #include <stack>
 
 enum ST_TYPE {
@@ -119,6 +120,7 @@ class TypeChecking {
         bool check(NameExpression* nameExpression);
         bool check(ArrayAccess* arrayAccess);
         bool check(PrimaryNewArray* primaryNewArray);
+        bool check(CastExpression* castExpression);
 
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);
