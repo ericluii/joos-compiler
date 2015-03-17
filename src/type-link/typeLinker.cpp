@@ -471,7 +471,8 @@ void TypeLinker::linkTypeNames(CompilationTable* compilation, Primary* prim) {
                                     qualThis->getQualifyingClassName()->getNameId()->getToken());
         } else {
             // found the class
-            if(linkType->getCanonicalName() == compilation->getCanonicalName()) {
+            if(linkType == compilation) {
+                // if it is the current class
                 qualThis->setQualifyingClassTable(linkType);
             } else {
                 // it is not the current class

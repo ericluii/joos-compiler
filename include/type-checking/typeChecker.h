@@ -46,7 +46,7 @@
 #include "qualifiedThis.h"
 #include "literalOrThis.h"
 #include "negationExpression.h"
-#include "instanceOf.h"
+#include "instanceof.h"
 #include "arrayAccessPrimary.h"
 #include "castExpression.h"
 #include "castPrimitive.h"
