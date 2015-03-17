@@ -6,8 +6,12 @@
 class BlockStmts : public Ast {
     protected:
         BlockStmts* nextBlockStmt;
+
+        // pertaining to reachability stage, by default they are true
+        bool reachable;
+        bool completion;
     public:
-        BlockStmts() : nextBlockStmt(NULL) {}
+        BlockStmts() : nextBlockStmt(NULL), reachable(true), completion(true) {}
         virtual ~BlockStmts() {
             delete nextBlockStmt;
         }
@@ -15,6 +19,12 @@ class BlockStmts : public Ast {
         BlockStmts* getNextBlockStmt() { return nextBlockStmt; }
         void setNextBlockStmt(BlockStmts* set) { nextBlockStmt = set; }
         bool isLastStatement() { return nextBlockStmt == NULL; }
+
+        bool isReachable() { return reachable; }
+        bool canComplete() { return completion; }
+
+        void setReachability(bool set) { reachable = set; }
+        void setCompletion(bool set) { completion = set; }
 };
 
 #endif
