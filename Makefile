@@ -36,12 +36,13 @@ TYPECHECK_C = $(wildcard src/type-checking/*.cpp)
 TYPECHECK_O = $(addprefix build/src/type-checking/, $(notdir $(TYPECHECK_C:.cpp=.o)))
 
 # REACHABILITY CODE
-REACHABILITY_C = $(wildcard src/reachability/*cpp)
-REACHABILITY_O = $(addprefix build/src/reachability/, $(notdir $(REACHABAILITY_C:.cpp=.o)))
+REACHABILITY_C = $(wildcard src/reachability/*.cpp)
+REACHABILITY_O = $(addprefix build/src/reachability/, $(notdir $(REACHABALITY_C:.cpp=.o)))
 
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
-SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O) $(DIS_O) $(TYPECHECK_O) $(REACHABILITY_O)
+SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O) $(DIS_O) $(TYPECHECK_O)\
+       	$(REACHABILITY_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)

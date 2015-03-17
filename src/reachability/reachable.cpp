@@ -19,11 +19,12 @@
 #include "binaryExpression.h"
 #include "primaryExpression.h"
 #include "literalOrThis.h"
+#include "expressionStar.h"
 
 #include "constructor.h"
 
 Reachable::Reachable(std::map<std::string, std::vector<CompilationTable*> >& compilations) : compilations(compilations),
-        curCompilation(NULL), curReturnType(NULL), inConstructor(false), unreachableStmt(false) {}
+        curCompilation(NULL), curReturnType(NULL), inConstructor(false), unreachableStmt(false), recentConstCondExprVal(CE_NONCONSTEXPR) {}
 
 // -----------------------------------------------------------
 // Private use
@@ -59,22 +60,51 @@ void Reachable::checkReachability(ClassBodyDecls* body) {
             checkReachability((Constructor*) body);
         }
     }
-    if(body->isClassMethod()) {
-        checkReachability((ClassMethod*) body);
-    } else if(body->isConstructor()) {
-        checkReachability((Constructor*) body);
-    }
 }
 
 void Reachable::checkReachability(ClassMethod* method) {
-    // set the return type
+    // set the return type and method signature
     curReturnType = method->getMethodHeader()->getReturnType();
+    curSignature = method->getMethodHeader()->methodSignatureAsString();
     checkReachability(method->getMethodBody());
 }
 
 void Reachable::checkReachability(MethodBody* body) {
     if(!body->noDefinition()) {
         checkReachability(body->getBlockStmtsStar());
+        if(!unreachableStmt) {
+            // if after checking the class method's body no unreachable statement
+            // was encoutered
+            BlockStmts* stmt = body->getBlockStmtsStar()->getStatements();
+            if(curReturnType != NULL && stmt != NULL) {
+                // there is a return type and the body of the method is not empty
+                if(stmt->isForStmt()) {
+                    ForStmt* forStmt = (ForStmt) stmt;
+                    if(forStmt->emptyExpression()) {
+                        return;
+                    }
+                }
+
+                if(stmt->isWhileStmt() || stmt->isForStmt()) {
+                    // by the way we do things, recentConstCondExprVal refers to the
+                    // value of the condition expression of the while or for statement checked here
+                    if(recentConstCondExprVal != CE_TRUE) {
+                        // precautionary check
+                        assert(recentConstCondExprVal == CE_FALSE || recentConstCondExprVal == CE_NONCONSTEXPR);
+                        reportMissingReturnStatement();
+                    } else { return; }
+                } else {
+                    // everything else
+                    if(stmt->canComplete()) {
+                        // The last statement of this method can complete, this shouldn't
+                        // be the case. The last statement shouldn't be able to complete
+                        // and the only way it can't complete is that if it's a return statement
+                        // or a nested block that ends with a return statement
+                        reportMissingReturnStatement();
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -101,9 +131,11 @@ void Reachable::checkReachability(BlockStmts* stmt) {
     } else if(stmt->isWhileStmt()) {
         checkReachability((WhileStmt*) stmt);
     } else if(stmt->isForStmt()) {
+        checkReachability((ForStmt*) stmt);
     } else if(stmt->isReturnStmt()) {
+        checkReachability((ReturnStmt*) stmt);
     } else {
-        // everything else i.e local variable, assignment stmt, method invocation stmt,
+        // everything else i.e local variable decl, assignment stmt, method invocation stmt,
         // class creation stmt and empty statement
         checkCompletionOfPrevStmt(stmt);
     }
@@ -123,15 +155,9 @@ void Reachable::checkReachability(NestedBlock* block) {
         // statement can be completed. This is because there are no switch blocks
         BlockStmts* endStmt = block->getNestedBlock()->getStatements();
         checkReachability(endStmt);
-        if(!endStmt->canComplete()) {
-            // the last statement in the nested block cannot complete
-            std::stringstream ss;
-            ss << "Nested block statement cannot complete because the last statement in the block cannot complete.";
-            Error(E_REACHABILITY, NULL, ss.str());
-
-            // set reachability to false
-            block->setReachability(false);
-        }
+        // the completion of a block is equal to the completion
+        // of it's last statement
+        block->setCompletion(endStmt->canComplete());
     }
 }
 
@@ -157,8 +183,8 @@ void Reachable::checkReachability(WhileStmt* stmt) {
     }
 
     BlockStmts* loop = stmt->getLoopStmt();
-    BOOL_CONST_EXPR_VAL constExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
-    if(constExprVal == CE_TRUE) {
+    CONST_EXPR_VAL tmpConstExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
+    if(tmpConstCondExprVal == CE_TRUE) {
         // the expression to check is a constant expression that
         // evaluates to constant expression
         stmt->setCompletion(false);
@@ -166,19 +192,94 @@ void Reachable::checkReachability(WhileStmt* stmt) {
 
     // the contained statement is unreachable if the negation of this
     // expression is true
-    unreachableStmt |= !(stmt->isReachable() && constExprVal != CE_FALSE);
+    unreachableStmt |= !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
     if(!unreachableStmt) {
-        // if the contained stmt can be reached
+        // if the contained stmt can be reached, then we can
+        // process further
         checkReachability(loop);
     } else {
+        // if not there's no use to proceed further
         std::stringstream ss;
-        ss << "Loop statement of while statement cannot be reached because the condition expression is a constant expression that evaluates to false.";
+        ss << curCompilation->getFilename() << ": "
+           << "Loop statement of while statement cannot be reached because the condition expression is a constant expression that evaluates to false.";
         Error(E_REACHABILITY, NULL, ss.str());
+    }
+    // set 
+    recentConstCondExprVal = tmpConstExprVal;
+}
+
+void Reachable::checkReachability(ForStmt* stmt) {
+    if(!checkCompletionOfPrevStmt(stmt)) {
+        return;
+    }
+
+    if(stmt->emptyExpression()) {
+        // empty conditional expression, then for stmt cannot complete
+        stmt->setCompletion(false);
+    } else {
+        // same case as with the WhileStmt above
+        BlockStmts* loop = stmt->getLoopStmt();
+        CONST_EXPR_VAL tmpConstExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
+
+        if(tmpConstCondExprVal == CE_TRUE) {
+            stmt->setCompletion(false);
+        }
+
+        unreachableStmt != !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
+        if(!unreachableStmt) {
+            checkReachability(loop);
+        } else {
+            std::stringstream ss;
+            ss << curCompilation->getFilename() << ": "
+               << "Loop statement of for statement cannot be reached because the condition expression is a constant expression that evaluates to false.";
+            Error(E_REACHABILITY, NULL, ss.str());
+        }
+        recentConstCondExprVal = tmpConstCondExprVal;
+    }
+}
+
+void Reachable::checkReachability(ReturnStmt* stmt) {
+    if(!checkReachability()) {
+        return;
+    }
+
+    // return statement can never complete normally
+    stmt->setCompletion(false);
+    std::stringstream ss;
+    if(inConstructor) {
+        if(!stmt->isEmptyReturn()) {
+            ss << curCompilation->getFilename() << ": Non-empty return statement of type '"
+               << stmt->getReturnExpr()->getExpression()->getExpressionTypeString() << "' in constructor '"
+               << curSignature << "'.";
+            Error(E_REACHABILITY, NULL, ss.str());
+        }
+    } else {
+        bool emptyReturn = stmt->isEmptyReturn();
+        // not in constructor, then must be in class method
+        if(!emptyReturn && curReturnType == NULL) {
+            // non-empty return, void return type
+            ss << curCompilation->getFilename() << ": Non-empty return statement of type '"
+               << stmt->getReturnExpr()->getExpression()->getExpressionTypeString() << "' in class method '"
+               << curSignature << "' with return type void.";
+            Error(E_REACHABILITY, NULL, ss.str());
+        } else if(emptyReturn && curReturnType != NULL) {
+            // empty return, non-void return type
+            ss << curCompilation->getFilename() << ": Empty return statement for class method '" << curSignature << "' with return type '"
+               << curReturnType->getTypeAsString() << "'.";
+            Error(E_REACHABILITY, NULL, ss.str());
+        } else if(!emptyReturn && curReturnType != NULL) {
+            // non-empty return, non-void return type
+            // check for correct type according to assignability rules
+            // in JLS 5.2
+        }
+        // the rest must be empty return and void return type, which has no checks
+        // to be done
     }
 }
 
 void Reachable::checkReachability(Constructor* ctor) {
     inConstructor = true;
+    curSignature = ctor->getConstructorId()->getIdAsString() + ctor->constructorSignatureAsString();
     checkReachability(ctor->getConstructorBody());
     // reset
     inConstructor = false;
@@ -223,17 +324,24 @@ bool Reachable::checkCompletionOfPrevStmt(BlockStmts* stmt) {
                 assert(stmt->isEmptyStmt());
                 stmtKind = "Empty";
             }
-            reportUnreachableStatement(stmtKind, cause, NULL);
+            reportUnreachableStatement(stmtKind, cause);
         }
         return false;
     }
     return true;
 }
 
-void Reachable::reportUnreachableStatement(const std::string& stmtKind, const std::string& cause, Token* tok) {
+void Reachable::reportUnreachableStatement(const std::string& stmtKind, const std::string& cause) {
     std::stringstream ss;
-    ss << stmtKind << " statement cannot be reached because " << cause << ".";
-    Error(E_REACHABILITY, tok, ss.str());
+    ss << curCompilation->getFilename() << ": " << stmtKind << " statement cannot be reached because " << cause << ".";
+    Error(E_REACHABILITY, NULL, ss.str());
+}
+
+void Reachable::reportMissingReturnStatement() {
+    std::stringstream ss;
+    ss << curCompilation->getFilename() << ": " << "Finite-length execution of class method '"
+       << methodSignature << "' did not end with a return statement.";
+    Error(E_DISAMBIGUATION, NULL, ss.str()); 
 }
 
 // -----------------------------------------------------------------------
@@ -437,13 +545,13 @@ CONST_EXPR_VAL checkConstExprAndVal(PrimaryExpression* expr) {
 // -----------------------------------------------------------------------
 // helper functions
 
-void Reachable::convertConstantValueToIntOrChar(const std::string& constExprVal, int& n, char& c) {
-    std::stringstream ss(constExprVal);
+void Reachable::convertConstantValueToIntOrChar(const std::string& constExprString, int& n, char& c) {
+    std::stringstream ss(constExprString);
     if(ss >> n) {
     } else {
         // must be a char
         ss.clear();
-        ss << constExprVal;
+        ss << constExprString;
         // allows newline and the likes to be gotten
         ss >> std::noskipws >> c;
         // set the integer to the value of the char
@@ -471,10 +579,6 @@ int Reachable::evaluateBinaryNumericOperation(const std::string& leftOp, const s
     // the last possible rule given
     assert(ruleOp == MULTI_TO_MODUNARY);
     return leftNum % rightNum;
-}
-
-void checkReachability(Constructor* ctor) {
-    checkReachability(ctor->getConstructorBody());
 }
 
 // ------------------------------------------------------------

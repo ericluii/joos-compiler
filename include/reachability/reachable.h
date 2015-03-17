@@ -24,11 +24,10 @@ class Expression;
 class BinaryExpression;
 class NegationExpression;
 class PrimaryExpression;
+class ForStmt;
+class ReturnStmt;
 
 class Constructor;
-
-class Token;
-
 
 class Constructor;
 
@@ -44,6 +43,9 @@ class Reachable {
         // indicate that there is a statement inside a method/constructor
         // that cannot be reached
         bool unreachableStmt;
+        CONST_EXPR_VAL recentConstCondExprVal;
+        // the signature of the currently seen constructor or method
+        std::string curSignature;
 
         void checkReachability(CompilationTable* table);
         void checkReachability(ClassDecl* aClass);
@@ -56,13 +58,16 @@ class Reachable {
         void checkReachability(NestedBlock* block);
         void checkReachability(IfStmt* stmt);
         void checkReachability(WhileStmt* stmt);
+        void checkReachability(ForStmt* stmt);
+        void checkReachability(ReturnStmt* stmt);
 
         void checkReachability(Constructor* ctor);
 
         // -------------------------------------------------------------------------
         // error reporting
         bool checkCompletionOfPrevStmt(BlockStmts* stmt);
-        void reprotUnreachableStatement(const std::string& stmtKind, const std::string& cause, Token* tok);
+        void reportUnreachableStatement(const std::string& stmtKind, const std::string& cause);
+        void reportMissingReturnStatement();
 
         // -------------------------------------------------------------------------
         // checks whether an expression is a constant expression and evaluate its value
@@ -75,8 +80,6 @@ class Reachable {
         // helper functions
         void convertConstantValueToIntOrChar(const std::string& constExprVal, int& n, char& c);
         int evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, RuleNumbers ruleOp);
-
-        void checkReachability(Constructor* ctor);
     public:
         Reachable(std::map<std::string, std::vector<CompilationTable*> >& compilations);
         

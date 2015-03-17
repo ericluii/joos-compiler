@@ -6,7 +6,7 @@
 
 class Ast {
     protected:
-        RuleNumbers rule;
+        int rule;
         std::string treeLexeme;
     public:
         virtual bool isEpsilon() { return false; }
@@ -15,7 +15,7 @@ class Ast {
             rule = setRule;
             treeLexeme = setLexeme;
         }
-        RuleNumbers getRule() { return rule; }
+        int getRule() { return rule; }
         std::string& getLexeme() { return treeLexeme; }
 
         // Compilation unit
