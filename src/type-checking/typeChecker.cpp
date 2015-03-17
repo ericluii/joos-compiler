@@ -586,6 +586,18 @@ bool TypeChecking::check(CastExpression* castExpression){
             //std::cout << "Error on casting " << paramaterExpression->getExpressionTypeString() << " to Primitive type" << std::endl;
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast reference type to primitive type");
         }
+        else if(paramaterExpression->isExprTypeBoolean() && (castExpression->getExprType() != ET_BOOLEAN))
+        {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a boolean");
+        }
+        else if(isPrimitive(paramaterExpression->getExpressionTypeString()) && static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
+        {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a primitive to a primitive array");
+        }
+        else if(isPrimitiveArray(paramaterExpression->getExpressionTypeString()) && !static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
+        {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a primitive array to a primitive");
+        }
     } else {
         assert(false);
     }
