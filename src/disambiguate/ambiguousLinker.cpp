@@ -61,6 +61,7 @@
 #include "forStmt.h"
 #include "nestedBlock.h"
 #include "constructor.h"
+#include "negationExpression.h"
 
 #include "interfaceDecl.h"
 
@@ -170,6 +171,7 @@ void AmbiguousLinker::traverseAndLink(Expression* expr) {
     } else {
         // all that's left is negation expression, precautionary check
         assert(expr->isNumericNegation() || expr->isBooleanNegation());
+        traverseAndLink(((NegationExpression*) expr)->getNegatedExpression());
         if(expr->isNumericNegation()) { expr->setExprType(ET_INT); }
         else { expr->setExprType(ET_BOOLEAN); }
     }
