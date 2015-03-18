@@ -485,7 +485,7 @@ bool TypeChecking::check(NameExpression* nameExpression) {
 }
 
 bool TypeChecking::check(InstanceOf* instanceOf) {
-    if(!instanceOf->getTypeToCheck()->isReferenceType()){
+    if(isPrimitive(instanceOf->getTypeToCheck()->getTypeAsString())){
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot use non-reference types in an instanceof.");
         return false;
     }
