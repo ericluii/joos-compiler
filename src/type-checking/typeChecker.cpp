@@ -474,69 +474,9 @@ bool TypeChecking::check(Expression* expression) {
 
 bool TypeChecking::check(NameExpression* nameExpression) {
     if (static_context_only || restrict_this) {
-        bool is_arg_or_local = false;
-
-        BlockStmts* bs;
-        switch (cur_st_type) {
-            case CLASSMETHOD_TABLE:{
-                MethodBody* cm = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodBody();
-                bs = cm->getBlockStmtsStar()->getStatements();
-                break;
-            }
-            case CONSTRUCTOR_TABLE:{
-                Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
-                bs = c->getConstructorBody()->getStatements();
-                break;
-            }
-            case FIELDDECL_TABLE:{
-                bs = NULL;
-                break;
-            }
-            default:
-                assert(false);
-        }
-        
-        while (bs != NULL && !is_arg_or_local) {
-            if (bs->isLocalVarDecl()) {
-                LocalDecl* ld = static_cast<LocalDecl*>(bs);
-                if (ld->getLocalId()->getIdAsString() == nameExpression->getNameExpression()->getFullName()) {
-                    is_arg_or_local = true;
-                }
-            }
-            bs = bs->getNextBlockStmt();
-        }
-
-        if (!is_arg_or_local) {
-            ParamList* pl;
-            switch (cur_st_type) {
-                case CLASSMETHOD_TABLE:
-                    pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
-                                                                       ->getClassMethodParams()->getListOfParameters();
-                    break;
-                case CONSTRUCTOR_TABLE:{
-                    Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
-                    pl = c->getConstructorParameters()->getListOfParameters();
-                    break;
-                }
-                case FIELDDECL_TABLE:{
-                    pl = NULL;
-                    break;
-                }
-                default:
-                    assert(false);
-            }
-
-            while (pl != NULL && !is_arg_or_local) {
-                if (pl->getParameterId()->getIdAsString() == nameExpression->getNameExpression()->getFullName()) {
-                    is_arg_or_local = true;
-                }
-                pl = pl->getNextParameter();
-            }
-        }
-
         // If I can't find it as a field decl in the class, it MUST be a static reference
         // and make sure it isn't an arguement
-        if (!is_arg_or_local && nameExpression->getNameExpression()->isSimpleName() &&
+        if (!isLocalOrArg(nameExpression->getNameExpression()) && nameExpression->getNameExpression()->isSimpleName() &&
             processing->getAField(nameExpression->getNameExpression()->getFullName())) {
             FieldDecl* fd = processing->getAField(nameExpression->getNameExpression()->getFullName())->getField();
 
@@ -546,9 +486,11 @@ bool TypeChecking::check(NameExpression* nameExpression) {
             }
         } else if (!nameExpression->getNameExpression()->isSimpleName()) {
             Name* nextName = nameExpression->getNameExpression()->getNextName();
-
             CompilationTable* ct = NULL;
-            if (processing->getCanonicalName() == nextName->getFullName()) {
+
+            if (isLocalOrArg(nextName)) {
+                return true;
+            } else if (processing->getCanonicalName() == nextName->getFullName()) {
                 ct = processing;
             } else if (processing->checkTypePresenceFromSingleImport(nextName->getFullName())) {
                 ct = processing->checkTypePresenceFromSingleImport(nextName->getFullName());
@@ -747,6 +689,66 @@ bool TypeChecking::check(LocalDecl* localDecl) {
        << "' cannot be assigned as '" << localDecl->getLocalInitExpr()->getExpressionTypeString() << ".'";
 
     Error(E_TYPECHECKING, localDecl->getLocalId()->getToken(), ss.str());
+    return false;
+}
+
+bool TypeChecking::isLocalOrArg(Name* name) {
+    BlockStmts* bs;
+    switch (cur_st_type) {
+        case CLASSMETHOD_TABLE:{
+            MethodBody* cm = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodBody();
+            bs = cm->getBlockStmtsStar()->getStatements();
+            break;
+        }
+        case CONSTRUCTOR_TABLE:{
+            Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
+            bs = c->getConstructorBody()->getStatements();
+            break;
+        }
+        case FIELDDECL_TABLE:{
+            bs = NULL;
+            break;
+        }
+        default:
+            assert(false);
+    }
+    
+    while (bs != NULL) {
+        if (bs->isLocalVarDecl()) {
+            LocalDecl* ld = static_cast<LocalDecl*>(bs);
+            if (ld->getLocalId()->getIdAsString() == name->getFullName()) {
+                return true;
+            }
+        }
+        bs = bs->getNextBlockStmt();
+    }
+
+    ParamList* pl;
+    switch (cur_st_type) {
+        case CLASSMETHOD_TABLE:
+            pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
+                                                               ->getClassMethodParams()->getListOfParameters();
+            break;
+        case CONSTRUCTOR_TABLE:{
+            Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
+            pl = c->getConstructorParameters()->getListOfParameters();
+            break;
+        }
+        case FIELDDECL_TABLE:{
+            pl = NULL;
+            break;
+        }
+        default:
+            assert(false);
+    }
+
+    while (pl != NULL) {
+        if (pl->getParameterId()->getIdAsString() == name->getFullName()) {
+            return true;
+        }
+        pl = pl->getNextParameter();
+    }
+
     return false;
 }
 

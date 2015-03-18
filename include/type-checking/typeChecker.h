@@ -129,6 +129,7 @@ class TypeChecking {
         bool check(CastExpression* castExpression);
         bool check(NegationExpression* negationExpression);
 
+        bool isLocalOrArg(Name* name);
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
         bool assignmentCheck(std::string lefths, Expression* expr);
         std::string tryToGetTypename(Name* name, CompilationTable* cur_table);
