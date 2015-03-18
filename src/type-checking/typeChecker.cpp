@@ -37,6 +37,7 @@ TypeChecking::TypeChecking(PackagesManager& manager, std::map<std::string, std::
     cur_st_type(NONE),
     restrict_this(false),
     restrict_num(false),
+    restrict_type_name_expressions(false),
     static_context_only(false),
     numeric_expression_only(false),
     boolean_expression_only(false)
@@ -106,6 +107,21 @@ bool TypeChecking::check(ClassBodyDecls* classBodyDecls) {
 
 bool TypeChecking::check(FieldDecl* fieldDecl) {
     if (fieldDecl->isInitialized()) {
+        std::string lefths = fieldDecl->getFieldType()->getTypeAsString();
+        std::string righths = fieldDecl->getInitializingExpression()->getExpressionTypeString();
+        if ((isPrimitive(lefths) && lefths != righths) ||
+             (isArray(lefths) && lefths != righths) ||
+             (!isPrimitive(lefths) && isPrimitive(righths)) ||
+             (isPrimitive(lefths) && !isPrimitive(righths)) ||
+             (!isPrimitive(lefths) && !isPrimitive(righths) &&
+              (lefths != righths &&
+               !inheritsOrExtendsOrImplements(righths, lefths) &&
+               fieldDecl->getInitializingExpression()->getExprType() != ET_NULL))) {
+            std::cout << lefths << ":" << righths << std::endl;
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Bad Field Decl Init - RIGHTHS type is not LEFTHS type.");
+            return false;
+        }
+
         CHECK_PUSH_AND_SET(fieldDecl->getInitializingExpression(), fieldDecl->getFieldTable(), FIELDDECL_TABLE,
                            static_context_only, fieldDecl->isStatic());
     }
@@ -120,6 +136,17 @@ bool TypeChecking::check(ClassMethod* classMethod) {
 bool TypeChecking::check(Constructor* constructor) {
     if (!constructor->emptyConstructorBody()) {
         CHECK_PUSH(constructor->getConstructorBody(), constructor->getConstructorTable(), CONSTRUCTOR_TABLE);
+    } else {
+        // Check against impilicit super() call
+        ClassDecl* cd = static_cast<ClassTable*>(st_stack.top())->getClass();
+
+        if (!cd->noSuperClass()) {
+            CompilationTable* ct = cd->getSuper()->getSuperClassTable();
+            if (!ct->getAConstructor("()")) {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] No default constructor in super class.");
+                return false;
+            }
+        }
     }
 
     return true;
@@ -242,21 +269,36 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
             CompilationTable* ct = NULL;
             std::stack<Name*> traceback;
             while (nextName != NULL && ct == NULL) {
+                bool ambiguous_traceback_needed = false;
+                std::stack<Name*> ambiguousTraceback;
                 if (tryToGetTypename(nextName, processing) == "") {
-                    if (processing->getCanonicalName() == nextName->getFullName()) {
+                    Name* tempName = nextName;
+                    while (!tempName->isLastPrefix()) {
+                        ambiguousTraceback.push(tempName);
+                        tempName = tempName->getNextName();
+                    }
+
+                    if (tempName->getFullName() == processing->getClassOrInterfaceName()) {
                         ct = processing;
-                    } else if (processing->checkTypePresenceFromSingleImport(nextName->getFullName())) {
-                        ct = processing->checkTypePresenceFromSingleImport(nextName->getFullName());
-                    } else if (processing->checkTypePresenceInPackage(nextName->getFullName())) {
-                        ct = processing->checkTypePresenceInPackage(nextName->getFullName());
-                    } else if (processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken())) {
-                        ct = processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken());
-                    } else {
-                        std::vector<CompilationTable*>& types = packages[getQualifierFromString(nextName->getFullName())];
-                        for (unsigned int i = 0; i < types.size(); i++) {
-                            if (types[i]->getClassOrInterfaceName() == nextName->getFullName().substr(nextName->getFullName().find_last_of('.') + 1)) {
-                                ct = types[i];
-                                break;
+                        ambiguous_traceback_needed = !ambiguousTraceback.empty();
+                    }
+
+                    if (!ct) {
+                        if (processing->getPackageName() == nextName->getFullName()) {
+                            ct = processing;
+                        } else if (processing->checkTypePresenceFromSingleImport(nextName->getFullName())) {
+                            ct = processing->checkTypePresenceFromSingleImport(nextName->getFullName());
+                        } else if (processing->checkTypePresenceInPackage(nextName->getFullName())) {
+                            ct = processing->checkTypePresenceInPackage(nextName->getFullName());
+                        } else if (processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken())) {
+                            ct = processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken());
+                        } else {
+                            std::vector<CompilationTable*>& types = packages[getQualifierFromString(nextName->getFullName())];
+                            for (unsigned int i = 0; i < types.size(); i++) {
+                                if (types[i]->getClassOrInterfaceName() == nextName->getFullName().substr(nextName->getFullName().find_last_of('.') + 1)) {
+                                    ct = types[i];
+                                    break;
+                                }
                             }
                         }
                     }
@@ -265,9 +307,16 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                 // Check if method invoke is static
                 if (ct != NULL) {
                     CompilationTable* temp_processing = ct;
-                    bool traceback_needed = !traceback.empty();
-                    while (!traceback.empty()) {
-                        FieldDecl* fd = temp_processing->getAField(traceback.top()->getNameId()->getIdAsString())->getField();
+                    bool traceback_needed = !traceback.empty() || ambiguous_traceback_needed;
+                    std::stack<Name*>* traceback_ptr = ambiguous_traceback_needed ? &ambiguousTraceback : &traceback;
+                    while (!traceback_ptr->empty()) {
+                        std::cout << "searching: " << traceback_ptr->top()->getNameId()->getIdAsString() << " in: " << processing->getClassOrInterfaceName() << std::endl;
+                        if (!temp_processing->getAField(traceback_ptr->top()->getNameId()->getIdAsString())) {
+                            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Field does not exist.");
+                            return false;
+                        }
+
+                        FieldDecl* fd = temp_processing->getAField(traceback_ptr->top()->getNameId()->getIdAsString())->getField();
 
                         // Only the first can be invoked statically
                         if (temp_processing == ct && !fd->isStatic()) {
@@ -294,7 +343,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                         }
 
                         assert(temp_processing != ct);
-                        traceback.pop();
+                        traceback_ptr->pop();
                     }
                     ct = temp_processing;
                     ClassMethodTable* cmt = ct->getAClassMethod(static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
@@ -508,6 +557,10 @@ bool TypeChecking::check(NameExpression* nameExpression) {
                 Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] non-static variable cannot be referenced in a static context.");
                 return false;
             }
+        } else if (!isLocalOrArg(nameExpression->getNameExpression()) && nameExpression->getNameExpression()->isSimpleName() &&
+                   restrict_type_name_expressions) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Illegal start type bracket type thing.");
+            return false;
         } else if (!nameExpression->getNameExpression()->isSimpleName()) {
             Name* nextName = nameExpression->getNameExpression()->getNextName();
             CompilationTable* ct = NULL;
@@ -536,7 +589,7 @@ bool TypeChecking::check(NameExpression* nameExpression) {
                 }
 
                 return true;
-            } else if (processing->getCanonicalName() == nextName->getFullName()) {
+            } else if (processing->getPackageName() == nextName->getFullName()) {
                 ct = processing;
             } else if (processing->checkTypePresenceFromSingleImport(nextName->getFullName())) {
                 ct = processing->checkTypePresenceFromSingleImport(nextName->getFullName());
@@ -545,6 +598,16 @@ bool TypeChecking::check(NameExpression* nameExpression) {
             } else if (processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken())) {
                 ct = processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken());
             } else {
+                if (restrict_type_name_expressions) {
+                    std::vector<CompilationTable*>& types = packages[getQualifierFromString(nameExpression->getNameExpression()->getFullName())];
+                    for (unsigned int i = 0; i < types.size(); i++) {
+                        if (types[i]->getCanonicalName() == nameExpression->getNameExpression()->getFullName()) {
+                            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Illegal start type bracket type thing.");
+                            return false;
+                        }
+                    }
+                }
+
                 std::vector<CompilationTable*>& types = packages[getQualifierFromString(nextName->getFullName())];
                 for (unsigned int i = 0; i < types.size(); i++) {
                     if (types[i]->getClassOrInterfaceName() == nextName->getFullName().substr(nextName->getFullName().find_last_of('.') + 1)) {
@@ -626,7 +689,10 @@ bool TypeChecking::check(QualifiedThis* qualifiedThis) {
 }
 
 bool TypeChecking::check(FieldAccess* fieldAccess) {
-    return check(fieldAccess->getAccessedFieldPrimary());
+    restrict_type_name_expressions = true;
+    bool rv = check(fieldAccess->getAccessedFieldPrimary());
+    restrict_type_name_expressions = false;
+    return rv;
 }
 
 bool TypeChecking::check(CastExpression* castExpression){

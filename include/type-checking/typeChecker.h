@@ -90,6 +90,7 @@ class TypeChecking {
         bool restrict_this;
         bool restrict_null;
         bool restrict_num;
+        bool restrict_type_name_expressions;
 
         bool static_context_only;
         bool numeric_expression_only;
