@@ -393,7 +393,13 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
         // Check that there is no return type?
         return true;
     } else {
-        bool void_return = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->isVoidReturnType();
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Constructor is returning not void.");
+            return false;
+        }
+
+        MethodHeader* mh = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader();
+        bool void_return = mh->isVoidReturnType();
         ExpressionStar* es = returnStmt->getReturnExpr();
         if (es->isEpsilon()) {
             if (void_return) {
@@ -404,6 +410,11 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
             }
         } else if (void_return) {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Return type is not void but not returning stuff.");
+            return false;
+        } else if ((es->getExpression()->getExpressionTypeString() != mh->getReturnType()->getTypeAsString() &&
+                    !inheritsOrExtendsOrImplements(es->getExpression()->getExpressionTypeString(), mh->getReturnType()->getTypeAsString()))&&
+                   (!es->getExpression()->isExprTypeNull() && !isPrimitive(mh->getReturnType()->getTypeAsString()))) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Mismatching return types.");
             return false;
         }
 
@@ -871,10 +882,10 @@ bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
         case ET_VOID:
              break;
         case ET_OBJECT:
-            if ((!isPrimitive(lefths) && !isArray(lefths)) ||
-                (lefths == "java.lang.Object" || lefths == "java.lang.Cloneable") ||
-                (righths == lefths) ||
-                (!isArray(lefths) && inheritsOrExtendsOrImplements(righths, lefths))) {
+            if ((!isPrimitive(lefths) && !isArray(lefths)) &&
+                ((lefths == "java.lang.Object" || lefths == "java.lang.Cloneable") ||
+                 (righths == lefths) ||
+                 (!isArray(lefths) && inheritsOrExtendsOrImplements(righths, lefths)))) {
                 return true;
             }
 
