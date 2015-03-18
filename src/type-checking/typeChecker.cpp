@@ -443,6 +443,19 @@ bool TypeChecking::check(Expression* expression) {
         Expression* leftExpr = static_cast<BinaryExpression*>(expression)->getLeftExpression();
         Expression* rightExpr = static_cast<BinaryExpression*>(expression)->getRightExpression();
 
+        if (expression->isEqual() &&
+            ((isPrimitive(leftExpr->getExpressionTypeString()) && !isPrimitive(rightExpr->getExpressionTypeString())) ||
+             (!isPrimitive(leftExpr->getExpressionTypeString()) && isPrimitive(rightExpr->getExpressionTypeString())) ||
+             (!isPrimitive(leftExpr->getExpressionTypeString()) && !isPrimitive(rightExpr->getExpressionTypeString()) &&
+              leftExpr->getExpressionTypeString() != rightExpr->getExpressionTypeString() &&
+              leftExpr->getExprType() != ET_NULL && rightExpr->getExprType() != ET_NULL &&
+              !inheritsOrExtendsOrImplements(rightExpr->getExpressionTypeString(), leftExpr->getExpressionTypeString()) &&
+              !inheritsOrExtendsOrImplements(leftExpr->getExpressionTypeString(), rightExpr->getExpressionTypeString())))) {
+            //TODO : HOLY CRAP this obviously doesn't cover all failure cases
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Primitive to non-primitive comparison.");
+            return false;
+        }
+
         if (leftExpr->getExprType() == ET_VOID || rightExpr->getExprType() == ET_VOID) {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Expressions with VOID");
             return false;
@@ -500,6 +513,28 @@ bool TypeChecking::check(NameExpression* nameExpression) {
             CompilationTable* ct = NULL;
 
             if (isLocalOrArg(nextName)) {
+                std::string typeName = tryToGetTypename(nextName, processing);
+                if (typeName == "" || isPrimitive(typeName) ||
+                    (isArray(typeName) && nameExpression->getNameExpression()->getNameId()->getIdAsString() == "length")) {
+                    // uh.. TODO
+                    return true;
+                } else if (isArray(typeName)) {
+                    typeName = "java.util.Arrays";
+                }
+                std::vector<CompilationTable*>& types = packages[getQualifierFromString(typeName)];
+                for (unsigned int i = 0; i < types.size(); i++) {
+                    if (types[i]->getClassOrInterfaceName() == typeName.substr(typeName.find_last_of('.') + 1)) {
+                        ct = types[i];
+                        break;
+                    }
+                }
+
+                FieldDecl* fd = ct->getAField(nameExpression->getNameExpression()->getNameId()->getIdAsString())->getField();
+                if (fd->isStatic()) {
+                    Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Cannot reference static variable from this instance.");
+                    return false;
+                }
+
                 return true;
             } else if (processing->getCanonicalName() == nextName->getFullName()) {
                 ct = processing;
@@ -538,8 +573,6 @@ bool TypeChecking::check(InstanceOf* instanceOf) {
          instanceOf->getExpressionToCheck()->isExprTypeObject() ||
          instanceOf->getExpressionToCheck()->isExprTypeObjectArray() ||
          isPrimitiveArray(instanceOf->getExpressionToCheck()->getExpressionTypeString()))){
-         /*std::cout << "Error: " << instanceOf->getExpressionToCheck()->getExpressionTypeString() << " is not null or a reference type" << std::endl;
-         std::cout << instanceOf->getExpressionToCheck()->getTableTypeOfExpression()->getCanonicalName() << std::endl;*/
         Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot use non-reference, non-null types in an instanceof.");
         return false;
     }
@@ -547,29 +580,6 @@ bool TypeChecking::check(InstanceOf* instanceOf) {
 }
 
 bool TypeChecking::check(Primary* primary) {
-   /* if(primary->isFieldAccess()) {
-        traverseAndLink((FieldAccess*) prim);
-    } else if(primary->isThis() || primary->isNumber() || primary->isTrueBoolean() || primary->isFalseBoolean()
-              || primary->isCharLiteral() || primary->isStringLiteral() || primary->isNull()) {
-        traverseAndLink((LiteralOrThis*) prim);
-    } else if(prim->isBracketedExpression()) {
-        traverseAndLink((BracketedExpression*) prim);
-        // linking has been resolved, but BracketedExpression doesn't really link to anywhere
-        // indicate this
-        prim->ResolveLinkButNoEntity();
-    } else if(prim->isNewClassCreation()) {
-        traverseAndLink((NewClassCreation*) prim);
-    } else if(prim->isNewPrimitiveArray() || prim->isNewReferenceArray()) {
-        traverseAndLink((PrimaryNewArray*) prim);
-    } else if(prim->isNormalMethodCall() || prim->isAccessedMethodCall()) {
-        traverseAndLink((MethodInvoke*) prim);
-    } else if(prim->isArrayAccessName() || prim->isArrayAccessPrimary()) {
-        traverseAndLink((ArrayAccess*) prim);
-    } else {
-        // the remaining is qualified this, which has already been resolved
-        // indicate this
-        prim->ResolveLinkButNoEntity();
-    }*/
     if (primary->isFieldAccess()) {
         return check(static_cast<FieldAccess*>(primary));
     } else if(primary->isThis() || primary->isNumber() || primary->isTrueBoolean() || primary->isFalseBoolean()
@@ -675,6 +685,23 @@ bool TypeChecking::check(LiteralOrThis* literalOrThis) {
 }
 
 bool TypeChecking::check(Assignment* assignment) {
+    if (assignment->isAssignName()) {
+        Name* name = static_cast<AssignName*>(assignment)->getNameToAssign();
+        
+        if (name->isSimpleName()) {
+
+        } else {
+            Name* nextName = name->getNextName();
+            std::string typeName = tryToGetTypename(nextName, processing);
+            if ((isArray(typeName) && name->getNameId()->getIdAsString() == "length")) {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Assigning to final field length.");
+                return false;
+            }
+
+            // No other field decl can be declared final lol...
+        }
+    }
+
     std::string lhs_type = assignment->getExpressionTypeString();
     if (assignmentCheck(lhs_type, assignment->getExpressionToAssign())) {
         return check(assignment->getExpressionToAssign());
