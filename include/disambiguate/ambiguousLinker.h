@@ -65,11 +65,14 @@ class AmbiguousLinker {
         std::map<std::string, std::vector<CompilationTable*> >& compilations;
         SymbolTable* curSymTable;
         CompilationTable* curCompilation;
-        // indicates if linking happens in static context
-        // which really is only in an initializer of a static field in this case
+        // indicates if linking is done in an initializer of a static field in this case
         bool asgmtFieldContext;
+        // indicates if linking happens during the initializer of a local variable
+        bool asgmtLocalContext;
         // indicates if linking happens in a class method
         bool withinMethod;
+        // indicates the local variable being assigned
+        std::string assigningLocalVar;
 
         // -----------------------------------------------------------------
         // Class part

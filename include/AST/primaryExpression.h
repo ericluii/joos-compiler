@@ -2,6 +2,7 @@
 #define __PRIMARYEXPRESSION_H__
 
 #include "expression.h"
+#include "primary.h"
 
 class PrimaryExpression : public Expression {
     // Rule: PRIMARY_UNARY

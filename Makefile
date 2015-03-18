@@ -37,7 +37,7 @@ TYPECHECK_O = $(addprefix build/src/type-checking/, $(notdir $(TYPECHECK_C:.cpp=
 
 # REACHABILITY CODE
 REACHABILITY_C = $(wildcard src/reachability/*.cpp)
-REACHABILITY_O = $(addprefix build/src/reachability/, $(notdir $(REACHABALITY_C:.cpp=.o)))
+REACHABILITY_O = $(addprefix build/src/reachability/, $(notdir $(REACHABILITY_C:.cpp=.o)))
 
 # Main Code
 SRC_C = $(wildcard src/*.cpp)

@@ -1,10 +1,12 @@
 #include <sstream>
 #include <cassert>
 
+#include "ruleNumbers.h"
 #include "error.h"
 #include "reachable.h"
 
 #include "compilationTable.h"
+#include "classDecl.h"
 #include "classTable.h"
 #include "classBodyStar.h"
 #include "classBodyDecls.h"
@@ -16,10 +18,14 @@
 #include "nestedBlock.h"
 #include "ifStmt.h"
 #include "whileStmt.h"
+#include "forStmt.h"
 #include "binaryExpression.h"
 #include "primaryExpression.h"
 #include "literalOrThis.h"
 #include "expressionStar.h"
+#include "negationExpression.h"
+#include "returnStmt.h"
+#include "bracketedExpression.h"
 
 #include "constructor.h"
 
@@ -77,32 +83,30 @@ void Reachable::checkReachability(MethodBody* body) {
             // was encoutered
             BlockStmts* stmt = body->getBlockStmtsStar()->getStatements();
             if(curReturnType != NULL && stmt != NULL) {
-                // there is a return type and the body of the method is not empty
+                // there is a non-void return type and the body of
+                // the method is not empty
                 if(stmt->isForStmt()) {
-                    ForStmt* forStmt = (ForStmt) stmt;
+                    ForStmt* forStmt = (ForStmt*) stmt;
                     if(forStmt->emptyExpression()) {
                         return;
                     }
                 }
 
-                if(stmt->isWhileStmt() || stmt->isForStmt()) {
-                    // by the way we do things, recentConstCondExprVal refers to the
-                    // value of the condition expression of the while or for statement checked here
-                    if(recentConstCondExprVal != CE_TRUE) {
-                        // precautionary check
-                        assert(recentConstCondExprVal == CE_FALSE || recentConstCondExprVal == CE_NONCONSTEXPR);
-                        reportMissingReturnStatement();
-                    } else { return; }
-                } else {
-                    // everything else
-                    if(stmt->canComplete()) {
-                        // The last statement of this method can complete, this shouldn't
-                        // be the case. The last statement shouldn't be able to complete
-                        // and the only way it can't complete is that if it's a return statement
-                        // or a nested block that ends with a return statement
-                        reportMissingReturnStatement();
-                    }
+                if(stmt->canComplete()) {
+                    // The last statement of this method can complete, this shouldn't
+                    // be the case. The last statement shouldn't be able to complete
+                    // and the only way it can't complete is:
+                    // - that if it's a return statement
+                    // - a nested block that ends with anything that satisfies the others in here
+                    // - a while stmt whose constant condition expression evaluates to true
+                    // - a for stmt whose constant condition expression evaluates to true
+                    // - an if-then-else statement whose both true and false parts end with a return
+                    // statement
+                    reportMissingReturnStatement();
                 }
+            } else if(curReturnType != NULL && stmt == NULL) {
+                // there's a return type but the body of the method is empty
+                reportMissingReturnStatement();
             }
         }
     }
@@ -183,7 +187,7 @@ void Reachable::checkReachability(WhileStmt* stmt) {
     }
 
     BlockStmts* loop = stmt->getLoopStmt();
-    CONST_EXPR_VAL tmpConstExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
+    CONST_EXPR_VAL tmpConstCondExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
     if(tmpConstCondExprVal == CE_TRUE) {
         // the expression to check is a constant expression that
         // evaluates to constant expression
@@ -192,7 +196,9 @@ void Reachable::checkReachability(WhileStmt* stmt) {
 
     // the contained statement is unreachable if the negation of this
     // expression is true
-    unreachableStmt |= !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
+    if(tmpConstCondExprVal != CE_NONCONSTEXPR) {
+        unreachableStmt |= !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
+    }
     if(!unreachableStmt) {
         // if the contained stmt can be reached, then we can
         // process further
@@ -205,7 +211,7 @@ void Reachable::checkReachability(WhileStmt* stmt) {
         Error(E_REACHABILITY, NULL, ss.str());
     }
     // set 
-    recentConstCondExprVal = tmpConstExprVal;
+    recentConstCondExprVal = tmpConstCondExprVal;
 }
 
 void Reachable::checkReachability(ForStmt* stmt) {
@@ -219,13 +225,15 @@ void Reachable::checkReachability(ForStmt* stmt) {
     } else {
         // same case as with the WhileStmt above
         BlockStmts* loop = stmt->getLoopStmt();
-        CONST_EXPR_VAL tmpConstExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate());
+        CONST_EXPR_VAL tmpConstCondExprVal = checkConstExprAndEval(stmt->getExpressionToEvaluate()->getExpression());
 
         if(tmpConstCondExprVal == CE_TRUE) {
             stmt->setCompletion(false);
         }
 
-        unreachableStmt != !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
+        if(tmpConstCondExprVal != CE_NONCONSTEXPR) {
+            unreachableStmt |= !(stmt->isReachable() && tmpConstCondExprVal != CE_FALSE);
+        }
         if(!unreachableStmt) {
             checkReachability(loop);
         } else {
@@ -239,12 +247,12 @@ void Reachable::checkReachability(ForStmt* stmt) {
 }
 
 void Reachable::checkReachability(ReturnStmt* stmt) {
-    if(!checkReachability()) {
+    // return statement can never complete normally
+    stmt->setCompletion(false);
+    if(!checkCompletionOfPrevStmt(stmt)) {
         return;
     }
 
-    // return statement can never complete normally
-    stmt->setCompletion(false);
     std::stringstream ss;
     if(inConstructor) {
         if(!stmt->isEmptyReturn()) {
@@ -253,28 +261,9 @@ void Reachable::checkReachability(ReturnStmt* stmt) {
                << curSignature << "'.";
             Error(E_REACHABILITY, NULL, ss.str());
         }
-    } else {
-        bool emptyReturn = stmt->isEmptyReturn();
-        // not in constructor, then must be in class method
-        if(!emptyReturn && curReturnType == NULL) {
-            // non-empty return, void return type
-            ss << curCompilation->getFilename() << ": Non-empty return statement of type '"
-               << stmt->getReturnExpr()->getExpression()->getExpressionTypeString() << "' in class method '"
-               << curSignature << "' with return type void.";
-            Error(E_REACHABILITY, NULL, ss.str());
-        } else if(emptyReturn && curReturnType != NULL) {
-            // empty return, non-void return type
-            ss << curCompilation->getFilename() << ": Empty return statement for class method '" << curSignature << "' with return type '"
-               << curReturnType->getTypeAsString() << "'.";
-            Error(E_REACHABILITY, NULL, ss.str());
-        } else if(!emptyReturn && curReturnType != NULL) {
-            // non-empty return, non-void return type
-            // check for correct type according to assignability rules
-            // in JLS 5.2
-        }
-        // the rest must be empty return and void return type, which has no checks
-        // to be done
     }
+    // assumption here is that the check for class method's return type and
+    // return statements having to match are alreeady checked in A3
 }
 
 void Reachable::checkReachability(Constructor* ctor) {
@@ -291,7 +280,7 @@ void Reachable::checkReachability(Constructor* ctor) {
 bool Reachable::checkCompletionOfPrevStmt(BlockStmts* stmt) {
     if(!stmt->isLastStatement()) {
         // only if it is not the last statement
-        if(!stmt->getNextStatement()->canComplete()) {
+        if(!stmt->getNextBlockStmt()->canComplete()) {
             // the previous statement cannot be completed, therefore set
             // the currently seen stmt's reachability to false,
             // indicate some statement can't be reached
@@ -319,53 +308,52 @@ bool Reachable::checkCompletionOfPrevStmt(BlockStmts* stmt) {
                 stmtKind = "For";
             } else if(stmt->isReturnStmt()) {
                 stmtKind = "Return";
+            } else if(stmt->isNestedBlock()) {
+                stmtKind = "NestedBlock";
             } else {
                 // precuationary check
                 assert(stmt->isEmptyStmt());
                 stmtKind = "Empty";
             }
             reportUnreachableStatement(stmtKind, cause);
+            return false;
         }
-        return false;
     }
     return true;
 }
 
 void Reachable::reportUnreachableStatement(const std::string& stmtKind, const std::string& cause) {
     std::stringstream ss;
-    ss << curCompilation->getFilename() << ": " << stmtKind << " statement cannot be reached because " << cause << ".";
+    ss << curCompilation->getFilename() << ": " << stmtKind << " statement cannot be reached because " << cause;
     Error(E_REACHABILITY, NULL, ss.str());
 }
 
 void Reachable::reportMissingReturnStatement() {
     std::stringstream ss;
     ss << curCompilation->getFilename() << ": " << "Finite-length execution of class method '"
-       << methodSignature << "' did not end with a return statement.";
+       << curSignature << "' with return type '" << curReturnType->getTypeAsString() << "' did not end with a return statement.";
     Error(E_DISAMBIGUATION, NULL, ss.str()); 
 }
 
 // -----------------------------------------------------------------------
 // checks whether an expression is a constant expression and evaluate its value
-CONST_EXPR_VAL checkConstExprAndVal(Expression* expr) {
-    // assumption is that expr is of type boolean coming from A3
-    // precuationary check
-    assert(expr->isExprTypeBoolean());
+CONST_EXPR_VAL Reachable::checkConstExprAndEval(Expression* expr) {
     if(expr->isRegularBinaryExpression()) {
-        return checkConstExprAndVal((BinaryExpression*) expr);
+        return checkConstExprAndEval((BinaryExpression*) expr);
     } else if(expr->isBooleanNegation() || expr->isNumericNegation()) {
-        return checkConstExprAndVal((NegationExpression*) expr);
+        return checkConstExprAndEval((NegationExpression*) expr);
     } else if(expr->isPrimaryExpression()) {
-        return checkConstExprAndVal((PrimaryExpression*) expr);
+        return checkConstExprAndEval((PrimaryExpression*) expr);
     }
     // anything else
     return CE_NONCONSTEXPR;
 }
 
-CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr) {
+CONST_EXPR_VAL Reachable::checkConstExprAndEval(BinaryExpression* expr) {
     Expression* leftExpr = expr->getLeftExpression();
     Expression* rightExpr = expr->getRightExpression();
-    CONST_EXPR_VAL leftExprVal = checkConstExprAndVal(leftExpr);
-    CONST_EXPR_VAL rightExprVal = checkConstExprAndVal(rightExpr);
+    CONST_EXPR_VAL leftExprVal = checkConstExprAndEval(leftExpr);
+    CONST_EXPR_VAL rightExprVal = checkConstExprAndEval(rightExpr);
 
     std::string leftConstExprVal = leftExpr->getNonBoolConstExpr();
     std::string rightConstExprVal = rightExpr->getNonBoolConstExpr();
@@ -389,13 +377,13 @@ CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr) {
         // then return the left expression's value
         // precautionary check
         assert(leftExpr->isExprTypeBoolean() && rightExpr->isExprTypeBoolean());
-        if(leftExprVAL != CE_TRUE) { return leftExprVal;}
+        if(leftExprVal != CE_TRUE) { return leftExprVal;}
         else {
             // return the value of the right hand side
             return rightExprVal;
         }
     } else if(expr->isEqual()) {
-        if(leftExprVal == CE_PRIMITIVEORSTRING || rightExprVal == CE_PRIMITIVEORSTRING) {
+        if(leftExprVal == CE_PRIMITIVEORSTRING && rightExprVal == CE_PRIMITIVEORSTRING) {
             // both sides referred to a literal of primitive types or a string literal
             if(leftExpr->getNonBoolConstExpr() == rightExpr->getNonBoolConstExpr()) {
                 // they are the same, then equality comparison is true
@@ -412,7 +400,7 @@ CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr) {
         }
     } else if(expr->isNotEqual()) {
         // the same like above but flipped
-        if(leftExprVal == CE_PRIMITIVEORSTRING || rightExprVal == CE_PRIMITIVEORSTRING) {
+        if(leftExprVal == CE_PRIMITIVEORSTRING && rightExprVal == CE_PRIMITIVEORSTRING) {
             if(leftExpr->getNonBoolConstExpr() == rightExpr->getNonBoolConstExpr()) {
                 return CE_FALSE;
             } else { return CE_TRUE; }
@@ -463,7 +451,7 @@ CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr) {
                 if(leftExpr->isExprTypeObject()) { assert(leftExpr->getExpressionTypeString() == "java.lang.String"); }
                 if(rightExpr->isExprTypeObject()) { assert(leftExpr->getExpressionTypeString() == "java.lang.String"); }
 
-                expr->setNonBoolConstExpr(leftExprVal + rightExprVal);
+                expr->setNonBoolConstExpr(leftConstExprVal + rightConstExprVal);
             } else {
                 // both of them must be primitive numeric types then (char literal or number)
                 // precuationary check
@@ -490,15 +478,16 @@ CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr) {
             std::stringstream ss;
             ss << evaluateBinaryNumericOperation(leftConstExprVal, rightConstExprVal, expr->getRule());
             expr->setNonBoolConstExpr(ss.str());
+            return CE_PRIMITIVEORSTRING;
         }
     }
     assert(leftExprVal == CE_NONCONSTEXPR || rightExprVal == CE_NONCONSTEXPR);
-    return CE_NOTCONSTEXPR;
+    return CE_NONCONSTEXPR;
 }
 
-CONST_EXPR_VAL Reachable::checkConstExprAndVal(NegationExpression* expr) {
+CONST_EXPR_VAL Reachable::checkConstExprAndEval(NegationExpression* expr) {
     Expression* negExpr = expr->getNegatedExpression();
-    CONST_EXPR_VAL negVal = checkConstExprAndVal(negExpr);
+    CONST_EXPR_VAL negVal = checkConstExprAndEval(negExpr);
     std::string negValString = expr->getNonBoolConstExpr();
 
     if(expr->isBooleanNegation()) {
@@ -514,10 +503,11 @@ CONST_EXPR_VAL Reachable::checkConstExprAndVal(NegationExpression* expr) {
             // precautionary check
             assert(negExpr->isExprTypeInt() || negExpr->isExprTypeChar());
             int n; char c;
-            convertConstantValue(negValString, n, c);
+            convertConstantValueToIntOrChar(negValString, n, c);
             std::stringstream ss;
             ss << -n;
             expr->setNonBoolConstExpr(ss.str());
+            return CE_PRIMITIVEORSTRING;
         }
     }
     // the only possible value left
@@ -525,18 +515,18 @@ CONST_EXPR_VAL Reachable::checkConstExprAndVal(NegationExpression* expr) {
     return negVal;
 }
 
-CONST_EXPR_VAL checkConstExprAndVal(PrimaryExpression* expr) {
+CONST_EXPR_VAL Reachable::checkConstExprAndEval(PrimaryExpression* expr) {
     Primary* prim = expr->getPrimaryExpression();
-    if(prim->isLiteralOrThis()) {
+    if(prim->isNumber() || prim->isCharLiteral() || prim->isStringLiteral()) {
         LiteralOrThis* lit = (LiteralOrThis*) prim;
-        if(lit->isNumber() || lit->isChar() || lit->isStringLiteral()) {
-            expr->setNonBoolConstExpr(lit->getLiteralAsString());
-            return CE_PRIMITIVEORSTRING;
-        } else if(lit->isTrueBoolean()) {
-            return CE_TRUE;
-        } else if(lit->isFalseBoolean()) {
-            return CE_FALSE;
-        }
+        expr->setNonBoolConstExpr(lit->getLiteralAsString());
+        return CE_PRIMITIVEORSTRING;
+    } else if(prim->isTrueBoolean()) {
+        return CE_TRUE;
+    } else if(prim->isFalseBoolean()) {
+        return CE_FALSE;
+    } else if(prim->isBracketedExpression()) {
+        return checkConstExprAndEval(((BracketedExpression*) prim)->getExpressionInside());
     }
     // anything else
     return CE_NONCONSTEXPR;
@@ -560,12 +550,12 @@ void Reachable::convertConstantValueToIntOrChar(const std::string& constExprStri
     }
 }
 
-int Reachable::evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, RuleNumers ruleOp) {
+int Reachable::evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, int ruleOp) {
     // assumption is that both leftOp and rightOp is a number
     int leftNum, rightNum;
     char leftChar, rightChar;
     convertConstantValueToIntOrChar(leftOp, leftNum, leftChar);
-    convertConstantValueToIntOrChar(rightOp, rightNum, rigthChar);
+    convertConstantValueToIntOrChar(rightOp, rightNum, rightChar);
     
     if(ruleOp == ADD_TO_PLUSMULTI) {
         return leftNum + rightNum;
@@ -584,7 +574,7 @@ int Reachable::evaluateBinaryNumericOperation(const std::string& leftOp, const s
 // ------------------------------------------------------------
 // Called by main
 
-Reachable::checkReachability() {
+void Reachable::checkReachability() {
     std::map<std::string, std::vector<CompilationTable*> >::iterator it;
     for(it = compilations.begin(); it != compilations.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;

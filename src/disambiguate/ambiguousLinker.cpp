@@ -67,7 +67,7 @@
 
 AmbiguousLinker::AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations) :
    manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL), 
-   asgmtFieldContext(false), withinMethod(false) {}
+   asgmtFieldContext(false), asgmtLocalContext(false), withinMethod(false) {}
 
 AmbiguousLinker::~AmbiguousLinker() {}
 
@@ -843,9 +843,14 @@ void AmbiguousLinker::traverseAndLink(BlockStmts* stmts) {
 }
 
 void AmbiguousLinker::traverseAndLink(LocalDecl* local) {
-    traverseAndLink(local->getLocalInitExpr());
     // update symbol table (needed for A4)
     curSymTable = local->getLocalTable();
+    // set context
+    asgmtLocalContext = true;
+    assigningLocalVar = local->getLocalId()->getIdAsString();
+    traverseAndLink(local->getLocalInitExpr());
+    // reset
+    asgmtLocalContext = false;
 }
 
 void AmbiguousLinker::traverseAndLink(ExpressionStar* exprStar) {
@@ -1163,7 +1168,20 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
         // the check is occurring inside a method
         SymbolTable* localOrParam = findLocalVarOrParameterPreviouslyDeclared(currName);
         if(localOrParam != NULL) {
-        // local variable or parameter was found
+            // local variable or parameter was found
+            if(asgmtLocalContext) {
+                // within the context of the initialization of a local variable
+                std::stringstream ss;
+                if(localOrParam->isLocalTable()) {
+                    if(assigningLocalVar == ((LocalTable*) localOrParam)->getLocalDecl()->getLocalId()->getIdAsString()) {
+                        // usage of local variable in its own initializer, assumption is that
+                        // local variables are unique within its scope, checked at symbol table stage
+                        ss << "Use of local variable '" << assigningLocalVar << "' in its own initializer.";
+                        Error(E_DISAMBIGUATION, tok, ss.str());
+                    }
+                }
+            }
+
             if(localOrParam->isLocalTable()) {
                 name->setReferredLocalVar((LocalTable*) localOrParam);
             } else { 

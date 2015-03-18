@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "constExprVal.h"
-#include "ruleNumbers.h"
 
 class CompilationTable;
 class Type;
@@ -71,15 +70,15 @@ class Reachable {
 
         // -------------------------------------------------------------------------
         // checks whether an expression is a constant expression and evaluate its value
-        CONST_EXPR_VAL checkConstExprAndVal(Expression* expr);
-        CONST_EXPR_VAL checkConstExprAndVal(BinaryExpression* expr);
-        CONST_EXPR_VAL checkConstExprAndVal(NegationExpression* expr);
-        CONST_EXPR_VAL checkConstExprAndVal(PrimaryExpression* expr);
+        CONST_EXPR_VAL checkConstExprAndEval(Expression* expr);
+        CONST_EXPR_VAL checkConstExprAndEval(BinaryExpression* expr);
+        CONST_EXPR_VAL checkConstExprAndEval(NegationExpression* expr);
+        CONST_EXPR_VAL checkConstExprAndEval(PrimaryExpression* expr);
 
         // -------------------------------------------------------------------------
         // helper functions
         void convertConstantValueToIntOrChar(const std::string& constExprVal, int& n, char& c);
-        int evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, RuleNumbers ruleOp);
+        int evaluateBinaryNumericOperation(const std::string& leftOp, const std::string& rightOp, int ruleOp);
     public:
         Reachable(std::map<std::string, std::vector<CompilationTable*> >& compilations);
         
