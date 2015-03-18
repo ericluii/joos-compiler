@@ -237,7 +237,6 @@ bool TypeChecking::check(NestedBlock* nestedBlock) {
 bool TypeChecking::check(MethodInvoke* methodInvoke) {
     if (methodInvoke->isNormalMethodCall()) {
         Name* name = static_cast<MethodNormalInvoke*>(methodInvoke)->getNameOfInvokedMethod();
-        
         if (!name->isSimpleName()) {
             Name* nextName = name->getNextName();
             CompilationTable* ct = NULL;
@@ -357,13 +356,18 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                        << "' cannot be invoked non-statically.";
                     Error(E_TYPECHECKING, name->getNameId()->getToken(), ss.str());
                     return false;
+                } else if (restrict_this) {
+                    std::stringstream ss;
+                    ss << "Non-Static method '" << cmt->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       << "' cannot be invoked in a static context.";
+                    Error(E_TYPECHECKING, name->getNameId()->getToken(), ss.str());
+                    return false;
                 }
             }
         }
         return true;
     } else {
-        //std::cout << "accessed: " << static_cast<InvokeAccessedMethod*>(methodInvoke)->methodInvocationMatchToSignature() << std::endl;
-        return true;
+        return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod());
     }
 }
 
@@ -469,12 +473,100 @@ bool TypeChecking::check(Expression* expression) {
 }
 
 bool TypeChecking::check(NameExpression* nameExpression) {
-    if (static_context_only) {
+    if (static_context_only || restrict_this) {
+        bool is_arg_or_local = false;
+
+        BlockStmts* bs;
+        switch (cur_st_type) {
+            case CLASSMETHOD_TABLE:{
+                MethodBody* cm = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodBody();
+                bs = cm->getBlockStmtsStar()->getStatements();
+                break;
+            }
+            case CONSTRUCTOR_TABLE:{
+                Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
+                bs = c->getConstructorBody()->getStatements();
+                break;
+            }
+            case FIELDDECL_TABLE:{
+                bs = NULL;
+                break;
+            }
+            default:
+                assert(false);
+        }
+        
+        while (bs != NULL && !is_arg_or_local) {
+            if (bs->isLocalVarDecl()) {
+                LocalDecl* ld = static_cast<LocalDecl*>(bs);
+                if (ld->getLocalId()->getIdAsString() == nameExpression->getNameExpression()->getFullName()) {
+                    is_arg_or_local = true;
+                }
+            }
+            bs = bs->getNextBlockStmt();
+        }
+
+        if (!is_arg_or_local) {
+            ParamList* pl;
+            switch (cur_st_type) {
+                case CLASSMETHOD_TABLE:
+                    pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
+                                                                       ->getClassMethodParams()->getListOfParameters();
+                    break;
+                case CONSTRUCTOR_TABLE:{
+                    Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
+                    pl = c->getConstructorParameters()->getListOfParameters();
+                    break;
+                }
+                case FIELDDECL_TABLE:{
+                    pl = NULL;
+                    break;
+                }
+                default:
+                    assert(false);
+            }
+
+            while (pl != NULL && !is_arg_or_local) {
+                if (pl->getParameterId()->getIdAsString() == nameExpression->getNameExpression()->getFullName()) {
+                    is_arg_or_local = true;
+                }
+                pl = pl->getNextParameter();
+            }
+        }
+
         // If I can't find it as a field decl in the class, it MUST be a static reference
-        if (processing->getAField(nameExpression->getNameExpression()->getFullName())) {
+        // and make sure it isn't an arguement
+        if (!is_arg_or_local && nameExpression->getNameExpression()->isSimpleName() &&
+            processing->getAField(nameExpression->getNameExpression()->getFullName())) {
             FieldDecl* fd = processing->getAField(nameExpression->getNameExpression()->getFullName())->getField();
 
             if (!fd->isStatic()) {
+                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] non-static variable cannot be referenced in a static context.");
+                return false;
+            }
+        } else if (!nameExpression->getNameExpression()->isSimpleName()) {
+            Name* nextName = nameExpression->getNameExpression()->getNextName();
+
+            CompilationTable* ct = NULL;
+            if (processing->getCanonicalName() == nextName->getFullName()) {
+                ct = processing;
+            } else if (processing->checkTypePresenceFromSingleImport(nextName->getFullName())) {
+                ct = processing->checkTypePresenceFromSingleImport(nextName->getFullName());
+            } else if (processing->checkTypePresenceInPackage(nextName->getFullName())) {
+                ct = processing->checkTypePresenceInPackage(nextName->getFullName());
+            } else if (processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken())) {
+                ct = processing->checkTypePresenceFromImportOnDemand(nextName->getFullName(), nextName->getNameId()->getToken());
+            } else {
+                std::vector<CompilationTable*>& types = packages[getQualifierFromString(nextName->getFullName())];
+                for (unsigned int i = 0; i < types.size(); i++) {
+                    if (types[i]->getClassOrInterfaceName() == nextName->getFullName().substr(nextName->getFullName().find_last_of('.') + 1)) {
+                        ct = types[i];
+                        break;
+                    }
+                }
+            }
+
+            if (ct && !ct->getAField(nameExpression->getNameExpression()->getNameId()->getIdAsString())->getField()->isStatic()) {
                 Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] non-static variable cannot be referenced in a static context.");
                 return false;
             }
@@ -811,22 +903,6 @@ bool TypeChecking::assignmentCheck(std::string lefths, Expression* expr) {
 
     return false;
 }
-
-/*bool TypeChecking::check(MethodInvoke* methodInvoke) {
-    ClassMethod *method = methodInvoke->getReferredClassMethod()->getClassMethod();
-    if(methodInvoke->isNormalMethodCall() && !method->isStatic()){
-        return true;
-    }
-    if(methodInvoke->isAccessedMethodCall() && method->isStatic()){
-        return true;
-    }
-    
-    std::stringstream ss;
-    ss << "Access of '" << method->getMethodHeader()->methodSignatureAsString() << "is illegal";
-
-    Error(E_TYPECHECKING, method->getMethodHeader()->getClassMethodId()->getToken(), ss.str());
-    return false;
-}*/
 
 bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
     std::queue<CompilationTable*> traverse;
