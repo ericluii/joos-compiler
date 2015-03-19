@@ -373,9 +373,6 @@ void AmbiguousLinker::traverseAndLink(Primary* prim) {
         traverseAndLink((LiteralOrThis*) prim);
     } else if(prim->isBracketedExpression()) {
         traverseAndLink((BracketedExpression*) prim);
-        // linking has been resolved, but BracketedExpression doesn't really link to anywhere
-        // indicate this
-        prim->ResolveLinkButNoEntity();
     } else if(prim->isNewClassCreation()) {
         traverseAndLink((NewClassCreation*) prim);
     } else if(prim->isNewPrimitiveArray() || prim->isNewReferenceArray()) {
@@ -410,7 +407,7 @@ void AmbiguousLinker::traverseAndLink(BracketedExpression* brkExpr) {
         // expression type can be evaluated
         // indicate that this bracketed expression has been
         // successfully resolved, even though it links to no entity
-        brkExpr->resolvedLinkButNoEntity();
+        brkExpr->ResolveLinkButNoEntity();
     }
 }
 
@@ -1103,9 +1100,8 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
             CompilationTable* typeTable = pkg->getACompilationWithName(currName);
             if(typeTable == NULL) {
                 // if it's still NULL, then error
-                std::stringstream ss;
                 ss << "No subpackage or type '" << currName << "' can be identified via package '"
-                << nextName->getFullName() << "'.";
+                   << nextName->getFullName() << "'.";
                 Error(E_DISAMBIGUATION, tok, ss.str());
             } else {
                 // referring to some type
@@ -1117,10 +1113,15 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
         // check that typeTable refers to a class
         if(checkTypeIsClassDuringStaticAccess(someType, currName, tok)) {
             // it passed therefore it is a class, can safely do this
-            FieldTable* fieldFound = someType->getAField(currName);
+            FieldTable* fieldFound = getFieldInAClass(someType, currName, tok);
             if(fieldFound != NULL) {
-            // field was found
+                // field was found
                 name->setReferredField(fieldFound);
+            } else {
+                std::stringstream ss;
+                ss << "Unable to locate field '" << currName << "' in class '"
+                   << someType->getCanonicalName() << "'.";
+                Error(E_DISAMBIGUATION, tok, ss.str());
             }
         }
         // the rest are what is categorized in the JLS as ExpressionName
@@ -1370,7 +1371,18 @@ void AmbiguousLinker::setExpressionTypeBasedOnName(Expression* expr, Name* name)
     Token* tok = name->getNameId()->getToken();
     Type* type = NULL;
     if(name->isReferringToType()) {
-        expr->setExprType(ET_OBJECT, name->getReferredType());
+        // since this function is called by either:
+        // - traverseAndLink(Expression*) where Expression is a NameExpression
+        // - traverseAndLink(AssignName*)
+        // - traverseAndLink(AssignArray*) where the array being assigned is in the form of a Name
+        // then this CAN'T be a type, no way hosay
+        ss << "Invalid use of name '" << name->getFullName() << "' that refers to a ";
+        if(name->getReferredType()->isClassSymbolTable()) {
+            ss << "class.";
+        } else {
+            ss << "interface.";
+        }
+        Error(E_DISAMBIGUATION, tok, ss.str());
         return;
     } else if(name->isReferringToField()) {
         FieldTable* field = name->getReferredField();
@@ -1670,14 +1682,9 @@ void AmbiguousLinker::linkNameToFieldFromType(Name* name, ReferenceType* type, c
     // in checkProperMemberAccessingFromVariable and in setNameReferringToArrayLength
     // and we've passed those stages by the time this is called
     CompilationTable* table = type->getReferenceTypeTable();
-    FieldTable* field = table->getAField(fieldName);
+    FieldTable* field = getFieldInAClass(table, fieldName, name->getNameId()->getToken());
     if(field != NULL) {
         name->setReferredField(field);
-    } else {
-        std::stringstream ss;
-        ss << "Unable to locate field '" << fieldName
-           << "' in class '" << table->getCanonicalName() << "'.";
-        Error(E_DISAMBIGUATION, name->getNameId()->getToken(), ss.str());
     }
 }
 
