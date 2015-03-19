@@ -4,15 +4,20 @@
 #include "symbolTable.h"
 
 class InterfaceMethod;
+class CompilationTable;
 
 class InterfaceMethodTable : public SymbolTable {
     private:
         InterfaceMethod* method;
+        // CompilationTable of the interface that
+        // declares this method
+        CompilationTable* declaringInterface;
     public:
-        InterfaceMethodTable(InterfaceMethod* method); 
+        InterfaceMethodTable(InterfaceMethod* method, CompilationTable* declaringInterface); 
         ~InterfaceMethodTable();
 
         InterfaceMethod* getInterfaceMethod();
+        CompilationTable* getDeclaringInterface();
         void printSelf();
 };
 

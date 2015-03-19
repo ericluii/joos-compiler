@@ -1,10 +1,14 @@
 #include <iostream>
 #include "fieldTable.h"
 
-FieldTable::FieldTable(FieldDecl* field) : SymbolTable(STT_FIELD), field(field) {}
+FieldTable::FieldTable(FieldDecl* field, CompilationTable* declaringClass) : SymbolTable(STT_FIELD), field(field), 
+            declaringClass(declaringClass) {}
 FieldTable::~FieldTable() {}
 
 FieldDecl* FieldTable::getField() { return field; }
+
+CompilationTable* FieldTable::getDeclaringClass() { return declaringClass; }
+
 void FieldTable::printSelf() {
     std::cout << "Previous: " << prevTable << "| FieldTable: " << this << "| AST node: " << field 
               << "| Next: " << nextTable << std::endl;
