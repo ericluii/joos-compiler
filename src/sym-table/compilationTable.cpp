@@ -122,22 +122,54 @@ FieldTable* CompilationTable::getAField(const std::string& field) {
     if(fields.count(field) == 1) {
         return fields[field];
     }
+
+    if(inheritedFields.count(field) == 1) {
+        return inheritedFields[field];
+    }
     // field does not exist
     return NULL;
- }
+}
+
+bool CompilationTable::fieldIsInherited(const std::string& field) {
+    return inheritedFields.count(field) == 1;
+}
+
+std::map<std::string, FieldTable*>& CompilationTable::getAllFieldsInClass() {
+    return fields;
+}
+
+std::map<std::string, FieldTable*>& CompilationTable::getAllFieldsInherited() {
+    return inheritedFields;
+}
 
 ClassMethodTable* CompilationTable::getAClassMethod(const std::string& methodSignature) {
     assert(symTable->isClassTable());
     if(classMethods.count(methodSignature) == 1) {
         return classMethods[methodSignature];
     }
+
+    if(inheritedClassMethods.count(methodSignature) == 1) {
+        return inheritedClassMethods[methodSignature];
+    }
     // method does not exist
     return NULL;
 }
 
+bool CompilationTable::classMethodIsInherited(const std::string& methodSignature) {
+    return inheritedClassMethods.count(methodSignature) == 1;
+}
+
+std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsInClass() {
+    return classMethods;
+}
+
+std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsInherited() {
+    return inheritedClassMethods;
+}
+
 ConstructorTable* CompilationTable::getAConstructor(const std::string& constructorSignature) {
     assert(symTable->isClassTable());
-    if(constructors.count(constructorSignature)) {
+    if(constructors.count(constructorSignature) == 1) {
         return constructors[constructorSignature];
     }
     // constructor does not exist
@@ -185,14 +217,14 @@ void CompilationTable::registerClassMethodsAndConstructors() {
 void CompilationTable::registerInheritedField(const std::string& field, FieldTable* table) {
     if(fields.count(field) == 0) {
         // is not overriden
-        fields[field] = table;
+        inheritedFields[field] = table;
     }
 }
 
 void CompilationTable::registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table) {
     if(classMethods.count(methodSignature) == 0) {
         // is not overriden
-        classMethods[methodSignature] = table;
+        inheritedClassMethods[methodSignature] = table;
     }
 }
 
@@ -221,7 +253,16 @@ void CompilationTable::inheritClassFieldsAndMethods() {
             registerInheritedField(fieldIt->second->getField()->getFieldDeclared()->getIdAsString(), fieldIt->second);
         }
 
+        for(fieldIt = parent->inheritedFields.begin(); fieldIt != parent->inheritedFields.end(); fieldIt++) {
+            registerInheritedField(fieldIt->second->getField()->getFieldDeclared()->getIdAsString(), fieldIt->second);
+        }
+
         for(methodIt = parent->classMethods.begin(); methodIt != parent->classMethods.end(); methodIt++) {
+            registerInheritedClassMethod(methodIt->second->getClassMethod()->getMethodHeader()->methodSignatureAsString(),
+                                         methodIt->second);
+        }
+
+        for(methodIt = parent->inheritedClassMethods.begin(); methodIt != parent->inheritedClassMethods.end(); methodIt++) {
             registerInheritedClassMethod(methodIt->second->getClassMethod()->getMethodHeader()->methodSignatureAsString(),
                                          methodIt->second);
         }

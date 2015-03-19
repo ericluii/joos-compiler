@@ -2,6 +2,7 @@
 #define __IFSTMT_H__
 
 #include "blockStmts.h"
+#include "expression.h"
 
 class IfStmt : public BlockStmts {
     // Rule: IF_STMT_UNROLL, IF_THEN_STMT_UNROLL and NO_SHORT_IF_THEN_UNROLL

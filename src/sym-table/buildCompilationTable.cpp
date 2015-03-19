@@ -115,7 +115,7 @@ void BuildCompilationTable::build(ClassDecl& node) {
 }
 
 void BuildCompilationTable::build(FieldDecl& node) {
-    FieldTable* table = new FieldTable(&node);
+    FieldTable* table = new FieldTable(&node, curCompTable);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
     
@@ -125,7 +125,7 @@ void BuildCompilationTable::build(FieldDecl& node) {
 }
 
 void BuildCompilationTable::build(ClassMethod& node) {
-    ClassMethodTable* table = new ClassMethodTable(&node);
+    ClassMethodTable* table = new ClassMethodTable(&node, curCompTable);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
     curSymTable = table;
@@ -220,7 +220,7 @@ void BuildCompilationTable::build(ForStmt& node) {
 }
 
 void BuildCompilationTable::build(Constructor& node) {
-    ConstructorTable* table = new ConstructorTable(&node);
+    ConstructorTable* table = new ConstructorTable(&node, curCompTable);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
     curSymTable = table;
@@ -256,7 +256,7 @@ void BuildCompilationTable::build(InterfaceMethod& node) {
    
     // note that the parameter list for interface methods
     // do not have a symbol table because there's really no point in having them
-    InterfaceMethodTable* table = new InterfaceMethodTable(&node);
+    InterfaceMethodTable* table = new InterfaceMethodTable(&node, curCompTable);
     curSymTable->setNextTable(table);
     table->setPrevTable(curSymTable);
     

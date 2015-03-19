@@ -4,7 +4,7 @@
 enum CONST_EXPR_VAL {
     // indicates that a constant expression
     // evaluates to true
-    CE_TRUE,
+    CE_TRUE = 0,
     // indicates that a constant expression
     // evaluates to false
     CE_FALSE,

@@ -13,6 +13,10 @@ class Expression : public Ast {
         // in case it refers to some class or
         // interface or even an array of class/interface
         CompilationTable* typeTable;
+
+        // the result of a constant expression that
+        // does not resolve to a boolean
+        std::string nonBoolConstExprString;
     public:
         Expression() : exprType(ET_NOTEVALUATED), typeTable(NULL) {}
         virtual ~Expression() {}
@@ -47,6 +51,9 @@ class Expression : public Ast {
             }
             return ret;
         }
+
+        void setNonBoolConstExpr(const std::string& set) { nonBoolConstExprString = set; }
+        std::string getNonBoolConstExpr() { return nonBoolConstExprString; }
 };
 
 #endif

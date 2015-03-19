@@ -41,6 +41,9 @@ class CompilationTable {
         std::map<std::string, ClassMethodTable*> classMethods;
         std::map<std::string, ConstructorTable*> constructors;
         std::map<std::string, FieldTable*> fields;
+
+        std::map<std::string, ClassMethodTable*> inheritedClassMethods;
+        std::map<std::string, FieldTable*> inheritedFields;
         // mappings for interface methods
         std::map<std::string, InterfaceMethodTable*> interfaceMethods;
 
@@ -84,7 +87,13 @@ class CompilationTable {
         // --------------------------------------------------------------------
         // Interface if symbol table is a class table
         FieldTable* getAField(const std::string& field);
+        bool fieldIsInherited(const std::string& field);
+        std::map<std::string, FieldTable*>& getAllFieldsInClass();
+        std::map<std::string, FieldTable*>& getAllFieldsInherited();
         ClassMethodTable* getAClassMethod(const std::string& methodSignature);
+        std::map<std::string, ClassMethodTable*>& getAllClassMethodsInClass();
+        std::map<std::string, ClassMethodTable*>& getAllClassMethodsInherited();
+        bool classMethodIsInherited(const std::string& methodSignature);
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
         void registerAField(const std::string& field, FieldTable* table);
         void registerClassMethodsAndConstructors();

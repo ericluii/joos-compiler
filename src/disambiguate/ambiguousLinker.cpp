@@ -67,7 +67,7 @@
 
 AmbiguousLinker::AmbiguousLinker(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& compilations) :
    manager(manager), compilations(compilations), curSymTable(NULL), curCompilation(NULL), 
-   asgmtFieldContext(false), withinMethod(false) {}
+   asgmtFieldContext(false), asgmtLocalContext(false), withinMethod(false) {}
 
 AmbiguousLinker::~AmbiguousLinker() {}
 
@@ -373,9 +373,6 @@ void AmbiguousLinker::traverseAndLink(Primary* prim) {
         traverseAndLink((LiteralOrThis*) prim);
     } else if(prim->isBracketedExpression()) {
         traverseAndLink((BracketedExpression*) prim);
-        // linking has been resolved, but BracketedExpression doesn't really link to anywhere
-        // indicate this
-        prim->ResolveLinkButNoEntity();
     } else if(prim->isNewClassCreation()) {
         traverseAndLink((NewClassCreation*) prim);
     } else if(prim->isNewPrimitiveArray() || prim->isNewReferenceArray()) {
@@ -410,7 +407,7 @@ void AmbiguousLinker::traverseAndLink(BracketedExpression* brkExpr) {
         // expression type can be evaluated
         // indicate that this bracketed expression has been
         // successfully resolved, even though it links to no entity
-        brkExpr->resolvedLinkButNoEntity();
+        brkExpr->ResolveLinkButNoEntity();
     }
 }
 
@@ -843,9 +840,14 @@ void AmbiguousLinker::traverseAndLink(BlockStmts* stmts) {
 }
 
 void AmbiguousLinker::traverseAndLink(LocalDecl* local) {
-    // update symbol table
+    // update symbol table (needed for A4)
     curSymTable = local->getLocalTable();
+    // set context
+    asgmtLocalContext = true;
+    assigningLocalVar = local->getLocalId()->getIdAsString();
     traverseAndLink(local->getLocalInitExpr());
+    // reset
+    asgmtLocalContext = false;
 }
 
 void AmbiguousLinker::traverseAndLink(ExpressionStar* exprStar) {
@@ -1098,9 +1100,8 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
             CompilationTable* typeTable = pkg->getACompilationWithName(currName);
             if(typeTable == NULL) {
                 // if it's still NULL, then error
-                std::stringstream ss;
                 ss << "No subpackage or type '" << currName << "' can be identified via package '"
-                << nextName->getFullName() << "'.";
+                   << nextName->getFullName() << "'.";
                 Error(E_DISAMBIGUATION, tok, ss.str());
             } else {
                 // referring to some type
@@ -1112,10 +1113,15 @@ void AmbiguousLinker::linkQualifiedName(Name* name) {
         // check that typeTable refers to a class
         if(checkTypeIsClassDuringStaticAccess(someType, currName, tok)) {
             // it passed therefore it is a class, can safely do this
-            FieldTable* fieldFound = someType->getAField(currName);
+            FieldTable* fieldFound = getFieldInAClass(someType, currName, tok);
             if(fieldFound != NULL) {
-            // field was found
+                // field was found
                 name->setReferredField(fieldFound);
+            } else {
+                std::stringstream ss;
+                ss << "Unable to locate field '" << currName << "' in class '"
+                   << someType->getCanonicalName() << "'.";
+                Error(E_DISAMBIGUATION, tok, ss.str());
             }
         }
         // the rest are what is categorized in the JLS as ExpressionName
@@ -1163,7 +1169,20 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
         // the check is occurring inside a method
         SymbolTable* localOrParam = findLocalVarOrParameterPreviouslyDeclared(currName);
         if(localOrParam != NULL) {
-        // local variable or parameter was found
+            // local variable or parameter was found
+            if(asgmtLocalContext) {
+                // within the context of the initialization of a local variable
+                std::stringstream ss;
+                if(localOrParam->isLocalTable()) {
+                    if(assigningLocalVar == ((LocalTable*) localOrParam)->getLocalDecl()->getLocalId()->getIdAsString()) {
+                        // usage of local variable in its own initializer, assumption is that
+                        // local variables are unique within its scope, checked at symbol table stage
+                        ss << "Use of local variable '" << assigningLocalVar << "' in its own initializer.";
+                        Error(E_DISAMBIGUATION, tok, ss.str());
+                    }
+                }
+            }
+
             if(localOrParam->isLocalTable()) {
                 name->setReferredLocalVar((LocalTable*) localOrParam);
             } else { 
@@ -1250,7 +1269,7 @@ void AmbiguousLinker::linkSimpleName(Name* name) {
     // if it's none of the above, then error
     std::stringstream ss;
     ss << "Simple name '" << currName
-       << "' does not refer to either a local variable, parameter, field, type nor package in the environment.";
+       << "' does not refer to either a local variable, parameter, field, type nor package in the environment previously declared.";
     Error(E_DISAMBIGUATION, tok, ss.str());
 }
 
@@ -1352,7 +1371,18 @@ void AmbiguousLinker::setExpressionTypeBasedOnName(Expression* expr, Name* name)
     Token* tok = name->getNameId()->getToken();
     Type* type = NULL;
     if(name->isReferringToType()) {
-        expr->setExprType(ET_OBJECT, name->getReferredType());
+        // since this function is called by either:
+        // - traverseAndLink(Expression*) where Expression is a NameExpression
+        // - traverseAndLink(AssignName*)
+        // - traverseAndLink(AssignArray*) where the array being assigned is in the form of a Name
+        // then this CAN'T be a type, no way hosay
+        ss << "Invalid use of name '" << name->getFullName() << "' that refers to a ";
+        if(name->getReferredType()->isClassSymbolTable()) {
+            ss << "class.";
+        } else {
+            ss << "interface.";
+        }
+        Error(E_DISAMBIGUATION, tok, ss.str());
         return;
     } else if(name->isReferringToField()) {
         FieldTable* field = name->getReferredField();
@@ -1652,14 +1682,9 @@ void AmbiguousLinker::linkNameToFieldFromType(Name* name, ReferenceType* type, c
     // in checkProperMemberAccessingFromVariable and in setNameReferringToArrayLength
     // and we've passed those stages by the time this is called
     CompilationTable* table = type->getReferenceTypeTable();
-    FieldTable* field = table->getAField(fieldName);
+    FieldTable* field = getFieldInAClass(table, fieldName, name->getNameId()->getToken());
     if(field != NULL) {
         name->setReferredField(field);
-    } else {
-        std::stringstream ss;
-        ss << "Unable to locate field '" << fieldName
-           << "' in class '" << table->getCanonicalName() << "'.";
-        Error(E_DISAMBIGUATION, name->getNameId()->getToken(), ss.str());
     }
 }
 

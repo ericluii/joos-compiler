@@ -4,17 +4,22 @@
 #include "symbolTable.h"
 
 class Constructor;
+class CompilationTable;
 
 class ConstructorTable : public SymbolTable {
     private:
         Constructor* constructor;
         SymbolTable* bodyTable;
+        // CompilationTable of the class that declares
+        // this constructor
+        CompilationTable* declaringClass;
     public:
-        ConstructorTable(Constructor* constructor); 
+        ConstructorTable(Constructor* constructor, CompilationTable* declaringClass); 
         ~ConstructorTable(); 
 
         Constructor* getConstructor(); 
-        SymbolTable* getSymbolTableOfConstructor(); 
+        SymbolTable* getSymbolTableOfConstructor();
+        CompilationTable* getDeclaringClass();
         void setSymTableOfConstructor(SymbolTable* set); 
 
         void printSelf(); 

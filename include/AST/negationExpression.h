@@ -1,6 +1,7 @@
 #ifndef __NEGATIONEXPRESSION_H__
 #define __NEGATIONEXPRESSION_H__
 
+#include <string>
 #include "expression.h"
 
 class NegationExpression : public Expression {

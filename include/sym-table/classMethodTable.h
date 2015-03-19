@@ -4,17 +4,22 @@
 #include "symbolTable.h"
 
 class ClassMethod;
+class CompilationTable;
 
 class ClassMethodTable : public SymbolTable {
     private:
         ClassMethod* method;
         SymbolTable* bodyTable;
+        // compilation table of the class that declares
+        // this method
+        CompilationTable* declaringClass;
     public:
-        ClassMethodTable(ClassMethod* method); 
+        ClassMethodTable(ClassMethod* method, CompilationTable* declaringClass); 
         ~ClassMethodTable(); 
 
         ClassMethod* getClassMethod();
         SymbolTable* getSymbolTableOfMethod();
+        CompilationTable* getDeclaringClass();
         void setSymTableOfMethod(SymbolTable* set);
 
         void printSelf();
