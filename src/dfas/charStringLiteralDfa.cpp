@@ -33,7 +33,12 @@ int genericCharCheck(char c, int current_state) {
             return DS_ESCAPEDOUBLE;
         }
     }
-    
+   
+    if(c == '\n' || c == '\r') {
+        // a line terminator is seen -> error out
+        return DS_ERROR;
+    }
+
     if(current_state == DS_SINGLEQUOTE) {
         if(c == '\'') {
             return DS_ERROR;

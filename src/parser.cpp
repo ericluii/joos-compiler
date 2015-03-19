@@ -40,11 +40,11 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     std::map<std::string, std::pair<std::string, int> >::iterator it;
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
         std::string token = it->first;
-        if(counter != entrySize && counter != 1) {
+        if(counter <= entrySize && counter != 1) {
             if(isTerminal(token[0]) || token == "ID" || token == "CHAR" ||
                token == "STRING" || token == "NUMBER") { 
                 ss << ", ";
-                if(counter == entrySize - 1) {
+                if(counter == entrySize) {
                     ss << "and ";
                 }
             }
