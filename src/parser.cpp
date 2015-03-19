@@ -37,10 +37,11 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
     int counter = 1;
     int entrySize = parserTable[state].size();
     ss << "\n\tExpected tokens include: ";
+    bool terminal = true;
     std::map<std::string, std::pair<std::string, int> >::iterator it;
     for(it = parserTable[state].begin(); it != parserTable[state].end(); it++) {
         std::string token = it->first;
-        if(counter <= entrySize && counter != 1) {
+        if(terminal && counter != 1) {
             if(isTerminal(token[0]) || token == "ID" || token == "CHAR" ||
                token == "STRING" || token == "NUMBER") { 
                 ss << ", ";
@@ -64,10 +65,11 @@ void Parser::getExpectedTokens(int state, std::stringstream &ss) {
             if(isTerminal(token[0])) {
                 ss << '"' << token << '"';
             } else {
-                counter++;
+                terminal = false;
                 continue;
             }
         }
+        terminal = true;
     }
 }
 
