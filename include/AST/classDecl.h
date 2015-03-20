@@ -49,6 +49,21 @@ class ClassDecl : public TypeDecl
 
             return false;
         }
+
+        bool isProtected() {
+            Modifiers* m = getClassModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "protected") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
+
         bool noSuperClass() { return super->isEpsilon(); }
         bool noImplementedInterfaces() { return interfaces->isEpsilon(); }
         bool emptyBody() { return body->isEpsilon(); }

@@ -17,6 +17,7 @@
 #include "interfaceDecl.h"
 #include "interfaceTable.h"
 #include "returnStmt.h"
+#include "referenceType.h"
 #include "stmtExprAssign.h"
 #include "assignment.h"
 #include "assignField.h"
@@ -50,6 +51,8 @@
 #include "arrayAccessPrimary.h"
 #include "castExpression.h"
 #include "castPrimitive.h"
+#include "argumentsStar.h"
+#include "arguments.h"
 #include <stack>
 
 enum ST_TYPE {
@@ -129,6 +132,8 @@ class TypeChecking {
         bool check(PrimaryNewArray* primaryNewArray);
         bool check(CastExpression* castExpression);
         bool check(NegationExpression* negationExpression);
+        bool check(ArgumentsStar* argumentsStar);
+        bool check(Arguments* arguments);
 
         bool isLocalOrArg(Name* name);
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
