@@ -532,7 +532,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                                     std::stringstream ss;
                                     if(mh->isVoidReturnType())
                                     {
-                                        ss << "Method '" << signature << "with return type void' in class '" << processing->getClassOrInterfaceName()
+                                        ss << "Method '" << signature << "' with return type 'void' in class '" << processing->getClassOrInterfaceName()
                                             << "' cannot be overriden by a method with return type " << methods[signature] << ".";
                                     }
                                     else
@@ -573,7 +573,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
 
                             if(mh->isVoidReturnType())
                             {
-                                methods[signature] = "";
+                                methods[signature] = "void";
                             }
                             else
                             {
@@ -645,7 +645,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         }
                         if(im->isVoidReturnType())
                         {
-                            methods[signature] = "";
+                            methods[signature] = "void";
                         }
                         else
                         {
