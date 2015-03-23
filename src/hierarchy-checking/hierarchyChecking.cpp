@@ -527,7 +527,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                             std::string signature = mh->methodSignatureAsString();
                             if(methods.count(signature) == 1)
                             {
-                                if((mh->isVoidReturnType() && methods[signature] != "") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
+                                if((mh->isVoidReturnType() && methods[signature] != "void") || (!mh->isVoidReturnType() && methods[signature] != mh->getReturnType()->getTypeAsString()))
                                 {
                                     std::stringstream ss;
                                     if(mh->isVoidReturnType())
@@ -537,7 +537,7 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                                     }
                                     else
                                     {
-                                        ss << "Method '" << signature << "with return type " << mh->getReturnType()->getTypeAsString() << "' in class '" << processing->getClassOrInterfaceName()
+                                        ss << "Method '" << signature << " with return type " << mh->getReturnType()->getTypeAsString() << "' in class '" << processing->getClassOrInterfaceName()
                                             << "' cannot be overriden by a method with return type " << methods[signature] << ".";
                                     }
                                     Error(E_HIERARCHY, token, ss.str());
@@ -619,17 +619,17 @@ void HierarchyChecking::checkMethodModifiers(CompilationTable* compilation){
                         std::string signature = im->methodSignatureAsString();
                         if(methods.count(signature) == 1)
                         {
-                            if((im->isVoidReturnType() && methods[signature] != "") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
+                            if((im->isVoidReturnType() && methods[signature] != "void") || (!im->isVoidReturnType() && methods[signature] != im->getReturnType()->getTypeAsString()))
                             {
                                 std::stringstream ss;
                                 if(im->isVoidReturnType())
                                 {
-                                    ss << "Method '" << signature << "with return type  void ' in interface '" << processing->getClassOrInterfaceName()
+                                    ss << "Method '" << signature << "' with return type  void ' in interface '" << processing->getClassOrInterfaceName()
                                         << "' cannot be overriden by a method with return type " << methods[signature] << ".";
                                 }
                                 else
                                 {
-                                    ss << "Method '" << signature << "with return type " << im->getReturnType()->getTypeAsString() << "' in interface '" << processing->getClassOrInterfaceName()
+                                    ss << "Method '" << signature << "' with return type " << im->getReturnType()->getTypeAsString() << "' in interface '" << processing->getClassOrInterfaceName()
                                         << "' cannot be overriden by a method with return type " << methods[signature] << ".";
                                 }
                                 Error(E_HIERARCHY, token, ss.str());

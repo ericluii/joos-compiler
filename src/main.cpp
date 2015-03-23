@@ -18,6 +18,7 @@
 #include "ambiguousLinker.h"
 #include "typeChecker.h"
 #include "reachable.h"
+#include "startup.h"
 
 int main(int argc, char *argv[])
 {
@@ -124,6 +125,9 @@ int main(int argc, char *argv[])
         CHECK_ERROR();
         Reachable(packagesCompilations).checkReachability();
         CHECK_ERROR();
+
+
+        Startup(compilationTables).buildTables();
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;
