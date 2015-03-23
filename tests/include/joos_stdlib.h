@@ -6,5 +6,7 @@
 
 extern std::vector<std::string> stdlibFilesA2;
 extern std::vector<std::string> stdlibFilesA3;
+extern std::vector<std::string> stdlibFilesA4;
+extern std::vector<std::string> stdlibFilesA5;
 
 #endif
