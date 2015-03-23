@@ -5,7 +5,7 @@ BUILD_DIR=build/src
 OUT_FILE=joosc
 
 # Test Folders
-TEST_CASES = a1 a2 a3
+TEST_CASES = a1 a2 a3 a4
 
 # AST Code
 AST_C = $(wildcard src/AST/*.cpp)
