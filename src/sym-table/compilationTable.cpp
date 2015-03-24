@@ -21,7 +21,8 @@
 #include "error.h"
 
 CompilationTable::CompilationTable(PackageDecl* package, const std::string& filename, CompilationUnit* unit) : package(package),
-                symTable(NULL), filename(filename), unit(unit), extendFromObject(NULL), established(false), compilationsInPackage(NULL) {}
+                symTable(NULL), filename(filename), unit(unit), extendFromObject(NULL), established(false), numFields(0),
+                numClassMethods(0), numInterfaceMethods(0), compilationsInPackage(NULL) {}
 
 CompilationTable::~CompilationTable() {
     delete symTable;
@@ -180,6 +181,7 @@ void CompilationTable::registerAField(const std::string& field, FieldTable* tabl
     // called only during the symbol table creation stage
     if(fields.count(field) == 0) {
         fields[field] = table;
+        numFields++;
     } else {
         // field is already present
         std::stringstream ss;
@@ -203,6 +205,7 @@ void CompilationTable::registerClassMethodsAndConstructors() {
             if(table->isClassMethodTable()) {
                 ClassMethodTable* methodTable = (ClassMethodTable*) table;
                 classMethods[methodTable->getClassMethod()->getMethodHeader()->methodSignatureAsString()] = methodTable;
+                numClassMethods++;
             } else if(table->isConstructorTable()) {
                 ConstructorTable* ctorTable = (ConstructorTable*) table;
                 constructors[ctorTable->getConstructor()->constructorSignatureAsString()] = ctorTable;
@@ -231,7 +234,7 @@ void CompilationTable::registerInheritedClassMethod(const std::string& methodSig
 void CompilationTable::registerInheritedInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table) {
     if(interfaceMethods.count(methodSignature) == 0) {
         // is not overriden
-        interfaceMethods[methodSignature] = table;
+        inheritedInterfaceMethods[methodSignature] = table;
     }
 }
 
@@ -284,6 +287,12 @@ void CompilationTable::inheritInterfaceMethods(CompilationTable* object) {
                 registerInheritedInterfaceMethod(methodIt->second->getInterfaceMethod()->methodSignatureAsString(),
                                         methodIt->second);
             }
+
+            for(methodIt = parent->inheritedInterfaceMethods.begin(); methodIt != parent->inheritedInterfaceMethods.end(); methodIt++) {
+                registerInheritedInterfaceMethod(methodIt->second->getInterfaceMethod()->methodSignatureAsString(),
+                                        methodIt->second);
+            }
+
             extended = extended->getNextInterface();
         }
     }
@@ -299,6 +308,11 @@ InterfaceMethodTable* CompilationTable::getAnInterfaceMethod(const std::string& 
     if(interfaceMethods.count(methodSignature) == 1) {
         return interfaceMethods[methodSignature];
     }
+
+    if(inheritedInterfaceMethods.count(methodSignature) == 1) {
+        return inheritedInterfaceMethods[methodSignature];
+    }
+
     return NULL;
 }
 
@@ -321,6 +335,7 @@ void CompilationTable::registerInterfaceMethods() {
         while(methodTable != NULL) {
             interfaceMethods[methodTable->getInterfaceMethod()->methodSignatureAsString()] = methodTable;
             methodTable = (InterfaceMethodTable*) methodTable->getNextTable();
+            numInterfaceMethods++;
         }
     }
 }
@@ -508,4 +523,43 @@ CompilationTable* CompilationTable::checkTypePresenceFromImportOnDemand(const st
         }
     }
     return retTable;
+}
+
+// -------------------------------------------------------------------------------------------
+// Interface to get all fields/methods defined in this compilation unit's type (if any)
+
+std::map<std::string, ClassMethodTable*>& CompilationTable::getDefinedClassMethods() {
+    // precautionary check that a type was defined and the type is a class
+    assert(symTable != NULL && symTable->isClassTable());
+    return classMethods;
+}
+
+std::map<std::string, FieldTable*>& CompilationTable::getDefinedFields() {
+    // precautionary check that a type was defined and the type is a class
+    assert(symTable != NULL && symTable->isClassTable());
+    return fields;
+}
+
+std::map<std::string, InterfaceMethodTable*>& CompilationTable::getDefinedInterfaceMethods() {
+    // precautionary check that a type was defined and the type is a class
+    assert(symTable != NULL && symTable->isInterfaceTable());
+    return interfaceMethods;
+}
+
+// -------------------------------------------------------------------------------------------
+// Interface to get the number of fields/methods defined in this compilation unit's type (if any)
+
+unsigned int CompilationTable::getNumDefinedFields() {
+    assert(symTable != NULL && symTable->isClassTable());
+    return numFields;
+}
+
+unsigned int CompilationTable::getNumDefinedClassMethods() {
+    assert(symTable != NULL && symTable->isClassTable());
+    return numClassMethods;
+}
+
+unsigned int CompilationTable::getNumDefinedInterfaceMethods() {
+    assert(symTable != NULL && symTable->isInterfaceTable());
+    return numInterfaceMethods;
 }
