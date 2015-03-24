@@ -31,6 +31,11 @@ class CompilationTable {
         // for the purposes of interfaces
         CompilationTable* extendFromObject;
         bool established;
+        // number of corresponding members defined in the type
+        // defined in this compilation unit (not including inherited ones)
+        unsigned int numFields;
+        unsigned int numClassMethods;
+        unsigned int numInterfaceMethods;
         // other compilations in the same package
         std::vector<CompilationTable*>* compilationsInPackage;
         // compilations from single type import
@@ -43,9 +48,12 @@ class CompilationTable {
         std::map<std::string, FieldTable*> fields;
 
         std::map<std::string, ClassMethodTable*> inheritedClassMethods;
+        std::map<std::string, InterfaceMethodTable*> inheritedInterfaceMethodsForClass;
         std::map<std::string, FieldTable*> inheritedFields;
-        // mappings for interface methods
+        
+        // mappings for interface methods, includes inherited ones
         std::map<std::string, InterfaceMethodTable*> interfaceMethods;
+        std::map<std::string, InterfaceMethodTable*> inheritedInterfaceMethods;
 
         void reportLocalError(const std::string& conflict, const std::string& entity, Token* prevToken, Token* currToken);
         void iterateThroughTable(SymbolTable* table, std::vector<std::map<std::string, Token*>* >& blockScopes);
@@ -63,6 +71,7 @@ class CompilationTable {
         // Called from function inheritClassFieldsAndMethods
         void registerInheritedField(const std::string& field, FieldTable* table);
         void registerInheritedClassMethod(const std::string& methodSignature, ClassMethodTable* table);
+        void registerInheritedInterfaceMethodsForClass(const std::string& methodSignature, InterfaceMethodTable* table);
         // Small helper during registering inherited interface methods
         // Called from function inheritInterfaceMethods
         void registerInheritedInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table);
@@ -91,8 +100,10 @@ class CompilationTable {
         std::map<std::string, FieldTable*>& getAllFieldsInClass();
         std::map<std::string, FieldTable*>& getAllFieldsInherited();
         ClassMethodTable* getAClassMethod(const std::string& methodSignature);
+        InterfaceMethodTable* getInterfaceMethodFromClass(const std::string& methodSignature);
         std::map<std::string, ClassMethodTable*>& getAllClassMethodsInClass();
         std::map<std::string, ClassMethodTable*>& getAllClassMethodsInherited();
+        std::map<std::string, InterfaceMethodTable*>& getAllInheritedInterfaceMethodsForClass();
         bool classMethodIsInherited(const std::string& methodSignature);
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
         void registerAField(const std::string& field, FieldTable* table);
@@ -130,6 +141,18 @@ class CompilationTable {
         CompilationTable* checkTypePresenceFromSingleImport(const std::string& typeName);
         CompilationTable* checkTypePresenceInPackage(const std::string& typeName);
         CompilationTable* checkTypePresenceFromImportOnDemand(const std::string& typeName, Token* tokName);
+
+        // ---------------------------------------------------------------------
+        // Interface to get all fields/methods defined in this type
+        std::map<std::string, ClassMethodTable*>& getDefinedClassMethods();
+        std::map<std::string, FieldTable*>& getDefinedFields();
+        std::map<std::string, InterfaceMethodTable*>& getDefinedInterfaceMethods();
+
+        // ---------------------------------------------------------------------
+        // Interface to get the number of fields/methods defined in this type
+        unsigned int getNumDefinedFields();
+        unsigned int getNumDefinedClassMethods();
+        unsigned int getNumDefinedInterfaceMethods();
 };
 
 #endif
