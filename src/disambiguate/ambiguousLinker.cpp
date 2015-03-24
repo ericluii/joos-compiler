@@ -1571,6 +1571,12 @@ void AmbiguousLinker::setMethodForMethodInvokeFromCompilation(MethodInvoke* invo
         if(method != NULL) {
             invoke->setReferredClassMethod(method);
         } else {
+            /* InterfaceMethodTable* method = someType->getInterfaceMethodFromClass(methodSignature);
+            if(method != NULL) {
+                invoke->setReferredInterfaceMethod(method);
+                return;
+            }*/
+            // anything else
             ss << "Class method with signature '" << methodSignature << "' could not be found in class '"
                << someType->getCanonicalName() << "'.";
             Error(E_DISAMBIGUATION, tok, ss.str());

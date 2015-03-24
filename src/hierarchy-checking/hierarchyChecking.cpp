@@ -780,7 +780,15 @@ void HierarchyChecking::establishInheritance(CompilationTable* compilation) {
             // recursively establish the superclass's constructors and methods first
             establishInheritance(aClass->getSuper()->getSuperClassTable());
         }
-        // make sure this class inherits all the methods and fields of its superclass, if any
+
+        Interfaces* implInterface = aClass->getImplementInterfaces()->getListOfInterfaces();
+        while(implInterface != NULL) {
+            // establish inheritance for implemented interface first
+            establishInheritance(implInterface->getImplOrExtInterfaceTable());
+            implInterface = implInterface->getNextInterface();
+        }
+        // make sure this class inherits all the methods and fields of its superclass
+        // and superinterface, if any
         compilation->inheritClassFieldsAndMethods();
     } else if(!compilation->isClassSymbolTable() && !compilation->isInheritanceEstablished()) {
         // an interface that has not had it's inheritance established

@@ -156,6 +156,14 @@ ClassMethodTable* CompilationTable::getAClassMethod(const std::string& methodSig
     return NULL;
 }
 
+InterfaceMethodTable* CompilationTable::getInterfaceMethodFromClass(const std::string& methodSignature) {
+    assert(symTable->isClassTable());
+    if(inheritedInterfaceMethodsForClass.count(methodSignature) == 1) {
+        return inheritedInterfaceMethodsForClass[methodSignature];
+    }
+    return NULL;
+}
+
 bool CompilationTable::classMethodIsInherited(const std::string& methodSignature) {
     return inheritedClassMethods.count(methodSignature) == 1;
 }
@@ -166,6 +174,10 @@ std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsIn
 
 std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsInherited() {
     return inheritedClassMethods;
+}
+
+std::map<std::string, InterfaceMethodTable*>& CompilationTable::getAllInheritedInterfaceMethodsForClass() {
+    return inheritedInterfaceMethodsForClass;
 }
 
 ConstructorTable* CompilationTable::getAConstructor(const std::string& constructorSignature) {
@@ -231,6 +243,16 @@ void CompilationTable::registerInheritedClassMethod(const std::string& methodSig
     }
 }
 
+void CompilationTable::registerInheritedInterfaceMethodsForClass(const std::string& methodSignature, InterfaceMethodTable* table) {
+    if(classMethods.count(methodSignature) == 0 && inheritedClassMethods.count(methodSignature) == 0
+       && inheritedInterfaceMethodsForClass.count(methodSignature) == 0) {
+        // if the method cannot be found in the list of methods defined in the class, or inherited
+        // from superclasses or any superinterface
+        // assumption is that any conflicts related to return types have been checked for
+        inheritedInterfaceMethodsForClass[methodSignature] = table;
+    }
+}
+
 void CompilationTable::registerInheritedInterfaceMethod(const std::string& methodSignature, InterfaceMethodTable* table) {
     if(interfaceMethods.count(methodSignature) == 0) {
         // is not overriden
@@ -248,6 +270,7 @@ void CompilationTable::inheritClassFieldsAndMethods() {
     assert(symTable->isClassTable());
     std::map<std::string, FieldTable*>::iterator fieldIt;
     std::map<std::string, ClassMethodTable*>::iterator methodIt;
+    std::map<std::string, InterfaceMethodTable*>::iterator methodIt2;
     CompilationTable* parent = ((ClassTable*) symTable)->getClass()->getSuper()->getSuperClassTable();
     if(parent != NULL) {
         // if there was actually a superclass inherited
@@ -269,8 +292,32 @@ void CompilationTable::inheritClassFieldsAndMethods() {
             registerInheritedClassMethod(methodIt->second->getClassMethod()->getMethodHeader()->methodSignatureAsString(),
                                          methodIt->second);
         }
+
+        for(methodIt2 = parent->inheritedInterfaceMethodsForClass.begin();
+            methodIt2 != parent->inheritedInterfaceMethodsForClass.end(); methodIt2++) {
+            registerInheritedInterfaceMethodsForClass(methodIt2->second->getInterfaceMethod()->methodSignatureAsString(),
+                                         methodIt2->second);
+        }
     }
-    // indicate that inheritance have been properly done
+
+    Interfaces* implInterface = ((ClassTable*) symTable)->getClass()->getImplementInterfaces()->getListOfInterfaces();
+    while(implInterface != NULL) {
+        CompilationTable* interfaceTable = implInterface->getImplOrExtInterfaceTable();
+        for(methodIt2 = interfaceTable->interfaceMethods.begin(); methodIt2 != interfaceTable->interfaceMethods.end();
+            methodIt2++) {
+            registerInheritedInterfaceMethodsForClass(methodIt2->second->getInterfaceMethod()->methodSignatureAsString(),
+                                        methodIt2->second);
+        }
+
+        for(methodIt2 = interfaceTable->inheritedInterfaceMethods.begin();
+            methodIt2 != interfaceTable->inheritedInterfaceMethods.end(); methodIt2++) {
+            registerInheritedInterfaceMethodsForClass(methodIt2->second->getInterfaceMethod()->methodSignatureAsString(),
+                                        methodIt2->second);
+        }
+
+        implInterface = implInterface->getNextInterface();
+    }
+    // indicate that inheritance has been properly done
     established = true;
 }
 
