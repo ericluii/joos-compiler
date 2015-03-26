@@ -17,4 +17,3 @@ void ClassMethodTable::printSelf() {
     std::cout << "Previous: " << prevTable << "| ClassMethodTable: " << this << "| AST node: " << method 
               << "| Next: " << nextTable << std::endl;
 }
-

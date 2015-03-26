@@ -7,6 +7,7 @@
 
 class CompilationTable;
 class ClassMethodTable;
+class FieldTable;
 
 class Startup {
     private:
@@ -15,8 +16,6 @@ class Startup {
         unsigned int interfaceMethodCounter;
         unsigned int numOfInterfaceMethods;
         std::map<std::string, CompilationTable*>& compilations;
-        // pointer to java.lang.Object
-        CompilationTable* object;
 
         // inheritance related
         // mapping structure: canonical name -> index in std::vector<bool> of inheritanceTable
@@ -37,12 +36,15 @@ class Startup {
         // represents the class method that implements the interface methods represented at some index i,
         // where i is mapped to an interface method in interfaceMethodsMapping
         std::map<std::string, std::vector<ClassMethodTable*> > interfaceMethodTable;
-
+        // mapping structure: canonical names (only classes) -> a vector of fields defined in the
+        // class that are static, order in vector is the same as the order of fields' declaration in class
+        std::map<std::string, std::vector<FieldTable*> > staticTable;
         void copyInheritanceTable(const std::string&, const std::string&);
         void copyInterfaceMethodTable(const std::string&, const std::string&);
         void buildInheritanceTable(CompilationTable*);
         void setAllInterfaceMethods();
         void buildInterfaceMethodTable(CompilationTable*);
+        void buildStaticTable(CompilationTable*);
 
         // --------------------------------------------------------------
         // miscellaneous
@@ -50,7 +52,8 @@ class Startup {
         void printInterfaceMethodTable();
     public:
         Startup(std::map<std::string, CompilationTable*>&);
-        void buildTables();
+        void createTablesForCompilation(CompilationTable*);
+        void createTablesForArrayType();
 };
 
 #endif

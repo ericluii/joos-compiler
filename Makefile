@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen/startup
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -40,23 +40,30 @@ REACHABILITY_C = $(wildcard src/reachability/*.cpp)
 REACHABILITY_O = $(addprefix build/src/reachability/, $(notdir $(REACHABILITY_C:.cpp=.o)))
 
 # CODE GENERATION CODE
+
 STARTUP_C = $(wildcard src/code-gen/startup/*.cpp)
 STARTUP_O = $(addprefix build/src/code-gen/startup/, $(notdir $(STARTUP_C:.cpp=.o)))
+
+VTABLE_C = $(wildcard src/code-gen/vtable/*.cpp)
+VTABLE_O = $(addprefix build/src/code-gen/vtable/, $(notdir $(VTABLE_C:.cpp=.o)))
+
+CODEGEN_C = $(wildcard src/code-gen/*.cpp)
+CODEGEN_O = $(addprefix build/src/code-gen/, $(notdir $(CODEGEN_C:.cpp=.o)))
 
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
 SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O) $(DIS_O) $(TYPECHECK_O)\
-       	$(REACHABILITY_O) $(STARTUP_O)
+       	$(REACHABILITY_O) $(CODEGEN_O) $(STARTUP_O) $(VTABLE_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen/startup
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
 # Include
-SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h) $(wildcard include/disambiguate/*.h) $(wildcard include/type-checking/*.h) $(wildcard include/reachability/*.h) $(wildcard include/code-gen/startup/*.h)
+SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h) $(wildcard include/disambiguate/*.h) $(wildcard include/type-checking/*.h) $(wildcard include/reachability/*.h) $(wildcard include/code-gen/*.h) $(wildcard include/code-gen/startup/*.h) $(wildcard include/code-gen/vtable/*.h)
 TEST_INC = $(wildcard tests/include/*.h)
 
 # Static Lib for Tests
@@ -73,7 +80,7 @@ compiler: init $(OUT_FILE)
 tests: init $(TEST_OUT_FILE)
 
 init:
-	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking $(BUILD_DIR)/reachability $(BUILD_DIR)/code-gen/startup
+	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking $(BUILD_DIR)/reachability $(BUILD_DIR)/code-gen $(BUILD_DIR)/code-gen/startup $(BUILD_DIR)/code-gen/vtable
 	@$(foreach TEST_CASE, $(TEST_CASES), python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
 
@@ -104,6 +111,12 @@ build/src/reachability/%.o: src/reachability/%.cpp $(SRC_INC)
 
 build/src/code-gen/startup/%.o: src/code-gen/startup/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/startup/$(notdir $(@:.cpp=.o))
+
+build/src/code-gen/vtable/%.o: src/code-gen/vtable/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/vtable/$(notdir $(@:.cpp=.o))
+
+build/src/code-gen/%.o: src/code-gen/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/$(notdir $(@:.cpp=.o))
 
 build/src/%.o: src/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/$(notdir $(@:.cpp=.o))

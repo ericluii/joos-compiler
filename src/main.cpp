@@ -18,7 +18,7 @@
 #include "ambiguousLinker.h"
 #include "typeChecker.h"
 #include "reachable.h"
-#include "startup.h"
+#include "codeGenerator.h"
 
 int main(int argc, char *argv[])
 {
@@ -128,7 +128,8 @@ int main(int argc, char *argv[])
         Reachable(packagesCompilations).checkReachability();
         CHECK_ERROR();
 
-        Startup(compilationTables).buildTables();
+        CodeGenerator cg(compilationTables);
+        cg.initStage();
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;

@@ -7,6 +7,8 @@
 #include "interfaceDecl.h"
 #include "classMethodTable.h"
 #include "classMethod.h"
+#include "fieldTable.h"
+#include "fieldDecl.h"
 
 class InterfaceMethodTable;
 
@@ -18,16 +20,22 @@ Startup::Startup(std::map<std::string, CompilationTable*>& compilations) : typeC
         if(it->second->aTypeWasDefined()) {
             // for every type defined, increment
             numOfTypes++;
-            if(it->second->getCanonicalName() == "java.lang.Object") {
-                object = it->second;
-            }
         }
     }
     // increment once more for array types
     numOfTypes++;
 }
 
-void Startup::buildTables() {
+void Startup::createTablesForCompilation(CompilationTable* table) {
+    // build tables
+    buildInheritanceTable(table);
+    buildInterfaceMethodTable(table);
+    buildStaticTable(table);
+}
+
+void Startup::createTablesForArrayType() {
+    // should be called only after buildTablesForCompilation have been
+    // called for all compilation unit
     // array types inheritance
     typeMapping[".array"] = typeCounter;
     for(unsigned int i = 0; i < numOfTypes; i++) {
@@ -40,13 +48,6 @@ void Startup::buildTables() {
     inheritanceTable[".array"][typeMapping["java.io.Serializable"]] = true;
     // arrays inherit self
     inheritanceTable[".array"][typeCounter] = true;
-    
-    std::map<std::string, CompilationTable*>::iterator it;
-    for(it = compilations.begin(); it != compilations.end(); it++) {
-        // preserve this order
-        buildInheritanceTable(it->second);
-        buildInterfaceMethodTable(it->second);
-    }
 
     // array types interface method table
     for(unsigned int i = 0; i < numOfInterfaceMethods; i++) {
@@ -54,8 +55,6 @@ void Startup::buildTables() {
     }
 
     copyInterfaceMethodTable(".array", "java.lang.Object");
-    // printInheritanceTable();
-    // printInterfaceMethodTable();
 }
 
 void Startup::copyInheritanceTable(const std::string& targetName, const std::string& sourceName) {
@@ -212,6 +211,25 @@ void Startup::buildInterfaceMethodTable(CompilationTable* table) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+void Startup::buildStaticTable(CompilationTable* table) {
+    if(table->aTypeWasDefined()) {
+        if(table->isClassSymbolTable()) {
+            std::string canonicalName = table->getCanonicalName();
+            SymbolTable* symTable = table->getSymbolTable();
+            while(symTable != NULL) {
+                if(symTable->isFieldTable()) {
+                    FieldDecl* field = ((FieldTable*) symTable)->getField();
+                    if(field->isStatic() && field->isInitialized()) {
+                        // register static methods that have initializers
+                        staticTable[canonicalName].push_back((FieldTable*) symTable);
+                    }
+                }
+                symTable = symTable->getNextTable();
             }
         }
     }
