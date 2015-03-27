@@ -45,15 +45,17 @@ class Startup {
         void setAllInterfaceMethods();
         void buildInterfaceMethodTable(CompilationTable*);
         void buildStaticTable(CompilationTable*);
+        
+        void fillTableEntriesForArrays(const std::string&);
+    public:
+        Startup(std::map<std::string, CompilationTable*>&);
+        void createTablesForCompilation(CompilationTable*);
+        void createTablesForArrayType();
 
         // --------------------------------------------------------------
         // miscellaneous
         void printInheritanceTable();
         void printInterfaceMethodTable();
-    public:
-        Startup(std::map<std::string, CompilationTable*>&);
-        void createTablesForCompilation(CompilationTable*);
-        void createTablesForArrayType();
 };
 
 #endif

@@ -5,19 +5,21 @@
 #include "compilationTable.h"
 #include "classMethod.h"
 
-VTableLayout::VTableLayout(CompilationTable* table, VTableLayout* superVTable) : typeName(table->getCanonicalName()), 
-            typeNameLength(typeName.length()), superclassVTable(superVTable) {
+VTableLayout::VTableLayout(CompilationTable* table, VTableLayout* superVTable) : typeName(table->getCanonicalName()),
+            superclassVTable(superVTable) {
+    // invoked for reference types
     createVTable(table);
 }
 
-VTableLayout::VTableLayout(const std::string& typeName, VTableLayout* superVTable) : typeName(typeName),
-        typeNameLength(typeName.length()), superclassVTable(superVTable) {}
+VTableLayout::VTableLayout(VTableLayout* superVTable) : typeName(".array"), superclassVTable(superVTable) {
+    // invoked for array type
+    createVTableForArray();
+}
 
 void VTableLayout::createVTableForArray() {
     // should only be called for array types
     for(unsigned int i = 0; i != superclassVTable->virtualMethods.size(); i++) {
         ClassMethodTable* classMethod = superclassVTable->virtualMethods[i];
-        std::string methodSignature = classMethod->getClassMethod()->getMethodHeader()->methodSignatureAsString();
         virtualMethods.push_back(classMethod);
         virtualMethodsMapping[classMethod] = i;
     }
@@ -79,6 +81,19 @@ unsigned int VTableLayout::getIndexOfMethodInVTable(ClassMethodTable* method) {
     assert(false);
 }
 
-void outputVTableToFile(std::fstream& file) {
+void VTableLayout::outputVTableToFile(std::fstream& file) {
     // TODO: Later
+    std::string virtualTableName = getVirtualTableName();
+    file << "global " + virtualTableName + "\n";
+    file << virtualTableName + ":\n";
+    for(unsigned int i = 0; i < virtualMethods.size(); i++) {
+        std::string methodLabel = virtualMethods[i]->generateMethodLabel();
+        file << "extern " << methodLabel << "\n";
+        file << "dd " << methodName << "\n";
+    }
+    file << std::endl;
+}
+
+std::string VTableLayout::getVirtualTableName() {
+    return "VIRT"+typeName;
 }

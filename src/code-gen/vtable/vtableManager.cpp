@@ -42,39 +42,7 @@ void VTableManager::createVTableLayoutForCompilation(CompilationTable* table) {
 void VTableManager::createVTableLayoutForArrays() {
     std::map<std::string, CompilationTable*>::iterator it;
     VTableLayout* ObjectVTable = vTableCollection["java.lang.Object"];
-    std::string typeArrayName;
-    VTableLayout* newVTableLayout;
-    for(it = compilations.begin(); it != compilations.end(); it++) {
-        // for each type that can possibly be an array
-        typeArrayName = it->second->getCanonicalName() + "[]";
-        newVTableLayout = new VTableLayout(typeArrayName, ObjectVTable);
-        newVTableLayout->createVTableForArray();
-        vTableCollection[typeArrayName] = newVTableLayout;
-    }
-    
-    // primitive array types
-    for(unsigned int i = 0; i < 5; i++) {
-        switch(i) {
-            case 0:
-                typeArrayName = "int[]";
-                break;
-            case 1:
-                typeArrayName = "short[]";
-                break;
-            case 2:
-                typeArrayName = "byte[]";
-                break;
-            case 3:
-                typeArrayName = "char[]";
-                break;
-            case 4:
-                typeArrayName = "boolean[]";
-                break;
-        }
-        newVTableLayout = new VTableLayout(typeArrayName, ObjectVTable);
-        newVTableLayout->createVTableForArray();
-        vTableCollection[typeArrayName] = newVTableLayout;
-    }
+    vTableCollection[".array"] = new VTableLayout(ObjectVTable);
 }
 
 VTableLayout* VTableManager::getVTableLayoutOfType(const std::string& typeName) {

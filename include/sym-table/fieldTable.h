@@ -1,6 +1,7 @@
 #ifndef __FIELDTABLE_H__
 #define __FIELDTABLE_H__
 
+#include <string>
 #include "symbolTable.h"
 
 class FieldDecl;
@@ -18,7 +19,9 @@ class FieldTable : public SymbolTable {
         
         FieldDecl* getField();
         CompilationTable* getDeclaringClass();
-        void printSelf(); 
+        void printSelf();
+
+        std::string generateFieldLabel();
 };
 
 #endif

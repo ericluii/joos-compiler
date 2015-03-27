@@ -17,7 +17,7 @@ class ReferenceType : public Type {
         }
 
         Name* getReferenceName() { return referenceType; }
-        std::string getTypeAsString() {
+        std::string getTypeAsString(bool labelForm = false) {
             std::string typeName;
             if(referenceTable != NULL)
             {   
@@ -28,13 +28,16 @@ class ReferenceType : public Type {
                 typeName = referenceType->getFullName();
             }
             if(isReferenceArrayType()) {
-                return typeName + "[]";
+                if(!labelForm) { return typeName + "[]"; }
+                else { return typeName + ".array"; }
             }
             return typeName;
         }
 
         void setReferenceTypeTable(CompilationTable* set) { referenceTable = set; }
         CompilationTable* getReferenceTypeTable() { return referenceTable; }
+
+
 };
 
 #endif

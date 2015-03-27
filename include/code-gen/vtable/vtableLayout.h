@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <fstream>
 
 class CompilationTable;
 class ClassMethodTable;
@@ -15,7 +16,6 @@ class VTableLayout {
     private:
         // refers to the length of the typeName string
         std::string typeName;
-        unsigned int typeNameLength;
         VTableLayout* superclassVTable;
         // vector of methods that a class have, inherited or
         // defined in the class, order of methods is based on
@@ -36,13 +36,15 @@ class VTableLayout {
         // mapping of various methods to its index in the virtual
         // table of the class that the method is defined in
         std::map<ClassMethodTable*, unsigned int> virtualMethodsMapping;
+
+        void createVTableForArray();
         void createVTable(CompilationTable* table);
     public:
         VTableLayout(CompilationTable*, VTableLayout*);
-        VTableLayout(const std::string&, VTableLayout*);
-        void createVTableForArray();
+        VTableLayout(VTableLayout*);
         unsigned int getIndexOfMethodInVTable(ClassMethodTable*);
         void outputVTableToFile(std::fstream&);
+        std::string getVirtualTableName();
 };
 
 #endif

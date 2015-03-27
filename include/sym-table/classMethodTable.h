@@ -1,6 +1,7 @@
 #ifndef __CLASSMETHODTABLE_H__
 #define __CLASSMETHODTABLE_H__
 
+#include <string>
 #include "symbolTable.h"
 
 class ClassMethod;
@@ -24,6 +25,7 @@ class ClassMethodTable : public SymbolTable {
         void setSymTableOfMethod(SymbolTable* set);
 
         void printSelf();
+        std::string generateMethodLabel();
 };
 
 #endif

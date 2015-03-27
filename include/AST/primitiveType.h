@@ -14,10 +14,11 @@ class PrimitiveType : public Type {
         ~PrimitiveType() {}
 
         Token* getPrimTypeToken() { return primitiveType; }
-        std::string getTypeAsString() {
+        std::string getTypeAsString(bool labelForm = false) {
             std::string type = primitiveType->getString();
             if(isArray) {
-                return type + "[]";
+                if(!labelForm) { return type + "[]"; }
+                else { return type + ".array"; }
             }
             return type;
         }

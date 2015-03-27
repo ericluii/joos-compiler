@@ -18,12 +18,13 @@ Startup::Startup(std::map<std::string, CompilationTable*>& compilations) : typeC
     setAllInterfaceMethods();
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined()) {
-            // for every type defined, increment
-            numOfTypes++;
+            // for every type defined, increment by 2
+            // one for the type, another for the type array
+            numOfTypes+= 2;
         }
     }
-    // increment once more for array types
-    numOfTypes++;
+    // increment by 5 once more for primitive array types
+    numOfTypes+= 5;
 }
 
 void Startup::createTablesForCompilation(CompilationTable* table) {
@@ -37,24 +38,53 @@ void Startup::createTablesForArrayType() {
     // should be called only after buildTablesForCompilation have been
     // called for all compilation unit
     // array types inheritance
-    typeMapping[".array"] = typeCounter;
+    std::map<std::string, CompilationTable*>::iterator it;
+    for(it = compilations.begin(); it != compilations.end(); it++) {
+        fillTableEntriesForArrays(it->second->getCanonicalName() + ".array");
+    }
+
+    for(int i = 0; i < 5; i++) {
+        std::string arrayType;
+        switch(i) {
+            case 0:
+                arrayType = "int.array";
+                break;
+            case 1:
+                arrayType = "short.array";
+                break;
+            case 2:
+                arrayType = "byte.array";
+                break;
+            case 3:
+                arrayType = "char.array";
+                break;
+            case 4:
+                arrayType = "boolean.array";
+                break;
+        }
+        fillTableEntriesForArrays(arrayType);
+    }
+}
+
+void Startup::fillTableEntriesForArrays(const std::string& arrayType) {
+    typeMapping[arrayType] = typeCounter++;
     for(unsigned int i = 0; i < numOfTypes; i++) {
-        inheritanceTable[".array"].push_back(false);
+        inheritanceTable[arrayType].push_back(false);
     }
     // arrays inherit from java.lang.Object and implements
-    // java.io.Serializable and java.lang.Cloneable
-    inheritanceTable[".array"][typeMapping["java.lang.Object"]] = true;
-    inheritanceTable[".array"][typeMapping["java.lang.Cloneable"]] = true;
-    inheritanceTable[".array"][typeMapping["java.io.Serializable"]] = true;
+    // java.io.Serializable and hava.lang.Cloneable
+    inheritanceTable[arrayType][typeMapping["java.lang.Object"]] = true;
+    inheritanceTable[arrayType][typeMapping["java.lang.Cloneable"]] = true;
+    inheritanceTable[arrayType][typeMapping["java.io.Serializable"]] = true;
     // arrays inherit self
-    inheritanceTable[".array"][typeCounter] = true;
+    // minus 1 because it was incremented above
+    inheritanceTable[arrayType][typeCounter-1] = true;
 
     // array types interface method table
     for(unsigned int i = 0; i < numOfInterfaceMethods; i++) {
-        interfaceMethodTable[".array"].push_back(NULL);
+        interfaceMethodTable[arrayType].push_back(NULL);
     }
-
-    copyInterfaceMethodTable(".array", "java.lang.Object");
+    copyInterfaceMethodTable(arrayType, "java.lang.Object");
 }
 
 void Startup::copyInheritanceTable(const std::string& targetName, const std::string& sourceName) {
@@ -258,7 +288,7 @@ void Startup::printInterfaceMethodTable() {
             if(it->second[i] == NULL) {
                 std::cout << "NULL";
             } else {
-                std::cout << it->second[i]->getClassMethod()->getMethodHeader()->methodSignatureAsString();
+                std::cout << it->second[i]->generateMethodLabel();
             }
         }
         std::cout << std::endl;

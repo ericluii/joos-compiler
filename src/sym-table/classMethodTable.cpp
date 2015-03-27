@@ -1,6 +1,9 @@
 #include <iostream>
 #include "classMethodTable.h"
 
+#include "classMethod.h"
+#include "compilationTable.h"
+
 ClassMethodTable::ClassMethodTable(ClassMethod* method, CompilationTable* declaringClass) : SymbolTable(STT_CLASSMETHOD), method(method),
                 bodyTable(NULL), declaringClass(declaringClass) {}
 ClassMethodTable::~ClassMethodTable() {
@@ -16,4 +19,9 @@ void ClassMethodTable::setSymTableOfMethod(SymbolTable* set) { bodyTable = set; 
 void ClassMethodTable::printSelf() {
     std::cout << "Previous: " << prevTable << "| ClassMethodTable: " << this << "| AST node: " << method 
               << "| Next: " << nextTable << std::endl;
+}
+
+std::string ClassMethodTable::generateMethodLabel() {
+    return declaringClass->getCanonicalName() + '.' +
+           method->getMethodHeader()->labelizedMethodSignature();
 }
