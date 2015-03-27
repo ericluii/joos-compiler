@@ -36,6 +36,10 @@ class CompilationTable {
         unsigned int numFields;
         unsigned int numClassMethods;
         unsigned int numInterfaceMethods;
+
+        // number of inherited fields, really to be used to get the size
+        // of the class
+        unsigned int numInheritedFields;
         // other compilations in the same package
         std::vector<CompilationTable*>* compilationsInPackage;
         // compilations from single type import
@@ -153,6 +157,10 @@ class CompilationTable {
         unsigned int getNumDefinedFields();
         unsigned int getNumDefinedClassMethods();
         unsigned int getNumDefinedInterfaceMethods();
+
+        // ---------------------------------------------------------------------
+        // Interface to get the number of bytes that a class takes
+        unsigned int getSizeOfClassInBytes();
 };
 
 #endif

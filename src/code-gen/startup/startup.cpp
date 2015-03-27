@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "startup.h"
 
 #include "compilationTable.h"
@@ -263,6 +265,18 @@ void Startup::buildStaticTable(CompilationTable* table) {
             }
         }
     }
+}
+
+unsigned int Startup::getIndexOfInterfaceMethodInTable(const std::string& methodSignature) {
+    // precautionary check
+    assert(interfaceMethodsMapping.count(methodSignature) == 1);
+    return interfaceMethodsMapping[methodSignature];
+}
+
+unsigned int Startup::getIndexOfTypeInTable(const std::string& typeName) {
+    // precautionary check
+    assert(typeMapping.count(typeName) == 1);
+    return typeMapping[typeName];
 }
 
 // -----------------------------------------------------------------------------------

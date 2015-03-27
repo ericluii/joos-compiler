@@ -89,7 +89,7 @@ void VTableLayout::outputVTableToFile(std::fstream& file) {
     for(unsigned int i = 0; i < virtualMethods.size(); i++) {
         std::string methodLabel = virtualMethods[i]->generateMethodLabel();
         file << "extern " << methodLabel << "\n";
-        file << "dd " << methodName << "\n";
+        file << "dd " << methodLabel << "\n";
     }
     file << std::endl;
 }
