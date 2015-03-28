@@ -46,3 +46,6 @@ tests/include/a4TestFiles.h
 *.app
 tags
 tags
+
+# Assembly files
+*.s

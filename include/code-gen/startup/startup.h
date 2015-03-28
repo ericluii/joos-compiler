@@ -16,6 +16,7 @@ class Startup {
         unsigned int interfaceMethodCounter;
         unsigned int numOfInterfaceMethods;
         std::map<std::string, CompilationTable*>& compilations;
+        CompilationTable* firstUnit;
 
         // inheritance related
         // mapping structure: canonical name -> index in std::vector<bool> of inheritanceTable
@@ -46,9 +47,9 @@ class Startup {
         void buildInterfaceMethodTable(CompilationTable*);
         void buildStaticTable(CompilationTable*);
         
-        void fillTableEntriesForArrays(const std::string&);
+        void fillInheritanceTableEntriesForArrays(const std::string&);
     public:
-        Startup(std::map<std::string, CompilationTable*>&);
+        Startup(std::map<std::string, CompilationTable*>&, CompilationTable*);
         void createTablesForCompilation(CompilationTable*);
         void createTablesForArrayType();
 
@@ -59,6 +60,10 @@ class Startup {
         // miscellaneous
         void printInheritanceTable();
         void printInterfaceMethodTable();
+
+        // --------------------------------------------------------------
+        // file creation
+        void generateStartupFile();
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <fstream>
 
 #include "startup.h"
 
@@ -14,8 +15,8 @@
 
 class InterfaceMethodTable;
 
-Startup::Startup(std::map<std::string, CompilationTable*>& compilations) : typeCounter(0), numOfTypes(0),
-            interfaceMethodCounter(0), numOfInterfaceMethods(0), compilations(compilations) {
+Startup::Startup(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) : typeCounter(0), numOfTypes(0),
+            interfaceMethodCounter(0), numOfInterfaceMethods(0), compilations(compilations), firstUnit(firstUnit) {
     std::map<std::string, CompilationTable*>::iterator it;
     setAllInterfaceMethods();
     for(it = compilations.begin(); it != compilations.end(); it++) {
@@ -42,7 +43,7 @@ void Startup::createTablesForArrayType() {
     // array types inheritance
     std::map<std::string, CompilationTable*>::iterator it;
     for(it = compilations.begin(); it != compilations.end(); it++) {
-        fillTableEntriesForArrays(it->second->getCanonicalName() + ".array");
+        fillInheritanceTableEntriesForArrays(it->second->getCanonicalName() + ".array");
     }
 
     for(int i = 0; i < 5; i++) {
@@ -64,11 +65,17 @@ void Startup::createTablesForArrayType() {
                 arrayType = "boolean.array";
                 break;
         }
-        fillTableEntriesForArrays(arrayType);
+        fillInheritanceTableEntriesForArrays(arrayType);
     }
+
+    // array types interface method table
+    for(unsigned int i = 0; i < numOfInterfaceMethods; i++) {
+        interfaceMethodTable[".array"].push_back(NULL);
+    }
+    copyInterfaceMethodTable(".array", "java.lang.Object");
 }
 
-void Startup::fillTableEntriesForArrays(const std::string& arrayType) {
+void Startup::fillInheritanceTableEntriesForArrays(const std::string& arrayType) {
     typeMapping[arrayType] = typeCounter++;
     for(unsigned int i = 0; i < numOfTypes; i++) {
         inheritanceTable[arrayType].push_back(false);
@@ -81,12 +88,6 @@ void Startup::fillTableEntriesForArrays(const std::string& arrayType) {
     // arrays inherit self
     // minus 1 because it was incremented above
     inheritanceTable[arrayType][typeCounter-1] = true;
-
-    // array types interface method table
-    for(unsigned int i = 0; i < numOfInterfaceMethods; i++) {
-        interfaceMethodTable[arrayType].push_back(NULL);
-    }
-    copyInterfaceMethodTable(arrayType, "java.lang.Object");
 }
 
 void Startup::copyInheritanceTable(const std::string& targetName, const std::string& sourceName) {
@@ -307,4 +308,57 @@ void Startup::printInterfaceMethodTable() {
         }
         std::cout << std::endl;
     }
+}
+
+void Startup::generateStartupFile() {
+    std::ofstream fs("_startup.s");
+    // data section
+    fs << "section .data\n";
+    std::map<std::string, std::vector<bool> >::iterator inheritance;
+    for(inheritance = inheritanceTable.begin(); inheritance != inheritanceTable.end(); inheritance++) {
+        // create inheritance table
+        std::string inheritanceTableName = "INH" + inheritance->first;
+        fs << "global " << inheritanceTableName << '\n';
+        fs << inheritanceTableName << ": ";
+        for(unsigned int i = 0; i < inheritance->second.size(); i++) {
+            if(i == 0) { fs << "dd "; }
+            else { fs << ", "; }
+            fs << inheritance->second[i];
+        }
+        fs << '\n';
+    }
+
+    fs << '\n';
+    std::map<std::string, std::vector<ClassMethodTable*> >::iterator interfaces;
+    for(interfaces = interfaceMethodTable.begin(); interfaces != interfaceMethodTable.end(); interfaces++) {
+        // create interface method table
+        std::string interfaceTableName = "INTER" + interfaces->first;
+        fs << "global " << interfaceTableName << '\n';
+        fs << interfaceTableName << ": ";
+        for(unsigned int i = 0; i < interfaces->second.size(); i++) {
+            if(i == 0) { fs << "dd "; }
+            else { fs << ", "; }
+            
+            if(interfaces->second[i] == NULL) { fs << "0"; }
+            else { fs << interfaces->second[i]->generateMethodLabel(); }
+        }
+        fs << '\n';
+    }
+
+    fs << "\nsection .text\nglobal _start\n_start:\n";
+    std::map<std::string, std::vector<FieldTable*> >::iterator staticFieldsInit;
+    for(staticFieldsInit = staticTable.begin(); staticFieldsInit != staticTable.end(); staticFieldsInit++) {
+       std::string staticInitCall = "INIT" + staticFieldsInit->first;
+       for(unsigned int i =0; i < staticFieldsInit->second.size(); i++) {
+           std::string fieldName = staticFieldsInit->second[i]->getField()->getFieldDeclared()->getIdAsString();
+           fs << "extern " << staticInitCall << fieldName << '\n';
+           fs << "call " << staticInitCall << fieldName << '\n';
+       }
+    }
+
+    fs << '\n';
+    // call static int test() of the first compilation unit
+    // given in the command line to joosc
+    // fs << "call " << firstUnit->getAClassMethod("test()")->generateMethodLabel() << '\n';
+    fs.close();
 }

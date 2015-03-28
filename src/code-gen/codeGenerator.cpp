@@ -5,8 +5,9 @@
 #include "vtableLayout.h"
 #include <fstream>
 
-CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations) : compilations(compilations),
-            starter(new Startup(compilations)), virtualManager(new VTableManager(compilations)) {}
+CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
+            compilations(compilations), firstUnit(firstUnit), starter(new Startup(compilations, firstUnit)),
+            virtualManager(new VTableManager(compilations)) {}
 
 CodeGenerator::~CodeGenerator() {
     delete starter;
@@ -23,6 +24,8 @@ void CodeGenerator::initStage() {
 
     starter->createTablesForArrayType();
     virtualManager->createVTableLayoutForArrays();
+    // generate !startup.s
+    starter->generateStartupFile();
 
     // starter->printInheritanceTable();
     // starter->printInterfaceMethodTable();

@@ -11,10 +11,11 @@ class VTableManager;
 class CodeGenerator {
     private:
         std::map<std::string, CompilationTable*>& compilations;
+        CompilationTable* firstUnit;
         Startup* starter;
         VTableManager* virtualManager;
     public:
-        CodeGenerator(std::map<std::string, CompilationTable*>&);
+        CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();
 
         void initStage();
