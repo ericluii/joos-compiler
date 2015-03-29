@@ -1,3 +1,6 @@
+#include <cassert>
+#include <fstream>
+
 #include "startup.h"
 
 #include "compilationTable.h"
@@ -7,55 +10,84 @@
 #include "interfaceDecl.h"
 #include "classMethodTable.h"
 #include "classMethod.h"
+#include "fieldTable.h"
+#include "fieldDecl.h"
 
 class InterfaceMethodTable;
 
-Startup::Startup(std::map<std::string, CompilationTable*>& compilations) : typeCounter(0), numOfTypes(0),
-            interfaceMethodCounter(0), numOfInterfaceMethods(0), compilations(compilations) {
+Startup::Startup(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) : typeCounter(0), numOfTypes(0),
+            interfaceMethodCounter(0), numOfInterfaceMethods(0), compilations(compilations), firstUnit(firstUnit) {
     std::map<std::string, CompilationTable*>::iterator it;
     setAllInterfaceMethods();
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined()) {
-            // for every type defined, increment
-            numOfTypes++;
-            if(it->second->getCanonicalName() == "java.lang.Object") {
-                object = it->second;
-            }
+            // for every type defined, increment by 2
+            // one for the type, another for the type array
+            numOfTypes+= 2;
         }
     }
-    // increment once more for array types
-    numOfTypes++;
+    // increment by 5 once more for primitive array types
+    numOfTypes+= 5;
 }
 
-void Startup::buildTables() {
+void Startup::createTablesForCompilation(CompilationTable* table) {
+    // build tables
+    buildInheritanceTable(table);
+    buildInterfaceMethodTable(table);
+    buildStaticTable(table);
+}
+
+void Startup::createTablesForArrayType() {
+    // should be called only after buildTablesForCompilation have been
+    // called for all compilation unit
     // array types inheritance
-    typeMapping[".array"] = typeCounter;
-    for(unsigned int i = 0; i < numOfTypes; i++) {
-        inheritanceTable[".array"].push_back(false);
-    }
-    // arrays inherit from java.lang.Object and implements
-    // java.io.Serializable and java.lang.Cloneable
-    inheritanceTable[".array"][typeMapping["java.lang.Object"]] = true;
-    inheritanceTable[".array"][typeMapping["java.lang.Cloneable"]] = true;
-    inheritanceTable[".array"][typeMapping["java.io.Serializable"]] = true;
-    // arrays inherit self
-    inheritanceTable[".array"][typeCounter] = true;
-    
     std::map<std::string, CompilationTable*>::iterator it;
     for(it = compilations.begin(); it != compilations.end(); it++) {
-        // preserve this order
-        buildInheritanceTable(it->second);
-        buildInterfaceMethodTable(it->second);
+        fillInheritanceTableEntriesForArrays(it->second->getCanonicalName() + ".array");
+    }
+
+    for(int i = 0; i < 5; i++) {
+        std::string arrayType;
+        switch(i) {
+            case 0:
+                arrayType = "int.array";
+                break;
+            case 1:
+                arrayType = "short.array";
+                break;
+            case 2:
+                arrayType = "byte.array";
+                break;
+            case 3:
+                arrayType = "char.array";
+                break;
+            case 4:
+                arrayType = "boolean.array";
+                break;
+        }
+        fillInheritanceTableEntriesForArrays(arrayType);
     }
 
     // array types interface method table
     for(unsigned int i = 0; i < numOfInterfaceMethods; i++) {
         interfaceMethodTable[".array"].push_back(NULL);
     }
-
     copyInterfaceMethodTable(".array", "java.lang.Object");
-    // printInheritanceTable();
-    // printInterfaceMethodTable();
+}
+
+void Startup::fillInheritanceTableEntriesForArrays(const std::string& arrayType) {
+    typeMapping[arrayType] = typeCounter++;
+    for(unsigned int i = 0; i < numOfTypes; i++) {
+        inheritanceTable[arrayType].push_back(false);
+    }
+    // arrays inherit from java.lang.Object and implements
+    // java.io.Serializable and hava.lang.Cloneable
+    inheritanceTable[arrayType][typeMapping["java.lang.Object"]] = true;
+    inheritanceTable[arrayType][typeMapping["java.lang.Cloneable"]] = true;
+    inheritanceTable[arrayType][typeMapping["java.io.Serializable"]] = true;
+    // arrays inherit self
+    // minus 1 because it was incremented above
+    inheritanceTable[arrayType][typeCounter-1] = true;
 }
 
 void Startup::copyInheritanceTable(const std::string& targetName, const std::string& sourceName) {
@@ -217,6 +249,37 @@ void Startup::buildInterfaceMethodTable(CompilationTable* table) {
     }
 }
 
+void Startup::buildStaticTable(CompilationTable* table) {
+    if(table->aTypeWasDefined()) {
+        if(table->isClassSymbolTable()) {
+            std::string canonicalName = table->getCanonicalName();
+            SymbolTable* symTable = table->getSymbolTable();
+            while(symTable != NULL) {
+                if(symTable->isFieldTable()) {
+                    FieldDecl* field = ((FieldTable*) symTable)->getField();
+                    if(field->isStatic() && field->isInitialized()) {
+                        // register static methods that have initializers
+                        staticTable[canonicalName].push_back((FieldTable*) symTable);
+                    }
+                }
+                symTable = symTable->getNextTable();
+            }
+        }
+    }
+}
+
+unsigned int Startup::getIndexOfInterfaceMethodInTable(const std::string& methodSignature) {
+    // precautionary check
+    assert(interfaceMethodsMapping.count(methodSignature) == 1);
+    return interfaceMethodsMapping[methodSignature];
+}
+
+unsigned int Startup::getIndexOfTypeInTable(const std::string& typeName) {
+    // precautionary check
+    assert(typeMapping.count(typeName) == 1);
+    return typeMapping[typeName];
+}
+
 // -----------------------------------------------------------------------------------
 // miscellaneous
 
@@ -240,9 +303,62 @@ void Startup::printInterfaceMethodTable() {
             if(it->second[i] == NULL) {
                 std::cout << "NULL";
             } else {
-                std::cout << it->second[i]->getClassMethod()->getMethodHeader()->methodSignatureAsString();
+                std::cout << it->second[i]->generateMethodLabel();
             }
         }
         std::cout << std::endl;
     }
+}
+
+void Startup::generateStartupFile() {
+    std::ofstream fs("_startup.s");
+    // data section
+    fs << "section .data\n";
+    std::map<std::string, std::vector<bool> >::iterator inheritance;
+    for(inheritance = inheritanceTable.begin(); inheritance != inheritanceTable.end(); inheritance++) {
+        // create inheritance table
+        std::string inheritanceTableName = "INH" + inheritance->first;
+        fs << "global " << inheritanceTableName << '\n';
+        fs << inheritanceTableName << ": ";
+        for(unsigned int i = 0; i < inheritance->second.size(); i++) {
+            if(i == 0) { fs << "dd "; }
+            else { fs << ", "; }
+            fs << inheritance->second[i];
+        }
+        fs << '\n';
+    }
+
+    fs << '\n';
+    std::map<std::string, std::vector<ClassMethodTable*> >::iterator interfaces;
+    for(interfaces = interfaceMethodTable.begin(); interfaces != interfaceMethodTable.end(); interfaces++) {
+        // create interface method table
+        std::string interfaceTableName = "INTER" + interfaces->first;
+        fs << "global " << interfaceTableName << '\n';
+        fs << interfaceTableName << ": ";
+        for(unsigned int i = 0; i < interfaces->second.size(); i++) {
+            if(i == 0) { fs << "dd "; }
+            else { fs << ", "; }
+            
+            if(interfaces->second[i] == NULL) { fs << "0"; }
+            else { fs << interfaces->second[i]->generateMethodLabel(); }
+        }
+        fs << '\n';
+    }
+
+    fs << "\nsection .text\nglobal _start\n_start:\n";
+    std::map<std::string, std::vector<FieldTable*> >::iterator staticFieldsInit;
+    for(staticFieldsInit = staticTable.begin(); staticFieldsInit != staticTable.end(); staticFieldsInit++) {
+       std::string staticInitCall = "INIT" + staticFieldsInit->first;
+       for(unsigned int i =0; i < staticFieldsInit->second.size(); i++) {
+           std::string fieldName = staticFieldsInit->second[i]->getField()->getFieldDeclared()->getIdAsString();
+           fs << "extern " << staticInitCall << fieldName << '\n';
+           fs << "call " << staticInitCall << fieldName << '\n';
+       }
+    }
+
+    fs << '\n';
+    // call static int test() of the first compilation unit
+    // given in the command line to joosc
+    // fs << "call " << firstUnit->getAClassMethod("test()")->generateMethodLabel() << '\n';
+    fs.close();
 }

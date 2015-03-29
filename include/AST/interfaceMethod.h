@@ -44,7 +44,7 @@ class InterfaceMethod : public Ast {
         std::string methodSignatureAsString() {
             std::string signature = id->getIdAsString() + '(';
             if(!params->isEpsilon()) {
-                signature+= params->getListOfParameters()->parametersAsString();
+                signature+= params->getListOfParameters()->parametersAsString(',');
             }
             return signature + ')';
         }

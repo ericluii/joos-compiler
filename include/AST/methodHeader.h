@@ -30,9 +30,17 @@ class MethodHeader : public Ast {
         std::string methodSignatureAsString() {
             std::string signature = name->getIdAsString() + '(';
             if(!params->isEpsilon()) {
-                signature+= params->getListOfParameters()->parametersAsString();
+                signature+= params->getListOfParameters()->parametersAsString(',');
             }
             return signature + ')';
+        }
+
+        std::string labelizedMethodSignature() {
+            std::string methodLabel = name->getIdAsString() + '#';
+            if(!params->isEpsilon()) {
+                methodLabel+= params->getListOfParameters()->parametersAsString('#');
+            }
+            return methodLabel + '#';
         }
 };
 

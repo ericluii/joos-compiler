@@ -28,15 +28,17 @@ class ParamList : public Ast {
         void setNextParameter(ParamList* set) { nextParam = set; }
         bool isLastParameter() { return nextParam == NULL; }
 
-        std::string parametersAsString() {
+        std::string parametersAsString(const char& seperator) {
             std::string res = "";
             if(!isLastParameter()) {
-                res+= nextParam->parametersAsString() + ',';
+                res+= nextParam->parametersAsString(seperator) + seperator;
             } else {
-                return paramType->getTypeAsString();
+                if(seperator == ',') { return paramType->getTypeAsString(); }
+                else { return paramType->getTypeAsString(true); }
             }
 
-            return res + paramType->getTypeAsString();
+            if(seperator == ',') { return res + paramType->getTypeAsString(); }
+            else { return res + paramType->getTypeAsString(true); }
         }
 
         void setParamTable(ParamTable* set) { table = set; }

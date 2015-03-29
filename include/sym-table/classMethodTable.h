@@ -1,6 +1,7 @@
 #ifndef __CLASSMETHODTABLE_H__
 #define __CLASSMETHODTABLE_H__
 
+#include <string>
 #include "symbolTable.h"
 
 class ClassMethod;
@@ -13,6 +14,7 @@ class ClassMethodTable : public SymbolTable {
         // compilation table of the class that declares
         // this method
         CompilationTable* declaringClass;
+        bool registeredVTable;
     public:
         ClassMethodTable(ClassMethod* method, CompilationTable* declaringClass); 
         ~ClassMethodTable(); 
@@ -23,6 +25,7 @@ class ClassMethodTable : public SymbolTable {
         void setSymTableOfMethod(SymbolTable* set);
 
         void printSelf();
+        std::string generateMethodLabel();
 };
 
 #endif

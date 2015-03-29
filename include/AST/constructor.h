@@ -31,7 +31,7 @@ class Constructor : public ClassBodyDecls {
         std::string constructorSignatureAsString() {
             std::string signature = "(";
             if(!params->isEpsilon()) {
-                signature+= params->getListOfParameters()->parametersAsString();
+                signature+= params->getListOfParameters()->parametersAsString(',');
             }
             return signature + ')';
         }

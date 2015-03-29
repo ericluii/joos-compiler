@@ -18,7 +18,7 @@
 #include "ambiguousLinker.h"
 #include "typeChecker.h"
 #include "reachable.h"
-#include "startup.h"
+#include "codeGenerator.h"
 
 int main(int argc, char *argv[])
 {
@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     BuildCompilationTable compilationBuilder;
     std::map<std::string, CompilationTable*> compilationTables;
     std::map<std::string, std::vector<CompilationTable*> > packagesCompilations;
+    CompilationTable* firstUnit = NULL;
 
     try {
         for (int i = 1; i < argc; i++) {
@@ -107,6 +108,9 @@ int main(int argc, char *argv[])
             }*/
             
             registerPackages(packagesCompilations, compilationTables[filename]);
+            if(i == 1) {
+                firstUnit = compilationTables[filename];
+            }
         }
 
         setOtherCompilations(compilationTables, packagesCompilations);
@@ -128,7 +132,8 @@ int main(int argc, char *argv[])
         Reachable(packagesCompilations).checkReachability();
         CHECK_ERROR();
 
-        Startup(compilationTables).buildTables();
+        CodeGenerator cg(compilationTables, firstUnit);
+        cg.initStage();
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;
