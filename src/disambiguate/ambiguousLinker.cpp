@@ -322,10 +322,10 @@ void AmbiguousLinker::traverseAndLink(FieldAccess* accessed) {
                             } else {
                                 // it is an array and the current member accessed is
                                 // length
-                                prim->linkToArrayLength();
+                                accessed->setReferringToArrayLength();
                             }
                         } else {
-                            ss << "Expecting a class but instead got '"
+                            ss << "Expecting an object but instead got '"
                                << bracketed->getExpressionTypeString() << "'.";
                             Error(E_DISAMBIGUATION, tok, ss.str());
                         }
