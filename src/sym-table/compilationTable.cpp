@@ -611,14 +611,3 @@ unsigned int CompilationTable::getNumDefinedInterfaceMethods() {
     assert(symTable != NULL && symTable->isInterfaceTable());
     return numInterfaceMethods;
 }
-
-unsigned int CompilationTable::getSizeOfClassInBytes() {
-    // should only be invoked for a compilation unit that
-    // defines a class
-    assert(symTable != NULL && symTable->isClassTable());
-    // the number of fields in total (inherited and defined), times 4,
-    // since each field will take a 32 bits -> 4 bytes, plus 12,
-    // to represent the virtual table, inheritance table and interface
-    // method table pointers
-    return (numFields + numInheritedFields) * 4 + 12;
-}

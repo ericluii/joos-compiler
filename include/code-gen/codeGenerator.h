@@ -7,6 +7,7 @@
 class CompilationTable;
 class Startup;
 class VTableManager;
+class ObjectLayout;
 
 class CodeGenerator {
     private:
@@ -14,6 +15,9 @@ class CodeGenerator {
         CompilationTable* firstUnit;
         Startup* starter;
         VTableManager* virtualManager;
+        std::map<CompilationTable*, ObjectLayout*> layoutOfClasses;
+
+        void createObjectLayoutForCompilation(CompilationTable*);
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

@@ -346,6 +346,8 @@ void Startup::generateStartupFile() {
     }
 
     fs << "\nsection .text\nglobal _start\n_start:\n";
+
+    // call static fields initializer
     std::map<std::string, std::vector<FieldTable*> >::iterator staticFieldsInit;
     for(staticFieldsInit = staticTable.begin(); staticFieldsInit != staticTable.end(); staticFieldsInit++) {
        std::string staticInitCall = "INIT" + staticFieldsInit->first;

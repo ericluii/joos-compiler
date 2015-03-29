@@ -157,10 +157,6 @@ class CompilationTable {
         unsigned int getNumDefinedFields();
         unsigned int getNumDefinedClassMethods();
         unsigned int getNumDefinedInterfaceMethods();
-
-        // ---------------------------------------------------------------------
-        // Interface to get the number of bytes that a class takes
-        unsigned int getSizeOfClassInBytes();
 };
 
 #endif
