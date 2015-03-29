@@ -689,7 +689,7 @@ void AmbiguousLinker::traverseAndLink(ArrayAccessPrimary* access) {
                 accessType = (EVALUATED_TYPE) (accessType + 5);
             } else { accessType = ET_OBJECTARRAY; }
         } else {
-            // everything else is error
+            // everything else is an error except potentially bracketed expression
             std::stringstream ss;
             if(prim->isReferringToConstructor()) {
                 // then it's NewClassCreation
@@ -709,7 +709,7 @@ void AmbiguousLinker::traverseAndLink(ArrayAccessPrimary* access) {
                     if(accessType != ET_NOTEVALUATED) {
                         if(checkProperArrayAccess(access, table, accessType, tok)) {
                             // all fine and dandy
-                            access->resolvedLinkButNoEntity();
+                            access->ResolveLinkButNoEntity();
                         }
                     }
                     return;
