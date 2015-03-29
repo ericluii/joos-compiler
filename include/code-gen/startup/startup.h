@@ -8,6 +8,7 @@
 class CompilationTable;
 class ClassMethodTable;
 class FieldTable;
+class VTableLayout;
 
 class Startup {
     private:
@@ -63,7 +64,7 @@ class Startup {
 
         // --------------------------------------------------------------
         // file creation
-        void generateStartupFile();
+        void generateStartupFile(VTableLayout*);
 };
 
 #endif

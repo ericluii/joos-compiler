@@ -22,6 +22,7 @@ class FieldTable : public SymbolTable {
         void printSelf();
 
         std::string generateFieldLabel();
+        std::string generateStaticInitializerLabel();
 };
 
 #endif

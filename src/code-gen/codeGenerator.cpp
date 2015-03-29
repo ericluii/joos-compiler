@@ -38,7 +38,7 @@ void CodeGenerator::initStage() {
     starter->createTablesForArrayType();
     virtualManager->createVTableLayoutForArrays();
     // generate _startup.s
-    starter->generateStartupFile();
+    starter->generateStartupFile(virtualManager->getVTableLayoutOfType(".array"));
 
     // starter->printInheritanceTable();
     // starter->printInterfaceMethodTable();

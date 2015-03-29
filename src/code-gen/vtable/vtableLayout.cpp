@@ -81,8 +81,7 @@ unsigned int VTableLayout::getIndexOfMethodInVTable(ClassMethodTable* method) {
     assert(false);
 }
 
-void VTableLayout::outputVTableToFile(std::fstream& file) {
-    // TODO: Later
+void VTableLayout::outputVTableToFile(std::ofstream& file) {
     std::string virtualTableName = getVirtualTableName();
     file << "global " + virtualTableName + "\n";
     file << virtualTableName + ":\n";
@@ -95,5 +94,5 @@ void VTableLayout::outputVTableToFile(std::fstream& file) {
 }
 
 std::string VTableLayout::getVirtualTableName() {
-    return "VIRT"+typeName;
+    return "VIRT$"+typeName;
 }

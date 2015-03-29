@@ -21,3 +21,8 @@ std::string FieldTable::generateFieldLabel() {
     return declaringClass->getCanonicalName() + '.' +
            field->getFieldDeclared()->getIdAsString();
 }
+
+std::string FieldTable::generateStaticInitializerLabel() {
+    return "INIT$" + declaringClass->getCanonicalName() + '.' +
+            field->getFieldDeclared()->getIdAsString();
+}

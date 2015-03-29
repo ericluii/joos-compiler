@@ -43,7 +43,7 @@ class VTableLayout {
         VTableLayout(CompilationTable*, VTableLayout*);
         VTableLayout(VTableLayout*);
         unsigned int getIndexOfMethodInVTable(ClassMethodTable*);
-        void outputVTableToFile(std::fstream&);
+        void outputVTableToFile(std::ofstream&);
         std::string getVirtualTableName();
 };
 
