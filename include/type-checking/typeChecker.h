@@ -110,6 +110,8 @@ class TypeChecking {
 
         std::string last_type_to_type_error;
 
+        Token* closest_token;
+
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
         bool check(ClassBodyStar* classBodyStar);

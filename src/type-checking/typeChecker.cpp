@@ -106,7 +106,6 @@ bool TypeChecking::check(FieldDecl* fieldDecl) {
     }
 
     if (!canAssignTypeToType(fieldDecl->getFieldType()->getTypeAsString(), fieldDecl->getInitializingExpression()->getExpressionTypeString())) {
-        // TODO: CREATE TESTS FOR BAD FIELD DECLS
         std::stringstream ss;
         ss << last_type_to_type_error;
         NOTIFY_ERROR(fieldDecl->getFieldDeclared()->getToken(), ss);
@@ -117,10 +116,12 @@ bool TypeChecking::check(FieldDecl* fieldDecl) {
 }
 
 bool TypeChecking::check(ClassMethod* classMethod) {
+    closest_token = classMethod->getMethodHeader()->getClassMethodId()->getToken();
     CHECK_PUSH(classMethod->getMethodBody(), classMethod->getClassMethodTable(), CLASSMETHOD_TABLE);
 }
 
 bool TypeChecking::check(Constructor* constructor) {
+    closest_token = constructor->getConstructorId()->getToken();
     if (!constructor->emptyConstructorBody()) {
         CHECK_PUSH(constructor->getConstructorBody(), constructor->getConstructorTable(), CONSTRUCTOR_TABLE);
     }
@@ -130,8 +131,9 @@ bool TypeChecking::check(Constructor* constructor) {
     if (!cd->noSuperClass()) {
         CompilationTable* ct = cd->getSuper()->getSuperClassTable();
         if (!ct->getAConstructor("()")) {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] No default constructor in super class.");
-            return false;
+            std::stringstream ss;
+            ss << "Super class of class '" << processing->getCanonicalName() << "' requires a default constructor, if constructor body is empty.";
+            NOTIFY_ERROR(constructor->getConstructorId()->getToken(), ss);
         }
     }
 
@@ -191,8 +193,18 @@ bool TypeChecking::check(IfStmt* ifStmt) {
     }
 
     if (ifStmt->getExpressionToEvaluate()->getExpressionTypeString() != "boolean") {
-        Error(E_DEFAULT, NULL, "Cannot have a non-boolean value as a condition.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains an if statement with a non-boolean value as a condition.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains an if statement with a non-boolean value as a condition.";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     return check(ifStmt->getExpressionToEvaluate()) && check(ifStmt->getExecuteTruePart()) && else_result;
@@ -200,8 +212,18 @@ bool TypeChecking::check(IfStmt* ifStmt) {
 
 bool TypeChecking::check(WhileStmt* whileStmt) {
     if (whileStmt->getExpressionToEvaluate()->getExpressionTypeString() != "boolean") {
-        Error(E_DEFAULT, NULL, "Cannot have a non-boolean value as a condition.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains a while statement with a non-boolean value as a condition.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains a while statement with a non-boolean value as a condition.";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     return check(whileStmt->getExpressionToEvaluate()) && check(whileStmt->getLoopStmt());
@@ -219,8 +241,18 @@ bool TypeChecking::check(ForStmt* forStmt) {
     if (!forStmt->emptyExpression()) {
         if (!forStmt->getExpressionToEvaluate()->isEpsilon()) {
             if (forStmt->getExpressionToEvaluate()->getExpression()->getExpressionTypeString() != "boolean") {
-                Error(E_DEFAULT, NULL, "Cannot have a non-boolean value as a condition.");
-                return false;
+                std::stringstream ss;
+                if (cur_st_type == CONSTRUCTOR_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains a for statement with a non-boolean value as a condition.";
+                } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                    ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       <<  "' contains a for statement with a non-boolean value as a condition.";
+                } else {
+                    assert(false);
+                }
+
+                NOTIFY_ERROR(closest_token, ss);
             }
         }
         
@@ -267,15 +299,14 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
 
         return check(methodInvoke->getArgsForInvokedMethod());
     } else {
-
         // TODO: CHECK SOMETHING...
+        //       Theoretically should fall through and be checked correctly...
 
         return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()) && check(methodInvoke->getArgsForInvokedMethod());
     }
 }
 
 bool TypeChecking::check(NewClassCreation* newClassCreation) {
-    // TODO: CHECK IF CALLED CONSTRUCTOR IS PROTECTED
     CompilationTable* table = newClassCreation->getTableOfCreatedClass();
     if (table->isClassSymbolTable()) {
         ClassTable* ct = static_cast<ClassTable*>(table->getSymbolTable());
@@ -392,21 +423,51 @@ bool TypeChecking::check(Expression* expression) {
         if ((expression->isEqual() || expression->isNotEqual()) &&
             !canAssignTypeToType(leftExpr->getExpressionTypeString(), rightExpr->getExpressionTypeString()) &&
             !canAssignTypeToType(rightExpr->getExpressionTypeString(), leftExpr->getExpressionTypeString())) {
-            Error(E_DEFAULT, NULL, "Cannot equal check.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains an expression with a non-assignable equality check.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains an expression with a non-assignable equality check.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
 
         // Disallow bitwise OR and AND
         if(expression->isEagerOr() || expression->isEagerAnd()) {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Use of | or &.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains invalid operator(s) | or &.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains invalid operator(s) | or &.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
 
         if ((expression->isLazyOr() || expression->isLazyAnd()) &&
             (leftExpr->getExpressionTypeString() != "boolean" ||
              rightExpr->getExpressionTypeString() != "boolean")) {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Non-booleans in conditions.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a conditional AND or OR with non-boolean expressions.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a conditional AND or OR with non-boolean expressions.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
 
         // For numeric binary expressions, both items must be a primitive
@@ -417,8 +478,18 @@ bool TypeChecking::check(Expression* expression) {
              !isPrimitive(rightExpr->getExpressionTypeString())) &&
             leftExpr->getExpressionTypeString() != "java.lang.String" &&
             rightExpr->getExpressionTypeString() != "java.lang.String") {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Bad Numeric Expressions.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains an invalid binary numeric expression.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains an invalid binary numeric expression.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
 
         // If one or more is a string, check to see that the operation is either
@@ -429,15 +500,35 @@ bool TypeChecking::check(Expression* expression) {
             !expression->isEqual() &&
             !expression->isNotEqual() &&
             !expression->isAddition()) {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Not equals/equals/addition string.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains an invalid binary expression with the java.lang.String type.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains an invalid binary expression with the java.lang.String type.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         } else if (((leftExpr->getExpressionTypeString() == "java.lang.String" &&
                      rightExpr->getExpressionTypeString() != "java.lang.String") ||
                     (leftExpr->getExpressionTypeString() != "java.lang.String" &&
                      rightExpr->getExpressionTypeString() == "java.lang.String")) &&
                    !expression->isAddition()) {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] addition string.");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains an invalid binary expression with the java.lang.String type. String conversions only apply to the addition operator.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains an invalid binary expression with the java.lang.String type. String conversions only apply to the addition operator.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
 
         return check(rightExpr) && check(leftExpr);
@@ -472,14 +563,34 @@ bool TypeChecking::check(InstanceOf* instanceOf) {
     // The type of a RelationalExpression operand of the instanceof operator must be a reference type or the null type
     if (instanceOf->getExpressionToCheck()->getExpressionTypeString() != "null" &&
         isPrimitive(instanceOf->getExpressionToCheck()->getExpressionTypeString())) {
-        Error(E_DEFAULT, NULL, "Cannot check the instanceof a primitive type.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains an instanceof operation on a primitive type.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains an instanceof operation on a primitive type.";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     // The ReferenceType mentioned after the instanceof operator must denote a reference type
     if (isPrimitive(instanceOf->getTypeToCheck()->getTypeAsString())) {
-        Error(E_DEFAULT, NULL, "Cannot check that a non-primitive is an instanceof a primitive type.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains an instanceof operation with a primitive and non-primitive type.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains an instanceof operation with a primitive and non-primitive type.";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     return check(instanceOf->getExpressionToCheck());
@@ -515,8 +626,18 @@ bool TypeChecking::check(PrimaryNewArray* primaryNewArray) {
         primaryNewArray->getTheDimension()->getExpressionTypeString() != "short" &&
         primaryNewArray->getTheDimension()->getExpressionTypeString() != "byte" &&
         primaryNewArray->getTheDimension()->getExpressionTypeString() != "char") {
-        Error(E_DEFAULT, NULL, "Array cann only be indexed by an int, short, byte, or char.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains an array that is indexed by a non-[int/short/byte/char].";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains an array that is indexed by a non-[int/short/byte/char].";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     return check(primaryNewArray->getTheDimension());
@@ -528,8 +649,18 @@ bool TypeChecking::check(ArrayAccess* arrayAccess) {
         arrayAccess->getAccessExpression()->getExpressionTypeString() != "short" &&
         arrayAccess->getAccessExpression()->getExpressionTypeString() != "byte" &&
         arrayAccess->getAccessExpression()->getExpressionTypeString() != "char") {
-        Error(E_DEFAULT, NULL, "Array cann only be indexed by an int, short, byte, or char.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains an array that is indexed by a non-[int/short/byte/char].";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains an array that is indexed by a non-[int/short/byte/char].";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     bool rv = check(arrayAccess->getAccessExpression());
@@ -554,17 +685,25 @@ bool TypeChecking::check(FieldAccess* fieldAccess) {
 }
 
 bool TypeChecking::check(CastExpression* castExpression){
-    // TODO: CASTING CHECKS
     Expression* paramaterExpression = castExpression->getExpressionToCast();
 
     if(castExpression->isCastToArrayName()){
         return check(paramaterExpression);
     } else if(castExpression->isCastToReferenceType()){
-        //std::cout << " to Reference type" << std::endl;
         if(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString()))
         {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast primitive to reference type");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a cast from a primitive to non-primitive type.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a cast from a primitive to non-primitive type.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
         else
         {
@@ -572,32 +711,80 @@ bool TypeChecking::check(CastExpression* castExpression){
                !inheritsOrExtendsOrImplements(castExpression->getExpressionTypeString(), paramaterExpression->getExpressionTypeString()) &&
                paramaterExpression->getExprType() != ET_NULL)
             {
-                Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] invalid reference type cast");
-                return false;
+                std::stringstream ss;
+                if (cur_st_type == CONSTRUCTOR_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains an invalid reference type cast.";
+                } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                    ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       <<  "' contains an invalid reference type cast.";
+                } else {
+                    assert(false);
+                }
+
+                NOTIFY_ERROR(closest_token, ss);
             }
         }
     } else {
-        //std::cout << " to Primitive type" << std::endl;
         if(!(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString())))
         {
-            //std::cout << "Error on casting " << paramaterExpression->getExpressionTypeString() << " to Primitive type" << std::endl;
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast reference type to primitive type");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a cast from a non-primitve type to a primitive type.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a cast from a non-primitve type to a primitive type.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
         else if(paramaterExpression->isExprTypeBoolean() && (castExpression->getExprType() != ET_BOOLEAN))
         {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a boolean");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a cast on a boolean.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a cast on a boolean.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
         else if(isPrimitive(paramaterExpression->getExpressionTypeString()) && static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
         {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a primitive to a primitive array");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a cast from a primtive to a primitive array.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a cast from a primtive to a primitive array.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
         else if(isPrimitiveArray(paramaterExpression->getExpressionTypeString()) && !static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
         {
-            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] cannot cast a primitive array to a primitive");
-            return false;
+            std::stringstream ss;
+            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                   <<  "' contains a cast from a primtive array to a primitive.";
+            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                   <<  "' contains a cast from a primtive array to a primitive.";
+            } else {
+                assert(false);
+            }
+
+            NOTIFY_ERROR(closest_token, ss);
         }
     }
 
@@ -605,7 +792,6 @@ bool TypeChecking::check(CastExpression* castExpression){
 }
 
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
-    // TODO: CHECK IF I CAN USE A LITERAL OR THIS...
     if (literalOrThis->isThis() && restrict_this) {
         std::stringstream ss;
         ss << "'this' may be used only in the body of an instance method, instance initializer or constructor,"
@@ -620,8 +806,6 @@ bool TypeChecking::check(Assignment* assignment) {
     bool rv = true;
 
     if (!canAssignTypeToType(assignment->getExpressionTypeString(), assignment->getExpressionToAssign()->getExpressionTypeString())) {
-        // TODO: Find Token
-        // TODO: Add more assignment tests
         Error(E_DEFAULT, NULL, last_type_to_type_error);
         return false;
     } else if (assignment->isAssignName()) {
@@ -645,7 +829,6 @@ bool TypeChecking::check(Assignment* assignment) {
 
 bool TypeChecking::check(LocalDecl* localDecl) {
     if (!canAssignTypeToType(localDecl->getLocalType()->getTypeAsString(), localDecl->getLocalInitExpr()->getExpressionTypeString())) {
-        // TODO: CREATE TESTS FOR BAD LOCAL DECLS
         std::stringstream ss;
         ss << last_type_to_type_error;
         NOTIFY_ERROR(localDecl->getLocalId()->getToken(), ss);
