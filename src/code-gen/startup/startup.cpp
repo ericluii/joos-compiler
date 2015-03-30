@@ -4,6 +4,7 @@
 // Code generation related
 #include "startup.h"
 #include "vtableLayout.h"
+#include "objectLayout.h"
 
 // Symbol table related
 #include "compilationTable.h"
@@ -315,7 +316,7 @@ void Startup::printInterfaceMethodTable() {
     }
 }
 
-void Startup::generateStartupFile(VTableLayout* arrayVTable) {
+void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<CompilationTable*, ObjectLayout*>& layouts) {
     std::ofstream fs("_startup.s");
     // data section
     fs << "section .data\n";
@@ -354,6 +355,17 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable) {
     // generate virtual table for arrays
     arrayVTable->outputVTableToFile(fs);
 
+    // generate table for static fields indicator
+    std::map<CompilationTable*, ObjectLayout*>::iterator it;
+    for(it = layouts.begin(); it != layouts.end(); it++) {
+        std::string staticIndicatorName = "STATIC$" + it->first->getCanonicalName();
+        fs << "global " << staticIndicatorName << '\n';
+        fs << staticIndicatorName << ": ";
+        it->second->generateStaticIndicatorRowToFile(fs);
+    }
+
+    fs << '\n';
+
     fs << "section .text\n";
 
     // method for array creation
@@ -361,16 +373,18 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable) {
     fs << "extern __malloc\n";
     fs << "; assumption is eax contains the size of the created array (not including space for length and the tables) in bytes\n";
     fs << "push eax\n";
-    fs << "add eax, 16 ; add 16 bytes for length and table space\n";
+    fs << "add eax, 20 ; add 20 bytes for length and all of table space\n";
     fs << "call __malloc ; call malloc\n";
     fs << "pop ebx ; get back old pushed eax\n";
     fs << "mov [eax], ebx ; store length\n";
+    fs << "add eax, 4 ; add 4 to start storing the tables\n";
+    fs << "mov [eax], 0 ; arrays don't really need a static field indicator table\n";
     fs << "mov [eax+4], VIRT$.array ; store array virtual table\n";
     fs << "mov [eax+12], INTER$.array ; store array interface method table\n";
     fs << "; initialize array to all 0s\n";
     fs << "mov ecx, ebx / 4\n";
     fs << "mov ebx, eax\n";
-    fs << "mov ebx, 16\n";
+    fs << "add ebx, 16\n";
     fs << "initArray:\n";
     fs << "mov [ebx], dword 0\n";
     fs << "add ebx, 4\n";

@@ -36,8 +36,6 @@ class ClassBodyDecls : public Ast {
         void setNextDeclaration(ClassBodyDecls* set) { nextDeclaration = set; }
         bool isLastClassMember() { return nextDeclaration == NULL; }
 
-        
-
         bool isStatic() {
             return checkForModifier("static");
         }

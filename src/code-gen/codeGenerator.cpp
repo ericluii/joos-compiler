@@ -79,7 +79,7 @@ void CodeGenerator::initStage() {
     starter->createTablesForArrayType();
     virtualManager->createVTableLayoutForArrays();
     // generate _startup.s
-    starter->generateStartupFile(virtualManager->getVTableLayoutOfType(".array"));
+    starter->generateStartupFile(virtualManager->getVTableLayoutOfType(".array"), layoutOfClasses);
 
     // starter->printInheritanceTable();
     // starter->printInterfaceMethodTable();
@@ -114,10 +114,10 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
-            fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+            // fs = new std::ofstream(it->second->getCanonicalName() + ".s");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
-            delete fs;
-            fs = NULL;
+            // delete fs;
+            // fs = NULL;
         }
     }
 }
