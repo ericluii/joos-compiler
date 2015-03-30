@@ -369,7 +369,18 @@ ClassMethodTable* CompilationTable::getAnInterfaceMethodFromObject(const std::st
     // make sure this is called only when the method can't be found
     // from the interface itself
     assert(interfaceMethods.count(methodSignature) == 0);
-    return extendFromObject->getAClassMethod(methodSignature);
+    ClassMethodTable* retTable = extendFromObject->getAClassMethod(methodSignature);
+    if(retTable != NULL) {
+        if(!retTable->getClassMethod()->isProtected()) {
+            // return the class method table, if the method is
+            // not protected i.e public
+            return retTable;
+        } else {
+            // it's protected, return NULL
+            return NULL;
+        }
+    }
+    return retTable;
 }
 
 void CompilationTable::registerInterfaceMethods() {
@@ -610,15 +621,4 @@ unsigned int CompilationTable::getNumDefinedClassMethods() {
 unsigned int CompilationTable::getNumDefinedInterfaceMethods() {
     assert(symTable != NULL && symTable->isInterfaceTable());
     return numInterfaceMethods;
-}
-
-unsigned int CompilationTable::getSizeOfClassInBytes() {
-    // should only be invoked for a compilation unit that
-    // defines a class
-    assert(symTable != NULL && symTable->isClassTable());
-    // the number of fields in total (inherited and defined), times 4,
-    // since each field will take a 32 bits -> 4 bytes, plus 12,
-    // to represent the virtual table, inheritance table and interface
-    // method table pointers
-    return (numFields + numInheritedFields) * 4 + 12;
 }

@@ -1,16 +1,22 @@
 #include <cassert>
 #include <fstream>
 
+// Code generation related
 #include "startup.h"
+#include "vtableLayout.h"
+#include "objectLayout.h"
 
+// Symbol table related
 #include "compilationTable.h"
 #include "classTable.h"
 #include "interfaceTable.h"
+#include "classMethodTable.h"
+#include "fieldTable.h"
+
+// AST related
 #include "classDecl.h"
 #include "interfaceDecl.h"
-#include "classMethodTable.h"
 #include "classMethod.h"
-#include "fieldTable.h"
 #include "fieldDecl.h"
 
 class InterfaceMethodTable;
@@ -310,19 +316,19 @@ void Startup::printInterfaceMethodTable() {
     }
 }
 
-void Startup::generateStartupFile() {
+void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<CompilationTable*, ObjectLayout*>& layouts) {
     std::ofstream fs("_startup.s");
     // data section
     fs << "section .data\n";
     std::map<std::string, std::vector<bool> >::iterator inheritance;
     for(inheritance = inheritanceTable.begin(); inheritance != inheritanceTable.end(); inheritance++) {
         // create inheritance table
-        std::string inheritanceTableName = "INH" + inheritance->first;
+        std::string inheritanceTableName = "INH$" + inheritance->first;
         fs << "global " << inheritanceTableName << '\n';
         fs << inheritanceTableName << ": ";
         for(unsigned int i = 0; i < inheritance->second.size(); i++) {
             if(i == 0) { fs << "dd "; }
-            else { fs << ", "; }
+            else { fs << ","; }
             fs << inheritance->second[i];
         }
         fs << '\n';
@@ -332,12 +338,12 @@ void Startup::generateStartupFile() {
     std::map<std::string, std::vector<ClassMethodTable*> >::iterator interfaces;
     for(interfaces = interfaceMethodTable.begin(); interfaces != interfaceMethodTable.end(); interfaces++) {
         // create interface method table
-        std::string interfaceTableName = "INTER" + interfaces->first;
+        std::string interfaceTableName = "INTER$" + interfaces->first;
         fs << "global " << interfaceTableName << '\n';
         fs << interfaceTableName << ": ";
         for(unsigned int i = 0; i < interfaces->second.size(); i++) {
             if(i == 0) { fs << "dd "; }
-            else { fs << ", "; }
+            else { fs << ","; }
             
             if(interfaces->second[i] == NULL) { fs << "0"; }
             else { fs << interfaces->second[i]->generateMethodLabel(); }
@@ -345,18 +351,59 @@ void Startup::generateStartupFile() {
         fs << '\n';
     }
 
-    fs << "\nsection .text\nglobal _start\n_start:\n";
-    std::map<std::string, std::vector<FieldTable*> >::iterator staticFieldsInit;
-    for(staticFieldsInit = staticTable.begin(); staticFieldsInit != staticTable.end(); staticFieldsInit++) {
-       std::string staticInitCall = "INIT" + staticFieldsInit->first;
-       for(unsigned int i =0; i < staticFieldsInit->second.size(); i++) {
-           std::string fieldName = staticFieldsInit->second[i]->getField()->getFieldDeclared()->getIdAsString();
-           fs << "extern " << staticInitCall << fieldName << '\n';
-           fs << "call " << staticInitCall << fieldName << '\n';
-       }
+    fs << '\n';
+    // generate virtual table for arrays
+    arrayVTable->outputVTableToFile(fs);
+
+    // generate table for static fields indicator
+    std::map<CompilationTable*, ObjectLayout*>::iterator it;
+    for(it = layouts.begin(); it != layouts.end(); it++) {
+        std::string staticIndicatorName = "STATIC$" + it->first->getCanonicalName();
+        fs << "global " << staticIndicatorName << '\n';
+        fs << staticIndicatorName << ": ";
+        it->second->generateStaticIndicatorRowToFile(fs);
     }
 
     fs << '\n';
+
+    fs << "section .text\n";
+
+    // method for array creation
+    fs << "global makeArrayBanana$\nmakeArrayBanana$:\n";
+    fs << "extern __malloc\n";
+    fs << "; assumption is eax contains the size of the created array (not including space for length and the tables) in bytes\n";
+    fs << "push eax\n";
+    fs << "add eax, 20 ; add 20 bytes for length and all of table space\n";
+    fs << "call __malloc ; call malloc\n";
+    fs << "pop ebx ; get back old pushed eax\n";
+    fs << "mov [eax], ebx ; store length\n";
+    fs << "add eax, 4 ; add 4 to start storing the tables\n";
+    fs << "mov [eax], 0 ; arrays don't really need a static field indicator table\n";
+    fs << "mov [eax+4], VIRT$.array ; store array virtual table\n";
+    fs << "mov [eax+12], INTER$.array ; store array interface method table\n";
+    fs << "; initialize array to all 0s\n";
+    fs << "mov ecx, ebx / 4\n";
+    fs << "mov ebx, eax\n";
+    fs << "add ebx, 16\n";
+    fs << "initArray:\n";
+    fs << "mov [ebx], dword 0\n";
+    fs << "add ebx, 4\n";
+    fs << "loop initArray\n";
+    fs << "add eax, 4 ; add 4 bytes to make eax point to the virtual table\n";
+    fs << "ret\n\n";
+
+    fs << "global _start\n_start:\n";
+    // call static fields initializer
+    std::map<std::string, std::vector<FieldTable*> >::iterator staticFieldsInit;
+    for(staticFieldsInit = staticTable.begin(); staticFieldsInit != staticTable.end(); staticFieldsInit++) {
+       for(unsigned int i =0; i < staticFieldsInit->second.size(); i++) {
+           std::string staticInitCall = staticFieldsInit->second[i]->generateStaticInitializerLabel();
+           fs << "extern " << staticInitCall << '\n';
+           fs << "call " << staticInitCall << '\n';
+       }
+    }
+
+    fs << std::endl;
     // call static int test() of the first compilation unit
     // given in the command line to joosc
     // fs << "call " << firstUnit->getAClassMethod("test()")->generateMethodLabel() << '\n';

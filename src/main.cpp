@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
 
         CodeGenerator cg(compilationTables, firstUnit);
         cg.initStage();
+        cg.traverseAndGenerate();
     } catch (std::exception &e) {
         Error::print();
         delete newParseTrees;

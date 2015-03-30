@@ -8,6 +8,8 @@
 class CompilationTable;
 class ClassMethodTable;
 class FieldTable;
+class VTableLayout;
+class ObjectLayout;
 
 class Startup {
     private:
@@ -63,7 +65,7 @@ class Startup {
 
         // --------------------------------------------------------------
         // file creation
-        void generateStartupFile();
+        void generateStartupFile(VTableLayout*, std::map<CompilationTable*, ObjectLayout*>&);
 };
 
 #endif

@@ -36,11 +36,11 @@ class MethodHeader : public Ast {
         }
 
         std::string labelizedMethodSignature() {
-            std::string methodLabel = name->getIdAsString() + '#';
+            std::string methodLabel = name->getIdAsString() + '$';
             if(!params->isEpsilon()) {
-                methodLabel+= params->getListOfParameters()->parametersAsString('#');
+                methodLabel+= params->getListOfParameters()->parametersAsString('$');
             }
-            return methodLabel + '#';
+            return methodLabel + '$';
         }
 };
 
