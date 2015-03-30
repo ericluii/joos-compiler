@@ -29,6 +29,23 @@ class ArgumentsStar;
 class Arguments;
 class NewClassCreation;
 class PrimaryNewArray;
+class LiteralOrThis;
+class LiteralOrThis;
+class NegationExpression;
+class CastExpression;
+class InstanceOf;
+class Assignment;
+class MethodBody;
+class BlockStmtsStar;
+class BlockStmts;
+class LocalDecl;
+class IfStmt;
+class WhileStmt;
+class ForStmt;
+class StmtExpr;
+class NestedBlock;
+class ReturnStmt;
+class ExpressionStar;
 
 class CodeGenerator {
     private:
@@ -47,8 +64,6 @@ class CodeGenerator {
         void traverseAndGenerate(ClassBodyStar*);
         void traverseAndGenerate(ClassBodyDecls*);
         void traverseAndGenerate(FieldDecl*);
-        void traverseAndGenerate(ClassMethod*);
-        void traverseAndGenerate(Constructor*);
         void traverseAndGenerate(Expression*);
         void traverseAndGenerate(BinaryExpression*);
         void traverseAndGenerate(PrimaryExpression*);
@@ -61,6 +76,25 @@ class CodeGenerator {
         void traverseAndGenerate(Arguments*);
         void traverseAndGenerate(NewClassCreation*);
         void traverseAndGenerate(PrimaryNewArray*);
+        void traverseAndGenerate(QualifiedThis*);
+        void traverseAndGenerate(LiteralOrThis*);
+        void traverseAndGenerate(NegationExpression*);
+        void traverseAndGenerate(CastExpression*);
+        void traverseAndGenerate(InstanceOf*);
+        void traverseAndGenerate(Assignment*);
+        void traverseAndGenerate(ClassMethod*);
+        void traverseAndGenerate(MethodBody*);
+        void traverseAndGenerate(Constructor*);
+        void traverseAndGenerate(BlockStmtsStar*);
+        void traverseAndGenerate(BlockStmts*);
+        void traverseAndGenerate(LocalDecl*);
+        void traverseAndGenerate(IfStmt*);
+        void traverseAndGenerate(WhileStmt*);
+        void traverseAndGenerate(ForStmt*);
+        void traverseAndGenerate(ExpressionStar*);
+        void traverseAndGenerate(StmtExpr*);
+        void traverseAndGenerate(NestedBlock*);
+        void traverseAndGenerate(ReturnStmt*);
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

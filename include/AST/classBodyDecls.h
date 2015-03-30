@@ -1,12 +1,24 @@
 #ifndef __CLASSBODYDECLS_H__
 #define __CLASSBODYDECLS_H__
 
+#include <string>
 #include "ast.h"
 #include "modifiers.h"
-#include <iostream>
 
 class ClassBodyDecls : public Ast {
     // Rule: CLASS_BODY_DECL and CLASS_BODY_LIST
+    private:
+        bool checkForModifier(const std::string& lookFor) {
+            Modifiers* m = mod;
+            while(m != NULL) {
+                if(m->getCurrentModifierAsString() == lookFor) {
+                    return true;
+                }
+                m = m->getNextModifier();
+            }
+            return false;
+        }
+
     protected:
         Modifiers* mod;
         ClassBodyDecls* nextDeclaration;
@@ -24,60 +36,22 @@ class ClassBodyDecls : public Ast {
         void setNextDeclaration(ClassBodyDecls* set) { nextDeclaration = set; }
         bool isLastClassMember() { return nextDeclaration == NULL; }
 
+        
+
         bool isStatic() {
-            Modifiers* m = getModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "static") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("static");
         }
         
         bool isProtected() {
-            Modifiers* m = getModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "protected") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("protected");
         }
 
         bool isAbstract() {
-            Modifiers* m = getModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "abstract") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("abstract");
         }
         
         bool isFinal() {
-            Modifiers* m = getModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "final") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("final");
         }
 };
 
