@@ -369,7 +369,18 @@ ClassMethodTable* CompilationTable::getAnInterfaceMethodFromObject(const std::st
     // make sure this is called only when the method can't be found
     // from the interface itself
     assert(interfaceMethods.count(methodSignature) == 0);
-    return extendFromObject->getAClassMethod(methodSignature);
+    ClassMethodTable* retTable = extendFromObject->getAClassMethod(methodSignature);
+    if(retTable != NULL) {
+        if(!retTable->getClassMethod()->isProtected()) {
+            // return the class method table, if the method is
+            // not protected i.e public
+            return retTable;
+        } else {
+            // it's protected, return NULL
+            return NULL;
+        }
+    }
+    return retTable;
 }
 
 void CompilationTable::registerInterfaceMethods() {
