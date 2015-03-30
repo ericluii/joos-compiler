@@ -47,7 +47,7 @@ void TypeChecking::check() {
     for(it = packages.begin(); it != packages.end(); it++) {
         std::vector<CompilationTable*>::iterator it2;
         for(it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-            if (!check(*it2)) {
+            if (!check(*it2) || Error::count()) {
                 return;
             }
         }
@@ -82,7 +82,6 @@ bool TypeChecking::check(ClassBodyStar* classBodyStar) {
 }
 
 bool TypeChecking::check(ClassBodyDecls* classBodyDecls) {
-    bool rest_of_body = true;
     if (!classBodyDecls->isLastClassMember()) {
         if (!check(classBodyDecls->getNextDeclaration())) {
             return false;
@@ -264,8 +263,7 @@ bool TypeChecking::check(NestedBlock* nestedBlock) {
 bool TypeChecking::check(MethodInvoke* methodInvoke) {
     if (methodInvoke->isNormalMethodCall()) {
         Name* name = static_cast<MethodNormalInvoke*>(methodInvoke)->getNameOfInvokedMethod();
-
-        canAccessName(name, static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
+        checkIsNameAccessible(name, static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
 
         return check(methodInvoke->getArgsForInvokedMethod());
     } else {
@@ -287,6 +285,18 @@ bool TypeChecking::check(NewClassCreation* newClassCreation) {
             std::stringstream ss;
             ss << "Abstract class '" << cd->getClassId()->getIdAsString() << "' cannot be constructed.";
             NOTIFY_ERROR(newClassCreation->getClassName()->getNameId()->getToken(), ss);
+        } else if (table->getAConstructor(newClassCreation->constructorInvocationMatchToSignature())->getConstructor()->isProtected()) {
+            if (!isSubclass(table->getCanonicalName(), processing->getCanonicalName())) {
+                std::stringstream ss;
+                ss << "Cannot access protected constructor '" << cd->getClassId()->getIdAsString() << "' because '"
+                   << table->getCanonicalName() << "' is not a subclass of '" << processing->getCanonicalName() << "'.";
+                NOTIFY_ERROR(newClassCreation->getClassName()->getNameId()->getToken(), ss);
+            } else if (table->getPackageName() != processing->getPackageName()) {
+                std::stringstream ss;
+                ss << "Cannot access protected constructor '" << cd->getClassId()->getIdAsString() << "' because '"
+                   << table->getCanonicalName() << "' is not in the same package as '" << processing->getCanonicalName() << "'.";
+                NOTIFY_ERROR(newClassCreation->getClassName()->getNameId()->getToken(), ss);
+            }
         }
     }
 
@@ -386,6 +396,7 @@ bool TypeChecking::check(Expression* expression) {
             return false;
         }
 
+        // Disallow bitwise OR and AND
         if(expression->isEagerOr() || expression->isEagerAnd()) {
             Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Use of | or &.");
             return false;
@@ -416,12 +427,8 @@ bool TypeChecking::check(Expression* expression) {
 
 bool TypeChecking::check(NameExpression* nameExpression) {
     Name* name = nameExpression->getNameExpression();
-
-    if (!canAccessName(name)) {
-        // TODO: VALIDATE PROTECTED/STATIC ACCESS
-    }
-
-    return true;
+    
+    return checkIsNameAccessible(name);
 }
 
 // JLS 15.20.2
@@ -564,10 +571,8 @@ bool TypeChecking::check(CastExpression* castExpression){
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
     // TODO: CHECK IF I CAN USE A LITERAL OR THIS...
     if (literalOrThis->isThis() && restrict_this) {
-        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] this in field init or static method.");
-        return false;
         std::stringstream ss;
-        ss << "this may be used only in the body of an instance method, instance initializer or constructor,"
+        ss << "'this' may be used only in the body of an instance method, instance initializer or constructor,"
            << "or in the initializer of an instance variable of a class.";
         NOTIFY_ERROR(literalOrThis->getLiteralToken(), ss);
     }
@@ -595,6 +600,8 @@ bool TypeChecking::check(Assignment* assignment) {
                 NOTIFY_ERROR(name->getNameId()->getToken(), ss);
             }
         }
+
+        checkIsNameAccessible(name);
     }
 
     return check(assignment->getExpressionToAssign()) && rv;
@@ -611,7 +618,7 @@ bool TypeChecking::check(LocalDecl* localDecl) {
     return check(localDecl->getLocalInitExpr());
 }
 
-bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
+bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature) {
     bool isMethod = methodSignature != "";
 
     // Simple Names can only be non-static contexts
@@ -670,6 +677,7 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
         // Traverse through the compilation tables
         // of the definitions from the left most name
         // to the right most
+        CompilationTable* last_ct = NULL;
         CompilationTable* ct = processing;
         bool static_context = false;
         std::string type;
@@ -681,11 +689,35 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
             if (traceback.empty() && isMethod) {
                 ClassMethod* cm = ct->getAClassMethod(methodSignature)->getClassMethod();
 
+                // Check Protected Access
+                //  - If the class method we believe we are calling is abstract
+                //    we have no way of knowing until runtime, if the method is protected...
+                if (cm->isProtected() && !cm->isAbstract()) {
+                    CompilationTable* temp = cm->getClassMethodTable()->getDeclaringClass();
+
+                    // JLS - 6.6.2.1
+                    if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
+                        !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
+                          isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
+                        std::stringstream ss;
+                        ss << "Cannot access protected method '" << name->getFullName() << "' because '"
+                           << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
+                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                    }
+
+                    if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
+                        std::stringstream ss;
+                        ss << "Cannot access protected method '" << name->getFullName() << "' because '"
+                           << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
+                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                    }
+                }
+
                 // Static Context
                 if (static_context) {
                     if (!cm->isStatic()) {
                         std::stringstream ss;
-                        ss << "Cannot access non-static method '" << name->getNameId()->getIdAsString() << "' in a static context.";
+                        ss << "Cannot access non-static method '" << name->getFullName() << "' in a static context.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
 
@@ -695,7 +727,7 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
                 } else {
                     if (cm->isStatic()) {
                         std::stringstream ss;
-                        ss << "Cannot access static method '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                        ss << "Cannot access static method '" << name->getFullName() << "' in a non-static context.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
                 }
@@ -705,22 +737,27 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
                 // Can we find the declaration within this class?
                 // If so, we can easily find the next CT to traverse to
                 type = tryToGetTypename(name, ct);
+
                 if (type == "") {
                     // Else, it is a class name or part of a class name
                     // These are also all static accesses
                     if (ct->getPackageName() == name->getFullName()) {
+                        last_ct = ct;
                         ct = ct;
                         static_context = true;
                         continue;
                     } else if (processing->checkTypePresenceFromSingleImport(name->getFullName())) {
+                        last_ct = ct;
                         ct = ct->checkTypePresenceFromSingleImport(name->getFullName());
                         static_context = true;
                         continue;
                     } else if (ct->checkTypePresenceInPackage(name->getFullName())) {
+                        last_ct = ct;
                         ct = ct->checkTypePresenceInPackage(name->getFullName());
                         static_context = true;
                         continue;
                     } else if (ct->checkTypePresenceFromImportOnDemand(name->getFullName(), name->getNameId()->getToken())) {
+                        last_ct = ct;
                         ct = ct->checkTypePresenceFromImportOnDemand(name->getFullName(), name->getNameId()->getToken());
                         static_context = true;
                         continue;
@@ -729,6 +766,7 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
                             std::vector<CompilationTable*>& types = packages[name->getQualifier()];
                             for (unsigned int i = 0; i < types.size(); i++) {
                                 if (types[i]->getCanonicalName() == name->getFullName()) {
+                                    last_ct = ct;
                                     ct = types[i];
                                     static_context = true;
                                     break;
@@ -746,11 +784,32 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
             if (ct->getAField(name->getNameId()->getIdAsString())) {
                 FieldDecl* fd = ct->getAField(name->getNameId()->getIdAsString())->getField();
 
+                // Check protected access
+                if (fd->isProtected()) {
+                    CompilationTable* temp = fd->getFieldTable()->getDeclaringClass();
+
+                    if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
+                        !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
+                          isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
+                        std::stringstream ss;
+                        ss << "Cannot access protected field '" << name->getFullName() << "' because '"
+                           << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
+                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                    }
+                    
+                    if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
+                        std::stringstream ss;
+                        ss << "Cannot access protected field '" << name->getFullName() << "' because '"
+                           << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
+                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                    }
+                }
+
                 // Static Context
                 if (static_context) {
                     if (!fd->isStatic()) {
                         std::stringstream ss;
-                        ss << "Cannot access non-static variable '" << name->getNameId()->getIdAsString() << "' in a static context.";
+                        ss << "Cannot access non-static variable '" << name->getFullName() << "' in a static context.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
 
@@ -760,7 +819,7 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
                 } else {
                     if (fd->isStatic()) {
                         std::stringstream ss;
-                        ss << "Cannot access static variable '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                        ss << "Cannot access static variable '" << name->getFullName() << "' in a non-static context.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
                 }
@@ -770,6 +829,7 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
             std::vector<CompilationTable*>& types = packages[getQualifierFromString(type)];
             for (unsigned int i = 0; i < types.size(); i++) {
                 if (types[i]->getClassOrInterfaceName() == type.substr(type.find_last_of('.') + 1)) {
+                    last_ct = ct;
                     ct = types[i];
                     break;
                 }

@@ -146,7 +146,7 @@ class TypeChecking {
         bool check(ArgumentsStar* argumentsStar);
         bool check(Arguments* arguments);
 
-        bool canAccessName(Name* name, std::string methodSignature = "");
+        bool checkIsNameAccessible(Name* name, std::string methodSignature = "");
         bool canAssignTypeToType(std::string lhs_string, std::string rhs_string);
         std::string GetTypeToTypeError(std::string lhs_string, std::string rhs_string);
         bool isSubclass(std::string subclass, std::string superclass);
