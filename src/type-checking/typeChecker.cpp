@@ -84,21 +84,17 @@ bool TypeChecking::check(ClassBodyStar* classBodyStar) {
 bool TypeChecking::check(ClassBodyDecls* classBodyDecls) {
     bool rest_of_body = true;
     if (!classBodyDecls->isLastClassMember()) {
-        rest_of_body = check(classBodyDecls->getNextDeclaration());
+        if (!check(classBodyDecls->getNextDeclaration())) {
+            return false;
+        }
     }
 
     if (classBodyDecls->isClassMethod()) {
-        restrict_this = classBodyDecls->isStatic();
-        bool rv = check(static_cast<ClassMethod*>(classBodyDecls)) && rest_of_body;
-        restrict_this = false;
-        return rv;
+        SET_RETURN(static_cast<ClassMethod*>(classBodyDecls), restrict_this, classBodyDecls->isStatic());
     } else if (classBodyDecls->isConstructor()) {
-        return check(static_cast<Constructor*>(classBodyDecls)) && rest_of_body;
+        return check(static_cast<Constructor*>(classBodyDecls));
     } else if (classBodyDecls->isField()) {
-        restrict_this = classBodyDecls->isStatic();
-        bool rv = check(static_cast<FieldDecl*>(classBodyDecls)) && rest_of_body;
-        restrict_this = false;
-        return rv;
+        SET_RETURN(static_cast<FieldDecl*>(classBodyDecls), restrict_this, classBodyDecls->isStatic());
     }
 
     assert(false);
@@ -390,6 +386,11 @@ bool TypeChecking::check(Expression* expression) {
             return false;
         }
 
+        if(expression->isEagerOr() || expression->isEagerAnd()) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Use of | or &.");
+            return false;
+        }
+
         // TODO: VALIDATE A WHOLE SHIT LOAD OF EXPRESSIONS
 
         return check(rightExpr) && check(leftExpr);
@@ -562,6 +563,14 @@ bool TypeChecking::check(CastExpression* castExpression){
 
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
     // TODO: CHECK IF I CAN USE A LITERAL OR THIS...
+    if (literalOrThis->isThis() && restrict_this) {
+        Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] this in field init or static method.");
+        return false;
+        std::stringstream ss;
+        ss << "this may be used only in the body of an instance method, instance initializer or constructor,"
+           << "or in the initializer of an instance variable of a class.";
+        NOTIFY_ERROR(literalOrThis->getLiteralToken(), ss);
+    }
 
     return true;
 }
@@ -574,6 +583,18 @@ bool TypeChecking::check(Assignment* assignment) {
         // TODO: Add more assignment tests
         Error(E_DEFAULT, NULL, last_type_to_type_error);
         return false;
+    } else if (assignment->isAssignName()) {
+        Name* name = static_cast<AssignName*>(assignment)->getNameToAssign();
+
+        if (!name->isSimpleName()) {
+            std::string type = tryToGetTypename(name->getNextName(), processing);
+
+            if (isArray(type) && name->getNameId()->getIdAsString() == "length") {
+                std::stringstream ss;
+                ss << "Cannot assign the the final field length of '" << name->getQualifier() << "'.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
+        }
     }
 
     return check(assignment->getExpressionToAssign()) && rv;
@@ -593,15 +614,48 @@ bool TypeChecking::check(LocalDecl* localDecl) {
 bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
     bool isMethod = methodSignature != "";
 
+    // Simple Names can only be non-static contexts
     if (name->isSimpleName()) {
         // Name is either locally declared, a parameter, or a field declaration
         // We only need to check access permissions if it is a field declaration
-        if (processing->getAField(name->getFullName())) {
+        if (!localDeclOrParam(name, processing) && processing->getAField(name->getFullName())) {
             FieldDecl* fd = processing->getAField(name->getFullName())->getField();
+
+            if (fd->isStatic()) {
+                std::stringstream ss;
+                ss << "Cannot access static variable '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
 
             if (!fd->isStatic() && static_context_only) {
                 std::stringstream ss;
                 ss << "Cannot access static variable '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
+
+            if (!fd->isStatic() && restrict_this) {
+                std::stringstream ss;
+                ss << "'this' cannot be used implicitly in a static context.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
+        } else if (processing->getAClassMethod(methodSignature)) {
+            ClassMethod* cm = processing->getAClassMethod(methodSignature)->getClassMethod();
+
+            if (cm->isStatic()) {
+                std::stringstream ss;
+                ss << "Cannot access static method '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
+
+            if (!cm->isStatic() && static_context_only) {
+                std::stringstream ss;
+                ss << "Cannot access static method '" << name->getNameId()->getIdAsString() << "' in a non-static context.";
+                NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+            }
+
+            if (!cm->isStatic() && restrict_this) {
+                std::stringstream ss;
+                ss << "'this' cannot be used implicitly in a static context.";
                 NOTIFY_ERROR(name->getNameId()->getToken(), ss);
             }
         }
@@ -629,13 +683,14 @@ bool TypeChecking::canAccessName(Name* name, std::string methodSignature) {
 
                 // Static Context
                 if (static_context) {
-                    static_context = false;
-
                     if (!cm->isStatic()) {
                         std::stringstream ss;
                         ss << "Cannot access non-static method '" << name->getNameId()->getIdAsString() << "' in a static context.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
+
+                    // Cannot chain static accesses.
+                    static_context = false;
                 // Non-static Context
                 } else {
                     if (cm->isStatic()) {
@@ -993,7 +1048,6 @@ void TypeChecking::findLocalDecls(SymbolTable* st, std::vector<LocalDecl*> &lds)
 
 std::string TypeChecking::tryToGetTypename(Name* name, CompilationTable* cur_table) {
     // Check Local Declarations
-    BlockStmts* bs;
     std::vector<LocalDecl*> lds;
     switch (cur_st_type) {
         case CLASSMETHOD_TABLE:
@@ -1046,6 +1100,57 @@ std::string TypeChecking::tryToGetTypename(Name* name, CompilationTable* cur_tab
     }
 
     return "";
+}
+
+bool TypeChecking::localDeclOrParam(Name* name, CompilationTable* cur_table) {
+    // Check Local Declarations
+    std::vector<LocalDecl*> lds;
+    switch (cur_st_type) {
+        case CLASSMETHOD_TABLE:
+        case CONSTRUCTOR_TABLE:
+            findLocalDecls(st_stack.top(), lds);
+            break;
+        case FIELDDECL_TABLE:
+            break;
+        default:
+            assert(false);
+    }
+
+    for (unsigned int i = 0; i < lds.size(); i++) {
+        if (lds[i]->getLocalId()->getIdAsString() == name->getNameId()->getIdAsString()) {
+            return true;
+        }
+    }
+
+    // Check Method Parameters
+    ParamList* pl;
+    switch (cur_st_type) {
+        case CLASSMETHOD_TABLE:
+            pl = static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()
+                                                               ->getClassMethodParams()->getListOfParameters();
+            break;
+        case CONSTRUCTOR_TABLE:{
+            Constructor* c = static_cast<ConstructorTable*>(st_stack.top())->getConstructor();
+            pl = c->getConstructorParameters()->getListOfParameters();
+            break;
+        }
+        case FIELDDECL_TABLE:{
+            pl = NULL;
+            break;
+        }
+        default:
+            assert(false);
+    }
+
+    while (pl != NULL) {
+        if (pl->getParameterId()->getIdAsString() == name->getNameId()->getIdAsString()) {
+            return true;
+        }
+
+        pl = pl->getNextParameter();
+    }
+
+    return false;
 }
 
 bool TypeChecking::inheritsOrExtendsOrImplements(std::string classname, std::string searchname) {
