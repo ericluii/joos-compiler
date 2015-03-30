@@ -402,7 +402,43 @@ bool TypeChecking::check(Expression* expression) {
             return false;
         }
 
-        // TODO: VALIDATE A WHOLE SHIT LOAD OF EXPRESSIONS
+        if ((expression->isLazyOr() || expression->isLazyAnd()) &&
+            (leftExpr->getExpressionTypeString() != "boolean" ||
+             rightExpr->getExpressionTypeString() != "boolean")) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Non-booleans in conditions.");
+            return false;
+        }
+
+        // For numeric binary expressions, both items must be a primitive
+        //  - Check if string type, because if so, it might be a valid string conversion
+        if (!(expression->isLazyOr() || expression->isLazyAnd() ||
+              expression->isEqual() || expression->isNotEqual()) &&
+            (!isPrimitive(leftExpr->getExpressionTypeString()) ||
+             !isPrimitive(rightExpr->getExpressionTypeString())) &&
+            leftExpr->getExpressionTypeString() != "java.lang.String" &&
+            rightExpr->getExpressionTypeString() != "java.lang.String") {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Bad Numeric Expressions.");
+            return false;
+        }
+
+        // If one or more is a string, check to see that the operation is either
+        //     - equals/not equals/concatenation if they are both strings
+        //     - concatentation if only one of them is a string
+        if (leftExpr->getExpressionTypeString() == "java.lang.String" &&
+            rightExpr->getExpressionTypeString() == "java.lang.String" &&
+            !expression->isEqual() &&
+            !expression->isNotEqual() &&
+            !expression->isAddition()) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] Not equals/equals/addition string.");
+            return false;
+        } else if (((leftExpr->getExpressionTypeString() == "java.lang.String" &&
+                     rightExpr->getExpressionTypeString() != "java.lang.String") ||
+                    (leftExpr->getExpressionTypeString() != "java.lang.String" &&
+                     rightExpr->getExpressionTypeString() == "java.lang.String")) &&
+                   !expression->isAddition()) {
+            Error(E_DEFAULT, NULL, "[DEV NOTE - REPLACE] addition string.");
+            return false;
+        }
 
         return check(rightExpr) && check(leftExpr);
     } else if(expression->isAssignName() || expression->isAssignField() || expression->isAssignArray()) {
