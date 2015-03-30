@@ -3,7 +3,7 @@
 
 #include "ast.h"
 #include "expression.h"
-
+#include "primary.h"
 #include "evaluatedType.h"
 
 class CompilationTable;

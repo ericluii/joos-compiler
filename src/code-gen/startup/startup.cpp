@@ -367,6 +367,14 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable) {
     fs << "mov [eax], ebx ; store length\n";
     fs << "mov [eax+4], VIRT$.array ; store array virtual table\n";
     fs << "mov [eax+12], INTER$.array ; store array interface method table\n";
+    fs << "; initialize array to all 0s\n";
+    fs << "mov ecx, ebx / 4\n";
+    fs << "mov ebx, eax\n";
+    fs << "mov ebx, 16\n";
+    fs << "initArray:\n";
+    fs << "mov [ebx], dword 0\n";
+    fs << "add ebx, 4\n";
+    fs << "loop initArray\n";
     fs << "add eax, 4 ; add 4 bytes to make eax point to the virtual table\n";
     fs << "ret\n\n";
 
