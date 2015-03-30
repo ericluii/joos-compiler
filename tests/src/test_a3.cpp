@@ -49,12 +49,9 @@ void Test_A3::test() {
             files.push_back(stdlibPath + "/" + stdlibFilesA3[j]);
         }
 
-        std::cout << "./joosc ./tests/stdlib/3.0/java/io/* ./tests/stdlib/3.0/java/util/* ./tests/stdlib/3.0/java/lang/*";
         for (unsigned int j = 0; j < a3TestFiles[i].size(); j++) {
-            std::cout << " tests/a3/" << a3TestFiles[i][j];
             files.push_back(directoryPath + "/" + a3TestFiles[i][j]); 
         }
-        std::cout << std::endl;
 
         for (unsigned int j = 0; j < files.size(); j++) {
             file.open(files[j]);

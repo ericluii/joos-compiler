@@ -31,6 +31,20 @@ class InterfaceDecl : public TypeDecl
         InterfaceList* getExtendedInterfaces() { return extends; }
         InterfaceBodyStar* getInterfaceBodyStar() { return body; }
 
+        bool isFinal() {
+            Modifiers* m = getInterfaceModifiers();
+
+            while (m != NULL) {
+                if (m->getCurrentModifierAsString() == "final") {
+                    return true;
+                }
+
+                m = m->getNextModifier();
+            }
+
+            return false;
+        }
+
         bool noExtendedInterfaces() { return extends->isEpsilon(); }
         bool emptyInterfaceBody() { return body->isEpsilon(); }
         bool isEpsilon() { return false; }

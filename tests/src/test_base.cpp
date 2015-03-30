@@ -6,12 +6,20 @@ std::vector<std::string> Test_Base::test_fails;
 
 void Test_Base::printPass(std::string name, std::string description)
 {
-    std::cout << "[PASSED] " << test_name << " - " << name << " : " << description<< std::endl;
+#ifndef _WIN32
+    std::cout << "\033[0;32m[PASSED] " << test_name << " - " << name << " : " << description << "\033[0m" << std::endl;
+#else
+    std::cout << "[PASSED] " << test_name << " - " << name << " : " << description << std::endl;
+#endif
 }
 
 void Test_Base::printFail(std::string name, std::string description)
 {
+#ifndef _WIN32
+    std::cout << "\033[0;31m[FAILED] " << test_name << " - " << name << " : " << description << "\033[0m" << std::endl;
+#else
     std::cout << "[FAILED] " << test_name << " - " << name << " : " << description << std::endl;
+#endif
 }
 
 void Test_Base::checkTrue(std::string name, bool value,
