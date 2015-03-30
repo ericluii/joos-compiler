@@ -63,6 +63,10 @@ enum ST_TYPE {
     NONE
 };
 
+#define NOTIFY_ERROR(token, sstream)\
+    Error(E_TYPECHECKING, token, sstream.str());\
+    return false;
+
 #define CHECK_PUSH(expr, symboltable, symbol_table_type) st_stack.push(symboltable);\
     ST_TYPE last_type = cur_st_type;\
     cur_st_type = symbol_table_type;\
@@ -97,7 +101,8 @@ class TypeChecking {
 
         bool static_context_only;
         bool numeric_expression_only;
-        bool boolean_expression_only;
+
+        std::string last_type_to_type_error;
 
         bool check(CompilationTable* compilation);
         bool check(ClassDecl* classDecl);
@@ -135,9 +140,13 @@ class TypeChecking {
         bool check(ArgumentsStar* argumentsStar);
         bool check(Arguments* arguments);
 
-        bool isLocalOrArg(Name* name);
+        bool canAccessName(Name* name, std::string methodSignature = "");
+        bool canAssignTypeToType(std::string lhs_string, std::string rhs_string);
+        std::string GetTypeToTypeError(std::string lhs_string, std::string rhs_string);
+        bool isSubclass(std::string subclass, std::string superclass);
+        void findLocalDecls(SymbolTable* st, std::vector<LocalDecl*> &lds);
+
         bool inheritsOrExtendsOrImplements(std::string classname, std::string searchname);
-        bool assignmentCheck(std::string lefths, Expression* expr);
         std::string tryToGetTypename(Name* name, CompilationTable* cur_table);
     public:
         TypeChecking(PackagesManager& manager, std::map<std::string, std::vector<CompilationTable*> >& packages);
