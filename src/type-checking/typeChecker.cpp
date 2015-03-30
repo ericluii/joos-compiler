@@ -180,6 +180,8 @@ bool TypeChecking::check(BlockStmts* blockStmts) {
         return check(static_cast<ForStmt*>(blockStmts)) && rest_of_statements;
     } else if (blockStmts->isNestedBlock()) {
         return check(static_cast<NestedBlock*>(blockStmts)) && rest_of_statements;
+    } else if (blockStmts->isEmptyStmt()) {
+        return true;
     }
 
     assert(false);
