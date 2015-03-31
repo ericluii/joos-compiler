@@ -322,36 +322,42 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<Compilatio
     fs << "section .data\n";
     std::map<std::string, std::vector<bool> >::iterator inheritance;
     for(inheritance = inheritanceTable.begin(); inheritance != inheritanceTable.end(); inheritance++) {
-        // create inheritance table
-        std::string inheritanceTableName = "INH$" + inheritance->first;
-        fs << "global " << inheritanceTableName << '\n';
-        fs << inheritanceTableName << ": ";
-        for(unsigned int i = 0; i < inheritance->second.size(); i++) {
-            if(i == 0) { fs << "dd "; }
-            else { fs << ","; }
-            fs << inheritance->second[i];
+        // create inheritance table for array types only
+        if(inheritance->first.rfind(".array") == inheritance->first.length() - 6) {
+            // if the name ends with .array -> indicates it is an array type
+            std::string inheritanceTableName = "INH$" + inheritance->first;
+            fs << "global " << inheritanceTableName << '\n';
+            fs << inheritanceTableName << ": ";
+            for(unsigned int i = 0; i < inheritance->second.size(); i++) {
+                if(i == 0) { fs << "dd "; }
+                else { fs << ","; }
+                fs << inheritance->second[i];
+            }
+            fs << '\n';
         }
-        fs << '\n';
     }
 
     fs << '\n';
-    std::map<std::string, std::vector<ClassMethodTable*> >::iterator interfaces;
-    for(interfaces = interfaceMethodTable.begin(); interfaces != interfaceMethodTable.end(); interfaces++) {
-        // create interface method table
-        std::string interfaceTableName = "INTER$" + interfaces->first;
-        fs << "global " << interfaceTableName << '\n';
-        fs << interfaceTableName << ": ";
-        for(unsigned int i = 0; i < interfaces->second.size(); i++) {
-            if(i == 0) { fs << "dd "; }
-            else { fs << ","; }
-            
-            if(interfaces->second[i] == NULL) { fs << "0"; }
-            else { fs << interfaces->second[i]->generateMethodLabel(); }
-        }
+    std::vector<ClassMethodTable*>::iterator arrayInterfaces;
+    for(arrayInterfaces = interfaceMethodTable[".array"].begin(); arrayInterfaces != interfaceMethodTable[".array"].end();
+        arrayInterfaces++) {
+        fs << "extern ";
+        if((*arrayInterfaces) != NULL) { fs << (*arrayInterfaces)->generateMethodLabel(); }
         fs << '\n';
     }
 
-    fs << '\n';
+    fs << "global " << "INTER$.array\n" << "INTER$.array: ";
+    bool first = true;
+    for(arrayInterfaces = interfaceMethodTable[".array"].begin(); arrayInterfaces != interfaceMethodTable[".array"].end();
+        arrayInterfaces++) {
+        if(first) { fs << "dd "; first = false; }
+        else { fs << ","; }
+
+        if((*arrayInterfaces) == NULL) { fs << "0"; }
+        else { fs << (*arrayInterfaces)->generateMethodLabel(); }
+    }
+
+    fs << "\n\n";
     // generate virtual table for arrays
     arrayVTable->outputVTableToFile(fs);
 
