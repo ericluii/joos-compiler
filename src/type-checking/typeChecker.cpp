@@ -450,7 +450,9 @@ bool TypeChecking::check(Expression* expression) {
         }
 
         // Disallow bitwise OR and AND
-        if(expression->isEagerOr() || expression->isEagerAnd()) {
+        if((expression->isEagerOr() || expression->isEagerAnd()) &&
+            leftExpr->getExpressionTypeString() != "boolean" &&
+            rightExpr->getExpressionTypeString() != "boolean") {
             std::stringstream ss;
             if (cur_st_type == CONSTRUCTOR_TABLE) {
                 ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()

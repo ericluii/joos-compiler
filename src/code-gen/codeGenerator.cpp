@@ -53,6 +53,17 @@
 #include "vtableLayout.h"
 #include "objectLayout.h"
 
+#include "RLG.h"
+
+void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
+    asma("push ebp");
+    asma("mov ebp, esp");
+    asma("extern " << fn_name);
+    asma("call " << fn_name);
+    asma("mov esp, ebp");
+    asma("pop ebp");
+}
+
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
             compilations(compilations), firstUnit(firstUnit), starter(new Startup(compilations, firstUnit)),
             virtualManager(new VTableManager(compilations)), fs(NULL) {}
@@ -114,9 +125,9 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
-            // fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+            fs = new std::ofstream(it->second->getCanonicalName() + ".s");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
-            // delete fs;
+            delete fs;
             // fs = NULL;
         }
     }
@@ -172,46 +183,358 @@ void CodeGenerator::traverseAndGenerate(Expression* expr) {
 }
 
 void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
+    Expression* lhs_expr = binExpr->getLeftExpression();
+    Expression* rhs_expr = binExpr->getRightExpression();
+    std::string lhs_type = lhs_expr->getExpressionTypeString();
+    std::string rhs_type = rhs_expr->getExpressionTypeString();
+
     // Order based on JLS 15.7.2, except || (azy or) and && (lazy and)
-    traverseAndGenerate(binExpr->getLeftExpression());
+    traverseAndGenerate(lhs_expr);
     if(!binExpr->isLazyOr() && binExpr->isLazyAnd()) {
-        traverseAndGenerate(binExpr->getRightExpression());
+        asma("push eax");
+        traverseAndGenerate(rhs_expr);
+        asma("mov ebx, eax ; put RHS value into ebx");
+        asma("pop eax ; put LHS value into eax");
     }
 
     if(binExpr->isLazyOr()) {
         // Order based on JLS 15.23
-        traverseAndGenerate(binExpr->getRightExpression());
+
+        // If LHS is true, then jump
+        std::string lbl = LABEL_GEN();
+        asmc("Lazy OR expr");
+        asma("cmp eax, 1");
+        asma("je " << lbl);
+
+        // Else, evaluate RHS
+        traverseAndGenerate(rhs_expr);
+
+        asml(lbl);
     } else if(binExpr->isLazyAnd()) {
         // Order based on JLS 15.24
-        traverseAndGenerate(binExpr->getRightExpression());
+        std::string lbl = LABEL_GEN();
+
+        // If LHS is false, then jump
+        asmc("Lazy AND expr");
+        asma("cmp eax, 0");
+        asma("je " << lbl);
+
+        // Else, evaluate RHS
+        traverseAndGenerate(rhs_expr);
+
+        asml(lbl);
     } else if(binExpr->isEagerOr()) {
         // Specific: JLS 15.22.2
+        asmc("Eager OR expr");
+        asma("or eax, ebx");
     } else if(binExpr->isEagerAnd()) {
         // Specific: JLS 15.22.2
+        asmc("Eager AND expr");
+        asma("and eax, ebx");
     } else if(binExpr->isEqual()) {
         // Specific: JLS 15.21
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("EQUAL expr");
+        asma("cmp eax, ebx");
+        // If equal, jump to true and set 1
+        asma("je " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isNotEqual()) {
         // Specific: JLS 15.21
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("NOT EQUAL expr");
+        asma("cmp eax, ebx");
+        // If not equal, jump to true and set 1
+        asma("jne " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isLT()) {
         // Specific: JLS 15.20
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("LESS THAN expr");
+        asma("cmp eax, ebx");
+        // If less, jump to true and set 1
+        asma("jl " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isLTE()) {
-        // Specific: JLS 15.20  
+        // Specific: JLS 15.20 
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("LESS THAN OR EQUAL expr");
+        asma("cmp eax, ebx");
+        // If less than or equal, jump to true and set 1
+        asma("jle " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isGT()) {
         // Specific: JLS 15.20
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("GREATER THAN expr");
+        asma("cmp eax, ebx");
+        // If greater, jump to true and set 1
+        asma("jg " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isGTE()) {
         // Specific: JLS 15.20
+        std::string lbl_true = LABEL_GEN();
+        std::string lbl_end = LABEL_GEN();
+
+        asmc("GREATER THAN OR EQUAL expr");
+        asma("cmp eax, ebx");
+        // If greater than or equal, jump to true and set 1
+        asma("jge " << lbl_true);
+        // Else set 0
+        asma("mov eax, 0");
+        asma("jmp " << lbl_end);
+        
+        // Set to 1 since true
+        asml(lbl_true);
+        asma("mov eax, 1");
+
+        // End
+        asml(lbl_end);
     } else if(binExpr->isAddition()) {
         // Specific: JLS 15.18
+        if (lhs_type != "java.lang.String" &&
+            rhs_type != "java.lang.String") {
+            asmc("ADD expr");
+            asma("add eax, ebx");
+        } else if ((lhs_type == "java.lang.String" && rhs_type != "java.lang.String") &&
+                   (lhs_type != "java.lang.String" && rhs_type == "java.lang.String")) {
+            // Fake it and swap lhs with rhs
+            if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
+                Expression* temp = lhs_expr;
+                lhs_expr = rhs_expr;
+                rhs_expr = temp;
+
+                asma("mov edx, eax");
+                asma("mov eax, ebx");
+                asma("mov ebx, edx");
+            }
+
+            // Primitive Type
+            // - Create object for primitive, then call toString
+            if (rhs_expr->isExprTypeInt()) {
+                asmc("CONCAT string with int primitive");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for constructor parameter
+                asma("push ebx");
+                // Call Constructor for java.lang.Integer
+                CALL_FUNCTION("java.lang.Integer$int$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for toString (this)
+                asma("push ebx");
+                // Call toString on java.lang.Integer
+                CALL_FUNCTION("java.lang.Integer.toString$$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+            } else if (rhs_expr->isExprTypeShort()) {
+                asmc("CONCAT string with short primitive");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for constructor parameter
+                asma("push ebx");
+                // Call Constructor for java.lang.Short
+                CALL_FUNCTION("java.lang.Short$short$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push short for toString (this)
+                asma("push ebx");
+                // Call toString on java.lang.Short
+                CALL_FUNCTION("java.lang.Short.toString$$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+            } else if (rhs_expr->isExprTypeByte()) {
+                asmc("CONCAT string with byte primitive");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for constructor parameter
+                asma("push ebx");
+                // Call Constructor for java.lang.Byte
+                CALL_FUNCTION("java.lang.Byte$byte$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push short for toString (this)
+                asma("push ebx");
+                // Call toString on java.lang.Byte
+                CALL_FUNCTION("java.lang.Byte.toString$$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+            } else if (rhs_expr->isExprTypeChar()) {
+                asmc("CONCAT string with character primitive");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for constructor parameter
+                asma("push ebx");
+                // Call Constructor for java.lang.Character
+                CALL_FUNCTION("java.lang.Character$char$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push short for toString (this)
+                asma("push ebx");
+                // Call toString on java.lang.Character
+                CALL_FUNCTION("java.lang.Character.toString$$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+            } else if (rhs_expr->isExprTypeBoolean()) {
+                asmc("CONCAT string with boolean primitive");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push integer for constructor parameter
+                asma("push ebx");
+                // Call Constructor for java.lang.Boolean
+                CALL_FUNCTION("java.lang.Boolean$boolean$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push short for toString (this)
+                asma("push ebx");
+                // Call toString on java.lang.Boolean
+                CALL_FUNCTION("java.lang.Boolean.toString$$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+            }
+
+            if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
+                // Push the real rhs string as a parameter
+                asma("push eax");
+                // Push the real lhs string as (this)
+                asma("push ebx");
+            } else {
+                // Push new integer string as a parameter
+                asma("push ebx");
+                // Push lhs string as (this)
+                asma("push eax");
+            }
+            // Call concat
+            CALL_FUNCTION("java.lang.Integer.concat$java.lang.String$");
+            asma("pop ebx");
+            asma("pop ebx");
+        } else {
+            asmc("CONCAT two strings");
+            // Push new integer string as a parameter
+            asma("push ebx");
+            // Push lhs string as (this)
+            asma("push eax");
+            // Call concat
+            CALL_FUNCTION("java.lang.Integer.concat$java.lang.String$");
+            asma("pop ebx");
+            asma("pop ebx");
+        }
     } else if(binExpr->isMinus()) {
         // Specific: JLS 15.18
+        asmc("SUBTRACT expr");
+        asma("sub eax, ebx");
     } else if(binExpr->isMultiplication()) {
         // Specific: JLS 15.17
+        asmc("MULTIPLY expr");
+        asma("imul eax, ebx");
     } else if(binExpr->isDivision()) {
         // Specific: JLS 15.17
-    } else {
+        std::string lbl_valid_div = LABEL_GEN();
+
+        asmc("DIVIDE expr");
+        asma("cmp ebx, 0");
+        asma("jne " << lbl_valid_div);
+        asma("extern __exception");
+        asma("call __exception");
+        asml(lbl_valid_div);
+        asma("cdq");
+        asma("idiv ebx");
+    } else if (binExpr->isModulo()) {
         // Specific: JLS 15.17
-        // modulo
-        assert(binExpr->isModulo());
+        // TODO: Check that yea.
+        std::string lbl_valid_div = LABEL_GEN();
+
+        asmc("MODULO expr");
+        asma("cmp ebx, 0");
+        asma("jne " << lbl_valid_div);
+        asma("extern __exception");
+        asma("call __exception");
+        asml(lbl_valid_div);
+        asma("cdq");
+        asma("idiv ebx");
+        asma("mov eax, edx");
+    } else {
+        assert(false);
     }
 }
 
