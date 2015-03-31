@@ -471,6 +471,18 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
+            } else {
+                // Reference Type
+                asmc("CONCAT string with reference type");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push object for valueOf parameter
+                asma("push ebx");
+                // Call valueOf function in java.lang.String
+                CALL_FUNCTION("java.lang.String.valueOf$java.lang.Object$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
             }
 
             if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
