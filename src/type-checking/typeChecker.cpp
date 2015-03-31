@@ -297,9 +297,9 @@ bool TypeChecking::check(NestedBlock* nestedBlock) {
 bool TypeChecking::check(MethodInvoke* methodInvoke) {
     if (methodInvoke->isNormalMethodCall()) {
         Name* name = static_cast<MethodNormalInvoke*>(methodInvoke)->getNameOfInvokedMethod();
-        checkIsNameAccessible(name, static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
+        bool rv = checkIsNameAccessible(name, static_cast<MethodNormalInvoke*>(methodInvoke)->methodInvocationMatchToSignature());
 
-        return check(methodInvoke->getArgsForInvokedMethod());
+        return rv && check(methodInvoke->getArgsForInvokedMethod());
     } else {
         // TODO: CHECK SOMETHING...
         //       Theoretically should fall through and be checked correctly...
@@ -408,8 +408,18 @@ bool TypeChecking::check(ReturnStmt* returnStmt) {
 
 bool TypeChecking::check(Expression* expression) {
     if (expression->getExpressionTypeString() == "void") {
-        Error(E_DEFAULT, NULL, "Doing something with void. Stop It.");
-        return false;
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains doing something with void. Stop it.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains doing something with void. Stop it.";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
     }
 
     if(expression->isRegularBinaryExpression()) {
@@ -497,35 +507,20 @@ bool TypeChecking::check(Expression* expression) {
         // If one or more is a string, check to see that the operation is either
         //     - equals/not equals/concatenation if they are both strings
         //     - concatentation if only one of them is a string
-        if (leftExpr->getExpressionTypeString() == "java.lang.String" &&
-            rightExpr->getExpressionTypeString() == "java.lang.String" &&
-            !expression->isEqual() &&
-            !expression->isNotEqual() &&
-            !expression->isAddition()) {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains an invalid binary expression with the java.lang.String type.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains an invalid binary expression with the java.lang.String type.";
-            } else {
-                assert(false);
-            }
-
-            NOTIFY_ERROR(closest_token, ss);
-        } else if (((leftExpr->getExpressionTypeString() == "java.lang.String" &&
+        if (((leftExpr->getExpressionTypeString() == "java.lang.String" &&
                      rightExpr->getExpressionTypeString() != "java.lang.String") ||
                     (leftExpr->getExpressionTypeString() != "java.lang.String" &&
                      rightExpr->getExpressionTypeString() == "java.lang.String")) &&
-                   !expression->isAddition()) {
+                   !expression->isAddition() &&
+                   !expression->isEqual() &&
+                   !expression->isNotEqual()) {
             std::stringstream ss;
             if (cur_st_type == CONSTRUCTOR_TABLE) {
                 ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains an invalid binary expression with the java.lang.String type. String conversions only apply to the addition operator.";
+                   <<  "' contains an invalid binary expression with the java.lang.String type.";
             } else if (cur_st_type == CLASSMETHOD_TABLE) {
                 ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains an invalid binary expression with the java.lang.String type. String conversions only apply to the addition operator.";
+                   <<  "' contains an invalid binary expression with the java.lang.String type.";
             } else {
                 assert(false);
             }
@@ -808,8 +803,9 @@ bool TypeChecking::check(Assignment* assignment) {
     bool rv = true;
 
     if (!canAssignTypeToType(assignment->getExpressionTypeString(), assignment->getExpressionToAssign()->getExpressionTypeString())) {
-        Error(E_DEFAULT, NULL, last_type_to_type_error);
-        return false;
+        std::stringstream ss;
+        ss << last_type_to_type_error;
+        NOTIFY_ERROR(closest_token, ss);
     } else if (assignment->isAssignName()) {
         Name* name = static_cast<AssignName*>(assignment)->getNameToAssign();
 
@@ -823,10 +819,10 @@ bool TypeChecking::check(Assignment* assignment) {
             }
         }
 
-        checkIsNameAccessible(name);
+        rv = checkIsNameAccessible(name);
     }
 
-    return check(assignment->getExpressionToAssign()) && rv;
+    return rv && check(assignment->getExpressionToAssign());
 }
 
 bool TypeChecking::check(LocalDecl* localDecl) {
@@ -898,7 +894,7 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
         // Traverse through the compilation tables
         // of the definitions from the left most name
         // to the right most
-        CompilationTable* last_ct = NULL;
+        CompilationTable* last_ct = processing;
         CompilationTable* ct = processing;
         bool static_context = false;
         std::string type;
@@ -908,48 +904,51 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
 
             // For a NormalMethodInvoke - Everything but the last thing is a field
             if (traceback.empty() && isMethod) {
-                ClassMethod* cm = ct->getAClassMethod(methodSignature)->getClassMethod();
+                // If it is not defined in the class
+                // It is implementing an interface and is abstract.
+                if (ct->isClassSymbolTable() && ct->getAClassMethod(methodSignature)) {
+                    ClassMethod* cm = ct->getAClassMethod(methodSignature)->getClassMethod();
+                    // Check Protected Access
+                    //  - If the class method we believe we are calling is abstract
+                    //    we have no way of knowing until runtime, if the method is protected...
+                    if (cm->isProtected() && !cm->isAbstract()) {
+                        CompilationTable* temp = cm->getClassMethodTable()->getDeclaringClass();
 
-                // Check Protected Access
-                //  - If the class method we believe we are calling is abstract
-                //    we have no way of knowing until runtime, if the method is protected...
-                if (cm->isProtected() && !cm->isAbstract()) {
-                    CompilationTable* temp = cm->getClassMethodTable()->getDeclaringClass();
+                        // JLS - 6.6.2.1
+                        if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
+                            !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
+                              isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
+                            std::stringstream ss;
+                            ss << "Cannot access protected method '" << name->getFullName() << "' because '"
+                               << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
+                            NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        }
 
-                    // JLS - 6.6.2.1
-                    if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
-                        !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
-                          isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
-                        std::stringstream ss;
-                        ss << "Cannot access protected method '" << name->getFullName() << "' because '"
-                           << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
-                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
+                            std::stringstream ss;
+                            ss << "Cannot access protected method '" << name->getFullName() << "' because '"
+                               << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
+                            NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        }
                     }
 
-                    if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
-                        std::stringstream ss;
-                        ss << "Cannot access protected method '" << name->getFullName() << "' because '"
-                           << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
-                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
-                    }
-                }
+                    // Static Context
+                    if (static_context) {
+                        if (!cm->isStatic()) {
+                            std::stringstream ss;
+                            ss << "Cannot access non-static method '" << name->getFullName() << "' in a static context.";
+                            NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        }
 
-                // Static Context
-                if (static_context) {
-                    if (!cm->isStatic()) {
-                        std::stringstream ss;
-                        ss << "Cannot access non-static method '" << name->getFullName() << "' in a static context.";
-                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
-                    }
-
-                    // Cannot chain static accesses.
-                    static_context = false;
-                // Non-static Context
-                } else {
-                    if (cm->isStatic()) {
-                        std::stringstream ss;
-                        ss << "Cannot access static method '" << name->getFullName() << "' in a non-static context.";
-                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        // Cannot chain static accesses.
+                        static_context = false;
+                    // Non-static Context
+                    } else {
+                        if (cm->isStatic()) {
+                            std::stringstream ss;
+                            ss << "Cannot access static method '" << name->getFullName() << "' in a non-static context.";
+                            NOTIFY_ERROR(name->getNameId()->getToken(), ss);
+                        }
                     }
                 }
 
@@ -964,7 +963,7 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
                     // These are also all static accesses
                     if (ct->getPackageName() == name->getFullName()) {
                         last_ct = ct;
-                        ct = ct;
+                        // Implicit: ct = ct;
                         static_context = true;
                         continue;
                     } else if (processing->checkTypePresenceFromSingleImport(name->getFullName())) {
@@ -1057,6 +1056,8 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
             }
         }
     }
+
+    return true;
 }
 
 // JLS 5.1.7
