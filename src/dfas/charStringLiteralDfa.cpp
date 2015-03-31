@@ -1,12 +1,52 @@
 #include "charStringLiteralDfa.h"
 #include "states.h"
+#include <cstdio>
+#include <cstdlib>
 
 std::string CharStringLiteralDfa::escapeSequence = "btnfr\"\'\\";
 unsigned int CharStringLiteralDfa::octalCounter = 0;
 unsigned int CharStringLiteralDfa::octalLimit = 0;
+std::string CharStringLiteralDfa::replacement = "";
+
+void CharStringLiteralDfa::generateHexForOctal(){
+    char result[10];
+    long value = std::strtol(replacement.c_str(), NULL, 8);
+    std::sprintf(result, "\\u00%lX", value);
+    replacement = "";
+    replacement.append(result);
+}
+
+void CharStringLiteralDfa::performEscapeSequenceReplacement()
+{
+    if(replacement == "b"){
+        replacement = '\b';
+    }
+    else if(replacement == "t"){
+        replacement = 't';
+    }
+    else if(replacement == "n"){
+        replacement = '\n';
+    }
+    else if(replacement == "f"){
+        replacement = '\f';
+    }
+    else if(replacement == "r"){
+        replacement = '\r';
+    }
+    else if(replacement == "\""){
+        replacement = '\"';
+    }
+    else if(replacement == "\'"){
+        replacement = '\'';
+    }
+    else if(replacement == "\\"){
+        replacement = '\\';
+    }
+}
 
 int isSingleOrDoubleQuotes(char c, int current_state) {
     // identifies whether it's a character or string literal
+    CharStringLiteralDfa::replacement = "";
     if(c == '\'') {
         return DS_SINGLEQUOTE;
     } else if(c == '"') {
@@ -26,7 +66,7 @@ int genericCharCheck(char c, int current_state) {
     //      * double quote signals end of string literal -> go to DS_ACCEPTSTRING
     //      * a \ is seen indicating escape sequence -> go to DS_ESCAPEDOUBLE
     //      * everything else -> loop around DS_DOUBLEQUOTE
-    if(c == '\\') {
+    if(c == '\\') { 
         if(current_state == DS_SINGLEQUOTE) {
             return DS_ESCAPESINGLE;
         } else {
@@ -73,8 +113,9 @@ int genericEscapeCheck(char c, int current_state) {
     // - String literal:
     //      * it is an escape sequence -> go to DS_DOUBLEQUOTE
     //      * it is an octal sequence -> go to DS_OCTALDOUBLE
-
+    CharStringLiteralDfa::replacement += c;
     if(CharStringLiteralDfa::escapeSequence.find(c) != std::string::npos) {
+        CharStringLiteralDfa::performEscapeSequenceReplacement();
         if(current_state == DS_ESCAPESINGLE) {
             return DS_ENCLOSESINGLE;
         } else {
@@ -119,6 +160,7 @@ int genericOctalCheck(char c, int current_state) {
         if(CharStringLiteralDfa::octalCounter == CharStringLiteralDfa::octalLimit) {
             CharStringLiteralDfa::octalCounter = 0;
             CharStringLiteralDfa::octalLimit = 0;
+            CharStringLiteralDfa::generateHexForOctal();
             if(current_state == DS_OCTALSINGLE) {
                 return DS_ENCLOSESINGLE;
             } else {
@@ -134,10 +176,12 @@ int genericOctalCheck(char c, int current_state) {
     } else if(c == '\'' && current_state == DS_OCTALSINGLE) {
         CharStringLiteralDfa::octalCounter = 0;
         CharStringLiteralDfa::octalLimit = 0;
+        CharStringLiteralDfa::generateHexForOctal();
         return DS_ACCEPTCHAR;
     } else if(c == '"' && current_state == DS_OCTALDOUBLE) {
         CharStringLiteralDfa::octalCounter = 0;
         CharStringLiteralDfa::octalLimit = 0;
+        CharStringLiteralDfa::generateHexForOctal();
         return DS_ACCEPTSTRING;
     }
 

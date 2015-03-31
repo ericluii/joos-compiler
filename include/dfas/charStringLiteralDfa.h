@@ -15,6 +15,10 @@ class CharStringLiteralDfa : public Dfa {
         // limit and counter pertaining to octal sequences
         static unsigned int octalCounter;
         static unsigned int octalLimit;
+        
+        static std::string replacement;
+        static void generateHexForOctal();
+        static void performEscapeSequenceReplacement();
 };
 
 #endif
