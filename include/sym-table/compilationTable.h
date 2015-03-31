@@ -123,6 +123,7 @@ class CompilationTable {
         // ---------------------------------------------------------------------
         // Interface if symbol table is an interface table
         InterfaceMethodTable* getAnInterfaceMethod(const std::string& methodSignature);
+        // Call this method only if getAnInterfaceMethod returns NULL
         ClassMethodTable* getAnInterfaceMethodFromObject(const std::string& methodSignature);
         void registerInterfaceMethods();
         void inheritInterfaceMethods(CompilationTable* object);
