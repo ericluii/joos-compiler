@@ -18,15 +18,16 @@ public class LinkedList implements List {
             if(next == null) {
                 next = new LinkedList();
             }
-            //next.add(o);
+            next.add(o);
         }
-        //return true;
+        return true;
     }
-    /*public Object clone() {
+    
+    public Object clone() {
         LinkedList ret = new LinkedList();
         if(next != null) ret.next = (LinkedList) next.clone();
         ret.cur = cur;
         ret.empty = empty;
         return ret;
-    }*/
+    }
 }
