@@ -395,7 +395,6 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<Compilatio
     fs << "mov [ebx], dword 0\n";
     fs << "add ebx, 4\n";
     fs << "loop initArray\n";
-    fs << "add eax, 4 ; add 4 bytes to make eax point to the virtual table\n";
     fs << "ret\n\n";
 
     fs << "global _start\n_start:\n";

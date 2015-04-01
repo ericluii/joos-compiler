@@ -47,6 +47,10 @@ class NestedBlock;
 class ReturnStmt;
 class ExpressionStar;
 
+#define asmc(comment) *fs << ";; " << comment << "\n"
+#define asml(label) *fs << "  " << label << ":\n"
+#define asma(code) *fs << "\t" << code << "\n"
+
 class CodeGenerator {
     private:
         std::map<std::string, CompilationTable*>& compilations;
@@ -95,6 +99,9 @@ class CodeGenerator {
         void traverseAndGenerate(StmtExpr*);
         void traverseAndGenerate(NestedBlock*);
         void traverseAndGenerate(ReturnStmt*);
+
+        // lol bad cade
+        void CALL_FUNCTION(std::string fn_name);
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();
