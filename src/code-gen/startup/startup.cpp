@@ -22,6 +22,8 @@
 #include "classMethod.h"
 #include "fieldDecl.h"
 
+#include "labelManager.h"
+
 class InterfaceMethodTable;
 
 Startup::Startup(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) : 
@@ -60,8 +62,8 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << "mov [eax], ebx ; store length\n";
     fs << "add eax, 4 ; add 4 to start storing the tables\n";
     fs << "mov [eax], 0 ; arrays don't really need a static field indicator table\n";
-    fs << "mov [eax+4], VIRT$.array ; store array virtual table\n";
-    fs << "mov [eax+12], INTER$.array ; store array interface method table\n";
+    fs << "mov [eax+4], " + LabelManager::getLabelForArrayVirtualTable() + " ; store array virtual table\n";
+    fs << "mov [eax+12], " + LabelManager::getLabelForArrayImplInterfaceMethodTable() + " ; store array interface method table\n";
     fs << "; initialize array to all 0s\n";
     fs << "mov ecx, ebx / 4\n";
     fs << "mov ebx, eax\n";
