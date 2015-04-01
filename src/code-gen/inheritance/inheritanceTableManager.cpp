@@ -32,6 +32,7 @@ InheritanceTableManager::InheritanceTableManager(std::map<std::string, Compilati
         buildInheritanceTableForCompilation(definedTypes[i]);
     }
     
+
     for(unsigned int i = 0; i < definedTypes.size(); i++) {
         std::string typeCanonicalName = definedTypes[i]->getCanonicalName();
         buildInheritanceTableForArray(typeCanonicalName + "[]", LabelManager::labelizeForArrays(typeCanonicalName));
@@ -43,6 +44,7 @@ InheritanceTableManager::InheritanceTableManager(std::map<std::string, Compilati
     buildInheritanceTableForArray("byte[]", LabelManager::labelizeForArrays("byte"));
     buildInheritanceTableForArray("char[]", LabelManager::labelizeForArrays("char"));
     buildInheritanceTableForArray("boolean[]", LabelManager::labelizeForArrays("boolean"));
+
 }
 
 InheritanceTableManager::~InheritanceTableManager() {
@@ -81,11 +83,14 @@ void InheritanceTableManager::buildInheritanceTableForCompilation(CompilationTab
         CompilationTable* interfaceTable = interface->getImplOrExtInterfaceTable();
         buildInheritanceTableForCompilation(interfaceTable);
         tableForType->pushSuperInterfaceInheritance(inheritanceTables[interfaceTable->getCanonicalName()]);
+        interface = interface->getNextInterface();
     }
 
     // generate inheritance with a particular self index
     tableForType->generateInheritance(typeCounter++);
     typeMapping[typeCanonicalName] = typeCounter;
+
+    inheritanceTables[typeCanonicalName] = tableForType;
 }
 
 void InheritanceTableManager::buildInheritanceTableForArray(const std::string& arrayType, const std::string& tableName) {
@@ -95,6 +100,7 @@ void InheritanceTableManager::buildInheritanceTableForArray(const std::string& a
 
     inh->generateInheritance(typeCounter++);
     typeMapping[arrayType] = typeCounter;
+    inheritanceTables[arrayType] = inh;
 }
 
 unsigned int InheritanceTableManager::getTypeMapping(const std::string& type) {

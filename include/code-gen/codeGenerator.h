@@ -7,8 +7,13 @@
 
 class CompilationTable;
 class Startup;
+
+// Managers
 class VTableManager;
-class ObjectLayout;
+class ObjectLayoutManager;
+class InheritanceTableManager;
+class ImplInterfaceMethodTableManager;
+class StaticFieldsManager;
 
 // AST related
 class ClassDecl;
@@ -56,11 +61,11 @@ class CodeGenerator {
         std::map<std::string, CompilationTable*>& compilations;
         Startup* starter;
         VTableManager* virtualManager;
+        ObjectLayoutManager* objManager;
+        InheritanceTableManager* inhManager;
+        ImplInterfaceMethodTableManager* interManager;
+        StaticFieldsManager* staticManager;
         std::ofstream* fs;
-        std::map<CompilationTable*, ObjectLayout*> layoutOfClasses;
-
-        // object layout creation
-        void createObjectLayoutForCompilation(CompilationTable*);
 
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
@@ -105,7 +110,7 @@ class CodeGenerator {
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();
 
-        void initStage();
+        void generateStartFile();
         void traverseAndGenerate();
 };
 

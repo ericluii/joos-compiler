@@ -1,6 +1,7 @@
 #include "inheritanceTable.h"
 #include "labelManager.h"
 
+#include<iostream>
 InheritanceTable::InheritanceTable(const std::string& tableName, InheritanceTable* superclassInheritance, unsigned int numTypes) :
         tableName(tableName), superclassInheritance(superclassInheritance) {
     for(unsigned int i = 0; i < numTypes; i++) {
@@ -40,4 +41,16 @@ void InheritanceTable::generateInheritance(unsigned int selfIndex) {
 
 std::string InheritanceTable::generateInheritanceTableName() {
     return LabelManager::labelizeToInheritanceTable(tableName);
+}
+
+void InheritanceTable::outputInheritanceTableToFile(std::ofstream& file) {
+    std::string outputName = generateInheritanceTableName();
+    file << "global " << outputName << '\n';
+    file << outputName << ":\n";
+    for(unsigned int i = 0 ; i < inheritance.size(); i++) {
+        if(i == 0) { file << "  db "; }
+        else { file << ','; }
+        file << inheritance[i];
+    }
+    file << std::endl;
 }

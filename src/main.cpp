@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         CHECK_ERROR();
 
         CodeGenerator cg(compilationTables, firstUnit);
-        cg.initStage();
+        cg.generateStartFile();
         cg.traverseAndGenerate();
     } catch (std::exception &e) {
         Error::print();

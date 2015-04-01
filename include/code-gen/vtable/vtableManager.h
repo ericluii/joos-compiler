@@ -9,14 +9,15 @@ class VTableLayout;
 
 class VTableManager {
     private:
-        std::map<std::string, CompilationTable*>& compilations;
-        // mapping structure: type names (canonical names/.array) -> respective VTableLayout
+        // mapping structure: type names (canonical names, only classes and arrays)
+        //                    -> respective VTableLayout
         std::map<std::string, VTableLayout*> vTableCollection;
+
+        void createVTableLayoutForCompilation(CompilationTable*);
+        void createVTableLayoutForArrays();
     public:
         VTableManager(std::map<std::string, CompilationTable*>&);
         ~VTableManager();
-        void createVTableLayoutForCompilation(CompilationTable*);
-        void createVTableLayoutForArrays();
         VTableLayout* getVTableLayoutForType(const std::string&);
         VTableLayout* getVTableLayoutForArray();
 };

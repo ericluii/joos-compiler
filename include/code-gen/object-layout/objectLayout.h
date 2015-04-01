@@ -6,7 +6,6 @@ class FieldTable;
 
 #include <vector>
 #include <map>
-#include <fstream>
 
 class ObjectLayout {
     // Layout of an object
@@ -34,7 +33,6 @@ class ObjectLayout {
 
         unsigned int sizeOfObject();
         unsigned int indexOfFieldInObject(FieldTable*);
-        void generateStaticIndicatorRowToFile(std::ofstream&);
 };
 
 #endif

@@ -3,10 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <fstream>
 
 class InheritanceTable {
     private:
-        const std::string& tableName;
+        std::string tableName;
         InheritanceTable* superclassInheritance;
         std::vector<InheritanceTable*> superinterfaceInheritance;
 
@@ -23,6 +24,8 @@ class InheritanceTable {
 
         void generateInheritance(unsigned int);
         std::string generateInheritanceTableName();
+
+        void outputInheritanceTableToFile(std::ofstream&);
 };
 
 #endif

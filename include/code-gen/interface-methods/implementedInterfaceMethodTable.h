@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <fstream>
 
 class ClassMethodTable;
 class CompilationTable;
@@ -22,7 +23,8 @@ class ImplInterfaceMethodTable {
         ImplInterfaceMethodTable(const std::string&, ImplInterfaceMethodTable*, CompilationTable*,
                              unsigned int, std::map<std::string, unsigned int>&);
 
-        std::string generateInterfaceMethodTableName();
+        std::string generateTableName();
+        void outputImplInterfaceMethodTableToFile(std::ofstream&);
 };
 
 #endif

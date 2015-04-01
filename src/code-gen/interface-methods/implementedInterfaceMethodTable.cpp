@@ -48,6 +48,22 @@ void ImplInterfaceMethodTable::generateTableForType(CompilationTable* type, std:
     }
 }
 
-std::string ImplInterfaceMethodTable::generateInterfaceMethodTableName() {
+std::string ImplInterfaceMethodTable::generateTableName() {
     return LabelManager::labelizeToInterfaceMethodTable(tableName);
+}
+
+void ImplInterfaceMethodTable::outputImplInterfaceMethodTableToFile(std::ofstream& file) {
+    std::string outputName = generateTableName();
+    file << "global " << outputName << '\n';
+    file << outputName << ":\n";
+    for(unsigned int i = 0; i < implementedMethods.size(); i++) {
+        if(implementedMethods[i] != NULL) {
+            std::string methodName = implementedMethods[i]->generateMethodLabel();
+            file << "extern " << methodName << '\n';
+            file << "  dd " << methodName << '\n';
+        } else {
+            file << "  dd 0\n";
+        }
+    }
+    file << std::endl;
 }
