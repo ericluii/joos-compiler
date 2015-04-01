@@ -703,6 +703,8 @@ void CodeGenerator::traverseAndGenerate(NegationExpression* negExpr) {
     traverseAndGenerate(negExpr->getNegatedExpression());
     if(negExpr->isNumericNegation()) {
         // Specific: JLS 15.18.2
+        asmc("Numeric Negation");
+        asma("neg eax");
     } else {
         // Specific: JLS 15.15.6
         // boolean negation
@@ -789,31 +791,73 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
 
 void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
     // Order based on JLS 14.9
+    asmc("If Statement");
     traverseAndGenerate(stmt->getExpressionToEvaluate());
+
+    std::string lbl_false = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
+    // Check if exprssion is true, if not jump to lbl_false
+    asma("cmp eax, 1");
+    asma("jne " << lbl_false);
     traverseAndGenerate(stmt->getExecuteTruePart());
+    asma("jmp " << lbl_end);
+
+    // ELSE
+    asml(lbl_false);
     if(!stmt->noElsePart()) {
         traverseAndGenerate(stmt->getExecuteFalsePart());
     }
+
+    // END
+    asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(WhileStmt* stmt) {
     // Order based on JLS 14.11
+    std::string lbl_begin = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
+
+    asmc("While statement");
+
+    // Check expression is true, if not lbl_end
+    asml(lbl_begin);
     traverseAndGenerate(stmt->getExpressionToEvaluate());
+    asma("cmp eax, 1");
+    asma("jne " << lbl_end);
+
+    // If true run loop statement
     traverseAndGenerate(stmt->getLoopStmt());
+    asma("jmp " << lbl_begin);
+
+    // END
+    asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     // Order based on JLS 14.13.2
+    asmc("For statement");
     if(!stmt->emptyForInit()) {
         traverseAndGenerate(stmt->getForInit());
     }
 
-    traverseAndGenerate(stmt->getForUpdate());
-    traverseAndGenerate(stmt->getLoopStmt());
+    std::string lbl_begin = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
 
+    // Check expression is true, if not lbl_end
+    asml(lbl_begin);
+    traverseAndGenerate(stmt->getExpressionToEvaluate());
+    asma("cmp eax, 1");
+    asma("jne " << lbl_end);
+
+    // If true run loop statement and update
+    traverseAndGenerate(stmt->getLoopStmt());
     if(!stmt->emptyForUpdate()) {
         traverseAndGenerate(stmt->getForUpdate());
     }
+    asma("jmp " << lbl_begin);
+
+    // END
+    asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(ExpressionStar* exprStar) {
