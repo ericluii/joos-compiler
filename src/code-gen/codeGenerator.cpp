@@ -654,20 +654,47 @@ void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
 void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
     if(lit->isThis()) {
         // JLS 15.8.3
+        asmc("This literal");
+        asma("mov eax, [ebp + 8]");
     } else if(lit->isNumber()) {
         // JLS 15.8.1
+        asmc("Number Literal");
+        asma("mov eax, " << lit->getLiteralToken()->getString());
     } else if(lit->isTrueBoolean()) {
         // JLS 15.8.1
+        asmc("True Boolean literal");
+        asma("mov eax, 1");
     } else if(lit->isFalseBoolean()) {
         // JLS 15.8.1
+        asmc("False Boolean literal");
+        asma("mov eax, 0");
     } else if(lit->isCharLiteral()) {
         // JLS 15.8.1
+        std::string character = lit->getLiteralToken()->getString();
+        character.erase(std::remove(character.begin(), character.end(), '\''), character.end());
+
+        asmc("Character literal");
+        asma("mov eax, " << ((int)(character.c_str()[0])));
     } else if(lit->isStringLiteral()) {
         // JLS 15.8.1
-    } else {
+        std::string string_literal = lit->getLiteralToken()->getString();
+
+        asmc("String literal");
+        // Create character array to hold string
+        asma("mov eax, " << string_literal.length());
+        CALL_FUNCTION("makeArrayBanana");
+        // Copy over string into array
+        unsigned int offset = 16;
+        for (unsigned int i = 0; i < string_literal.length(); i++) {
+            asma("mov [eax + " << offset << "], " << ((int)string_literal[i]));
+            offset += 4;
+        }
+    } else if (lit->isNull()) {
         // JLS 15.8.1
-        // precautionary check
-        assert(lit->isNull());
+        asmc("Null literal");
+        asma("mov eax, 0");
+    } else {
+        assert(false);
     }
 }
 
@@ -679,6 +706,8 @@ void CodeGenerator::traverseAndGenerate(NegationExpression* negExpr) {
     } else {
         // Specific: JLS 15.15.6
         // boolean negation
+        asmc("Boolean Negation");
+        asma("xor eax, 1");
     }
 }
 
