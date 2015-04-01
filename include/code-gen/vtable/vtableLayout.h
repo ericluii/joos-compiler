@@ -35,8 +35,8 @@ class VTableLayout {
         // 
         // It does include any inherited interface methods though
         std::vector<SymbolTable*> virtualMethods;
-        // mapping of various methods to its index in the virtual
-        // table of the class that the method is defined in
+        // mapping structure: method signature -> index of method with the
+        // method signature in the vtable (not in terms of bytes)
         std::map<std::string, unsigned int> virtualMethodsMapping;
 
         void createVTableForArray();

@@ -8,13 +8,17 @@
 #include "classMethod.h"
 #include "interfaceMethod.h"
 
+// Label
+#include "labelManager.h"
+
 VTableLayout::VTableLayout(CompilationTable* table, VTableLayout* superVTable) : typeName(table->getCanonicalName()),
             superclassVTable(superVTable) {
     // invoked for reference types
     createVTable(table);
 }
 
-VTableLayout::VTableLayout(VTableLayout* superVTable) : typeName(".array"), superclassVTable(superVTable) {
+VTableLayout::VTableLayout(VTableLayout* superVTable) : typeName(LabelManager::labelizeForArrays("")),
+             superclassVTable(superVTable) {
     // invoked for array type
     createVTableForArray();
 }
@@ -136,5 +140,5 @@ void VTableLayout::outputVTableToFile(std::ofstream& file) {
 }
 
 std::string VTableLayout::getVirtualTableName() {
-    return "VIRT$"+typeName;
+    return LabelManager::labelizeToVirtualTable(typeName);
 }

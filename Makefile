@@ -1,6 +1,6 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout
+CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout -I./include/code-gen/label -I./include/code-gen/inheritance -I./include/code-gen/interface-methods
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -50,23 +50,32 @@ VTABLE_O = $(addprefix build/src/code-gen/vtable/, $(notdir $(VTABLE_C:.cpp=.o))
 OLAYOUT_C = $(wildcard src/code-gen/object-layout/*.cpp)
 OLAYOUT_O = $(addprefix build/src/code-gen/object-layout/, $(notdir $(OLAYOUT_C:.cpp=.o)))
 
+LABEL_C = $(wildcard src/code-gen/label/*.cpp)
+LABEL_O = $(addprefix build/src/code-gen/label/, $(notdir $(LABEL_C:.cpp=.o)))
+
+INHERITANCE_C = $(wildcard src/code-gen/inheritance/*.cpp)
+INHERITANCE_O = $(addprefix build/src/code-gen/inheritance/, $(notdir $(INHERITANCE_C:.cpp=.o)))
+
+INTERFACE_C = $(wildcard src/code-gen/interface-methods/*.cpp)
+INTERFACE_O = $(addprefix build/src/code-gen/interface-methods/, $(notdir $(INTERFACE_C:.cpp=.o)))
+
 CODEGEN_C = $(wildcard src/code-gen/*.cpp)
 CODEGEN_O = $(addprefix build/src/code-gen/, $(notdir $(CODEGEN_C:.cpp=.o)))
 
 # Main Code
 SRC_C = $(wildcard src/*.cpp)
 SRC_O = $(addprefix build/src/, $(notdir $(SRC_C:.cpp=.o))) $(DFA_O) $(AST_O) $(SYMTABLE_O) $(TYPELINK_O) $(HC_O) $(DIS_O) $(TYPECHECK_O)\
-       	$(REACHABILITY_O) $(CODEGEN_O) $(STARTUP_O) $(VTABLE_O) $(OLAYOUT_O)
+       	$(REACHABILITY_O) $(CODEGEN_O) $(STARTUP_O) $(VTABLE_O) $(OLAYOUT_O) $(LABEL_O) $(INHERITANCE_O) $(INTERFACE_O)
 
 # Test Code
 TEST_C = $(wildcard tests/src/*.cpp)
 TEST_O = $(addprefix build/tests/, $(notdir $(TEST_C:.cpp=.o)))
-TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout
+TEST_CFLAGS=-std=c++0x -c -Wall -I./include -I./tests/include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout -I./include/code-gen/label -I./include/code-gen/inheritance -I./include/code-gen/interface-methods
 TEST_LIB_PATH=-L build/lib -l joos
 TEST_OUT_FILE=test_joosc
 
 # Include
-SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h) $(wildcard include/disambiguate/*.h) $(wildcard include/type-checking/*.h) $(wildcard include/reachability/*.h) $(wildcard include/code-gen/*.h) $(wildcard include/code-gen/startup/*.h) $(wildcard include/code-gen/vtable/*.h) $(wildcard include/code-gen/object-layout/*.h)
+SRC_INC = $(wildcard include/*.h) $(wildcard include/dfas/*.h) $(wildcard include/weeds/*.h) $(wildcard include/AST/*.h) $(wildcard include/sym-table/*.h) $(wildcard include/type-link/*.h) $(wildcard include/hierarchy-checking/*.h) $(wildcard include/disambiguate/*.h) $(wildcard include/type-checking/*.h) $(wildcard include/reachability/*.h) $(wildcard include/code-gen/*.h) $(wildcard include/code-gen/startup/*.h) $(wildcard include/code-gen/vtable/*.h) $(wildcard include/code-gen/object-layout/*.h) $(wildcard include/code-gen/label/*.h) $(wildcard include/code-gen/inheritance/*.h) $(wildcard include/code-gen/interface-methods/*.h)
 TEST_INC = $(wildcard tests/include/*.h)
 
 # Static Lib for Tests
@@ -83,7 +92,7 @@ compiler: init $(OUT_FILE)
 tests: init $(TEST_OUT_FILE)
 
 init:
-	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking $(BUILD_DIR)/reachability $(BUILD_DIR)/code-gen $(BUILD_DIR)/code-gen/startup $(BUILD_DIR)/code-gen/vtable $(BUILD_DIR)/code-gen/object-layout
+	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking $(BUILD_DIR)/reachability $(BUILD_DIR)/code-gen $(BUILD_DIR)/code-gen/startup $(BUILD_DIR)/code-gen/vtable $(BUILD_DIR)/code-gen/object-layout $(BUILD_DIR)/code-gen/label $(BUILD_DIR)/code-gen/inheritance $(BUILD_DIR)/code-gen/interface-methods
 	@$(foreach TEST_CASE, $(TEST_CASES), python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
 
@@ -120,6 +129,15 @@ build/src/code-gen/vtable/%.o: src/code-gen/vtable/%.cpp $(SRC_INC)
 
 build/src/code-gen/object-layout/%.o: src/code-gen/object-layout/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/object-layout/$(notdir $(@:.cpp=.o))
+
+build/src/code-gen/label/%.o: src/code-gen/label/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/label/$(notdir $(@:.cpp=.o))
+
+build/src/code-gen/inheritance/%.o: src/code-gen/inheritance/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/inheritance/$(notdir $(@:.cpp=.o))
+
+build/src/code-gen/interface-methods/%.o: src/code-gen/interface-methods/%.cpp $(SRC_INC)
+	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/interface-methods/$(notdir $(@:.cpp=.o))
 
 build/src/code-gen/%.o: src/code-gen/%.cpp $(SRC_INC)
 	$(CC) $(CFLAGS) $< -o $(BUILD_DIR)/code-gen/$(notdir $(@:.cpp=.o))
