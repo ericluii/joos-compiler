@@ -71,10 +71,16 @@ void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
-            compilations(compilations), starter(new Startup(compilations, firstUnit)),
-            virtualManager(new VTableManager(compilations)), objManager(new ObjectLayoutManager(compilations)),
-            inhManager(new InheritanceTableManager(compilations)), interManager(new ImplInterfaceMethodTableManager(compilations)),
-            staticManager(new StaticFieldsManager(compilations)), fs(NULL) {}
+    compilations(compilations),
+    starter(new Startup(compilations, firstUnit)),
+    virtualManager(new VTableManager(compilations)),
+    objManager(new ObjectLayoutManager(compilations)),
+    inhManager(new InheritanceTableManager(compilations)),
+    interManager(new ImplInterfaceMethodTableManager(compilations)),
+    staticManager(new StaticFieldsManager(compilations)),
+    fs(NULL),
+    scope_offset(0)
+{}
 
 CodeGenerator::~CodeGenerator() {
     delete starter;
@@ -746,6 +752,8 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
+        scope_offset = 0;
+
         // the method has a body, then generate code
         // for the body
         traverseAndGenerate(method->getMethodBody());
@@ -786,7 +794,19 @@ void CodeGenerator::traverseAndGenerate(BlockStmts* stmt) {
 
 void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Order based on JLS 14.4.4
+    std::string id = local->getLocalId()->getIdAsString();
+    std::string type = local->getLocalType()->getTypeAsString();
+
+    // Everything primitive/reference type/array will be stored in a DD on the stack
+    asmc("Local Decl");
+    addressTable[id] = scope_offset;
+    scope_offset += 4;
+    asma("sub esp, 4 ;; Reserve memory");
+
+    // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
+    asmc("Initialize Local Decl - " << id);
+    asma("mov [ebp - " << addressTable[id] << "], eax");
 }
 
 void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {

@@ -67,6 +67,9 @@ class CodeGenerator {
         StaticFieldsManager* staticManager;
         std::ofstream* fs;
 
+        unsigned int scope_offset;
+        std::map<std::string, unsigned int> addressTable;
+
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
         void traverseAndGenerate(ClassBodyStar*);
