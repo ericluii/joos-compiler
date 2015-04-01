@@ -12,6 +12,8 @@ tests/include/a5TestFiles.h
 tests/src/a4TestFiles.cpp
 tests/include/a4TestFiles.h
 
+code/
+
 *.swp
 *.swo
 .DS_Store

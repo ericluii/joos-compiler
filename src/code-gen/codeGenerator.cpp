@@ -62,12 +62,8 @@
 #include "RLG.h"
 
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
-    asma("push ebp");
-    asma("mov ebp, esp");
     asma("extern " << fn_name);
     asma("call " << fn_name);
-    asma("mov esp, ebp");
-    asma("pop ebp");
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
@@ -126,7 +122,13 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
+#if defined(CODE_OUT)
+            std::stringstream ss;
+            ss << CODE_OUT << "/" << it->second->getCanonicalName() << ".s";
+            fs = new std::ofstream(ss.str());
+#else
             fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+#endif
             processing = it->second;
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
@@ -475,17 +477,17 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop eax");
             } else if (rhs_expr->getExpressionTypeString() == "null") {
                 asmc("CONCAT string with null");
-                // Save eax to prevent thrashing
+                // Save eax and ebx to prevent thrashing
                 asma("push eax");
                 // Create an array of size 4 * 4
                 asma("mov eax, 16");
                 CALL_FUNCTION("makeArrayBanana$");
                 // Write the word "null" in char array
-                asma("mov [eax + 16], 110 ;; n");
-                asma("mov [eax + 20], 117 ;; u");
-                asma("mov [eax + 24], 108 ;; l");
-                asma("mov [eax + 28], 108 ;; l");
-                asma("mov eax, ebx");
+                asma("mov [eax - 12], 110 ;; n");
+                asma("mov [eax - 16], 117 ;; u");
+                asma("mov [eax - 20], 108 ;; l");
+                asma("mov [eax - 24], 108 ;; l");
+                asma("mov ebx, eax");
                 asma("pop eax");
 
                 // Save eax to prevent thrashing
@@ -685,15 +687,16 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
     } else if(lit->isStringLiteral()) {
         // JLS 15.8.1
         std::string string_literal = lit->getLiteralToken()->getString();
+        string_literal.erase(std::remove(string_literal.begin(), string_literal.end(), '"'), string_literal.end());
 
         asmc("String literal");
         // Create character array to hold string
         asma("mov eax, " << (string_literal.length() * 4));
         CALL_FUNCTION("makeArrayBanana$");
         // Copy over string into array
-        unsigned int offset = 16;
+        unsigned int offset = 12;
         for (unsigned int i = 0; i < string_literal.length(); i++) {
-            asma("mov [eax + " << offset << "], " << ((int)string_literal[i]));
+            asma("mov [eax - " << offset << "], " << ((int)string_literal[i]));
             offset += 4;
         }
     } else if (lit->isNull()) {
@@ -753,14 +756,21 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
-        asmc("\nMethod Body - " << method->getMethodHeader()->labelizedMethodSignature());
-        asml(method->getMethodHeader()->labelizedMethodSignature());
+        asmc("Method Body - " << method->getMethodHeader()->labelizedMethodSignature());
+        asmgl(method->getMethodHeader()->labelizedMethodSignature());
+        asma("push ebp");
+        asma("mov ebp, esp");
 
-        scope_offset = 0;
+        scope_offset = 4;
 
         // the method has a body, then generate code
         // for the body
         traverseAndGenerate(method->getMethodBody());
+
+        asmc("Implicit Return");
+        asma("mov esp, ebp");
+        asma("pop ebp");
+        asma("ret");
     }
 }
 
@@ -802,15 +812,14 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     std::string type = local->getLocalType()->getTypeAsString();
 
     // Everything primitive/reference type/array will be stored in a DD on the stack
-    asmc("Local Decl");
-    addressTable[id] = scope_offset;
+    asmc("Local Decl - " << id);
+    addressTable[local->getLocalTable()] = scope_offset;
     scope_offset += 4;
-    asma("sub esp, 4 ;; Reserve memory");
 
     // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
     asmc("Initialize Local Decl - " << id);
-    asma("mov [ebp - " << addressTable[id] << "], eax");
+    asma("push eax");
 }
 
 void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
@@ -827,12 +836,14 @@ void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
     asma("jmp " << lbl_end);
 
     // ELSE
+    asmc("If Statement Else");
     asml(lbl_false);
     if(!stmt->noElsePart()) {
         traverseAndGenerate(stmt->getExecuteFalsePart());
     }
 
     // END
+    asmc("If statement end");
     asml(lbl_end);
 }
 
@@ -849,17 +860,20 @@ void CodeGenerator::traverseAndGenerate(WhileStmt* stmt) {
     asma("cmp eax, 1");
     asma("jne " << lbl_end);
 
+    asmc("While statement body");
     // If true run loop statement
     traverseAndGenerate(stmt->getLoopStmt());
     asma("jmp " << lbl_begin);
 
     // END
+    asmc("While statement end");
     asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     // Order based on JLS 14.13.2
-    asmc("For statement");
+    asmc("For statement init");
+    unsigned int saved_scope_offset = scope_offset;
     if(!stmt->emptyForInit()) {
         traverseAndGenerate(stmt->getForInit());
     }
@@ -868,11 +882,13 @@ void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     std::string lbl_end = LABEL_GEN();
 
     // Check expression is true, if not lbl_end
+    asmc("For Statement condition");
     asml(lbl_begin);
     traverseAndGenerate(stmt->getExpressionToEvaluate());
     asma("cmp eax, 1");
     asma("jne " << lbl_end);
 
+    asmc("For statement body");
     // If true run loop statement and update
     traverseAndGenerate(stmt->getLoopStmt());
     if(!stmt->emptyForUpdate()) {
@@ -881,7 +897,9 @@ void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     asma("jmp " << lbl_begin);
 
     // END
+    asmc("For statement end");
     asml(lbl_end);
+    scope_offset = saved_scope_offset;
 }
 
 void CodeGenerator::traverseAndGenerate(ExpressionStar* exprStar) {
@@ -904,13 +922,18 @@ void CodeGenerator::traverseAndGenerate(StmtExpr* stmt) {
 void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
     // JLS 14.2
     if(!stmt->isEmptyNestedBlock()) {
+        unsigned int saved_scope_offset = scope_offset;
         traverseAndGenerate(stmt->getNestedBlock());
+        scope_offset = saved_scope_offset;
     }
 }
 
 void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
     // JLS 14.16
     traverseAndGenerate(stmt->getReturnExpr());
+
+    asma("mov esp, ebp");
+    asma("pop ebp");
     asma("ret");
 }
 
@@ -922,9 +945,30 @@ void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
     }
     labelizedConstructorSignature << "$";
 
-    asmc("\nConstructor Body - " << labelizedConstructorSignature.str());
-    asml(labelizedConstructorSignature.str());
+    asmc("Constructor Body - " << labelizedConstructorSignature.str());
+    asmgl(labelizedConstructorSignature.str());
+    asma("push ebp");
+    asma("mov ebp, esp");
 
-    scope_offset = 0;
+    scope_offset = 4;
     traverseAndGenerate(ctor->getConstructorBody());
+
+    asmc("Implicit Return");
+    asma("mov esp, ebp");
+    asma("pop ebp");
+    asma("ret");
+}
+
+void* CodeGenerator::getSymbolTableForName(Name* name) {
+    if (name->isReferringToField()) {
+        return name->getReferredField();
+    } else if (name->isReferringToParameter()) {
+        return name->getReferredParameter();
+    } else if (name->isReferringToLocalVar()) {
+        return name->getReferredLocalVar();
+    } else {
+        assert(false);
+    }
+
+    return NULL;
 }

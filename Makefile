@@ -1,6 +1,11 @@
 # Makefile for joos compiler
 CC=g++
-CFLAGS=-std=c++0x -c -Wall -I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout -I./include/code-gen/label -I./include/code-gen/inheritance -I./include/code-gen/interface-methods -I./include/code-gen/static
+INCLUDE=-I./include -I./include/dfas -I./include/weeds -I./include/AST -I./include/sym-table -I./include/type-link -I./include/hierarchy-checking -I./include/disambiguate -I./include/type-checking -I./include/reachability -I./include/code-gen -I./include/code-gen/startup -I./include/code-gen/vtable -I./include/code-gen/object-layout -I./include/code-gen/label -I./include/code-gen/inheritance -I./include/code-gen/interface-methods -I./include/code-gen/static
+ifeq ($(CODE_OUT),)
+CFLAGS=-std=c++0x -c -Wall $(INCLUDE)
+else
+CFLAGS=-std=c++0x -c -Wall -DCODE_OUT='"$(CODE_OUT)"' $(INCLUDE)
+endif
 BUILD_DIR=build/src
 OUT_FILE=joosc
 
@@ -94,10 +99,14 @@ compiler: init $(OUT_FILE)
 .PHONY: tests
 tests: init $(TEST_OUT_FILE)
 
+.PHONE: init
 init:
 	@mkdir -p $(BUILD_DIR) $(BUILD_DIR)/dfas $(BUILD_DIR)/AST $(BUILD_DIR)/sym-table $(BUILD_DIR)/type-link build/tests build/lib $(BUILD_DIR)/hierarchy-checking $(BUILD_DIR)/disambiguate $(BUILD_DIR)/type-checking $(BUILD_DIR)/reachability $(BUILD_DIR)/code-gen $(BUILD_DIR)/code-gen/startup $(BUILD_DIR)/code-gen/vtable $(BUILD_DIR)/code-gen/object-layout $(BUILD_DIR)/code-gen/label $(BUILD_DIR)/code-gen/inheritance $(BUILD_DIR)/code-gen/interface-methods $(BUILD_DIR)/code-gen/static
 	@$(foreach TEST_CASE, $(TEST_CASES), python Extras/Scripts/listTestFiles.py tests/$(TEST_CASE)/ tests/include/$(TEST_CASE)TestFiles.h  tests/src/$(TEST_CASE)TestFiles.cpp $(TEST_CASE);)
 	# @python Extras/Scripts/readParserRulesAndTable.py Extras/Grammar/grammarAndParseTable.txt include/parserRules.h src/parserRules.cpp include/parserActions.h src/parserActions.cpp
+ifneq ($(CODE_OUT),)
+	@mkdir -p $(CODE_OUT)
+endif
 
 # Main Compiler
 build/src/AST/%.o: src/AST/%.cpp $(SRC_INC)
@@ -167,7 +176,7 @@ $(TEST_OUT_FILE): $(TEST_O)
 # Clean
 .PHONY: clean
 clean:
-	@rm -f $(SRC_O) $(JOOSLIB) $(OUT_FILE) $(TEST_O) $(TEST_OUT_FILE)
+	@rm -f $(SRC_O) $(JOOSLIB) $(OUT_FILE) $(TEST_O) $(TEST_OUT_FILE) *.s
 
 #debug print
 print-%  : ; @echo $* = $($*)
