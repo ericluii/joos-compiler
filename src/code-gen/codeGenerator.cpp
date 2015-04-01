@@ -466,6 +466,30 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
+            } else if (rhs_expr->getExpressionTypeString() == "null") {
+                asmc("CONCAT string with null");
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Create an array of size 4
+                asma("mov eax, 4");
+                CALL_FUNCTION("makeArrayBanana");
+                // Write the word "null" in char array
+                asma("mov [eax + 16], 110 ;; n");
+                asma("mov [eax + 20], 117 ;; u");
+                asma("mov [eax + 24], 108 ;; l");
+                asma("mov [eax + 28], 108 ;; l");
+                asma("mov eax, ebx");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push char[] for constructor of java.lang.String
+                asma("push ebx");
+                // Call constructor for java.lang.String(char.array)
+                CALL_FUNCTION("java.lang.String$char.array$");
+                asma("pop ebx");
+                asma("mov eax, ebx");
+                asma("pop eax");
             } else {
                 // Reference Type
                 asmc("CONCAT string with reference type");
