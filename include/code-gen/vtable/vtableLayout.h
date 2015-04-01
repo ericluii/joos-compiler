@@ -8,13 +8,13 @@
 #include <fstream>
 
 class CompilationTable;
-class ClassMethodTable;
+class SymbolTable;
 
 class VTableLayout {
     // each VTableLayout represents the layout
     // of the vtable of a class
     private:
-        // refers to the length of the typeName string
+        // refers to the name of the type
         std::string typeName;
         VTableLayout* superclassVTable;
         // vector of methods that a class have, inherited or
@@ -32,17 +32,19 @@ class VTableLayout {
         // do not need to be in the virtual table. This does not cause
         // conflict since static methods can't override instance methods
         // and vice versa
-        std::vector<ClassMethodTable*> virtualMethods;
+        // 
+        // It does include any inherited interface methods though
+        std::vector<SymbolTable*> virtualMethods;
         // mapping of various methods to its index in the virtual
         // table of the class that the method is defined in
-        std::map<ClassMethodTable*, unsigned int> virtualMethodsMapping;
+        std::map<std::string, unsigned int> virtualMethodsMapping;
 
         void createVTableForArray();
         void createVTable(CompilationTable* table);
     public:
         VTableLayout(CompilationTable*, VTableLayout*);
         VTableLayout(VTableLayout*);
-        unsigned int getIndexOfMethodInVTable(ClassMethodTable*);
+        unsigned int getIndexOfMethodInVTable(const std::string&);
         void outputVTableToFile(std::ofstream&);
         std::string getVirtualTableName();
 };

@@ -105,9 +105,6 @@ class CompilationTable {
         std::map<std::string, FieldTable*>& getAllFieldsInherited();
         ClassMethodTable* getAClassMethod(const std::string& methodSignature);
         InterfaceMethodTable* getInterfaceMethodFromClass(const std::string& methodSignature);
-        std::map<std::string, ClassMethodTable*>& getAllClassMethodsInClass();
-        std::map<std::string, ClassMethodTable*>& getAllClassMethodsInherited();
-        std::map<std::string, InterfaceMethodTable*>& getAllInheritedInterfaceMethodsForClass();
         bool classMethodIsInherited(const std::string& methodSignature);
         ConstructorTable* getAConstructor(const std::string& constructorSignature);
         void registerAField(const std::string& field, FieldTable* table);
@@ -152,6 +149,10 @@ class CompilationTable {
         std::map<std::string, ClassMethodTable*>& getDefinedClassMethods();
         std::map<std::string, FieldTable*>& getDefinedFields();
         std::map<std::string, InterfaceMethodTable*>& getDefinedInterfaceMethods();
+
+        // ---------------------------------------------------------------------
+        // Interface to get all inherited interface methods for class
+        std::map<std::string, InterfaceMethodTable*>& getInheritedInterfaceMethodsForClass();
 
         // ---------------------------------------------------------------------
         // Interface to get the number of fields/methods defined in this type

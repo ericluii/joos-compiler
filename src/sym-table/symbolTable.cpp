@@ -1,5 +1,4 @@
 #include "symbolTable.h"
-#include <cstddef>
 
 SymbolTable::SymbolTable(SYMBOL_TABLE_TYPE type) : prevTable(NULL), nextTable(NULL), tableType(type) {}
 

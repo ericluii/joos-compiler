@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 
 // AST
 #include "classDecl.h"

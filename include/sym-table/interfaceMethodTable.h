@@ -1,6 +1,7 @@
 #ifndef __INTERFACEMETHODTABLE_H__
 #define __INTERFACEMETHODTABLE_H__
 
+#include <string>
 #include "symbolTable.h"
 
 class InterfaceMethod;

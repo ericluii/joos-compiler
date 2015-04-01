@@ -1,6 +1,8 @@
 #ifndef __SYMBOLTABLE_H__
 #define __SYMBOLTABLE_H__
 
+#include <string>
+
 enum SYMBOL_TABLE_TYPE {
     STT_CLASS = 0,
     STT_INTERFACE,
