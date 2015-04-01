@@ -54,7 +54,6 @@ class ExpressionStar;
 class CodeGenerator {
     private:
         std::map<std::string, CompilationTable*>& compilations;
-        CompilationTable* firstUnit;
         Startup* starter;
         VTableManager* virtualManager;
         std::ofstream* fs;

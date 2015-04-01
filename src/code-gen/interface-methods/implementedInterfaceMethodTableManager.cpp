@@ -76,6 +76,9 @@ void ImplInterfaceMethodTableManager::initializeMapping(std::map<std::string, Co
 }
 
 void ImplInterfaceMethodTableManager::generateTableForClass(CompilationTable* aClass) {
+    std::string classCanonicalName = aClass->getCanonicalName();
+    // return immediately if already created
+    if(tables.count(classCanonicalName) == 1) { return; }
     CompilationTable* superclass = ((ClassTable*) aClass->getSymbolTable())->getClass()->getSuper()->getSuperClassTable();
     ImplInterfaceMethodTable* superclassTable = NULL;
     if(superclass != NULL) {
@@ -84,7 +87,6 @@ void ImplInterfaceMethodTableManager::generateTableForClass(CompilationTable* aC
         superclassTable = tables[superclass->getCanonicalName()];
     }
 
-    std::string classCanonicalName = aClass->getCanonicalName();
     tables[classCanonicalName] = new ImplInterfaceMethodTable(classCanonicalName, superclassTable, aClass, numMethods, methodMapping); 
 }
 

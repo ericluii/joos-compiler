@@ -54,6 +54,8 @@
 #include "vtableLayout.h"
 #include "objectLayout.h"
 
+// Label
+#include "labelManager.h"
 #include "RLG.h"
 
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
@@ -66,7 +68,7 @@ void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
-            compilations(compilations), firstUnit(firstUnit), starter(new Startup(compilations, firstUnit)),
+            compilations(compilations), starter(new Startup(compilations, firstUnit)),
             virtualManager(new VTableManager(compilations)), fs(NULL) {}
 
 CodeGenerator::~CodeGenerator() {
@@ -91,7 +93,7 @@ void CodeGenerator::initStage() {
     starter->createTablesForArrayType();
     virtualManager->createVTableLayoutForArrays();
     // generate _startup.s
-    starter->generateStartupFile(virtualManager->getVTableLayoutOfType(".array"), layoutOfClasses);
+    starter->generateStartupFile(virtualManager->getVTableLayoutForArray());
 
     // starter->printInheritanceTable();
     // starter->printInterfaceMethodTable();

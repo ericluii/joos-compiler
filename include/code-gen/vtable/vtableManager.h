@@ -17,7 +17,8 @@ class VTableManager {
         ~VTableManager();
         void createVTableLayoutForCompilation(CompilationTable*);
         void createVTableLayoutForArrays();
-        VTableLayout* getVTableLayoutOfType(const std::string&);
+        VTableLayout* getVTableLayoutForType(const std::string&);
+        VTableLayout* getVTableLayoutForArray();
 };
 
 #endif

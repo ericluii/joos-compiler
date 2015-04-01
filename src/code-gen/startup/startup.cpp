@@ -316,7 +316,7 @@ void Startup::printInterfaceMethodTable() {
     }
 }
 
-void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<CompilationTable*, ObjectLayout*>& layouts) {
+void Startup::generateStartupFile(VTableLayout* arrayVTable) {
     std::ofstream fs("_startup.s");
     // data section
     fs << "section .data\n";
@@ -360,15 +360,6 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::map<Compilatio
     fs << "\n\n";
     // generate virtual table for arrays
     arrayVTable->outputVTableToFile(fs);
-
-    // generate table for static fields indicator
-    std::map<CompilationTable*, ObjectLayout*>::iterator it;
-    for(it = layouts.begin(); it != layouts.end(); it++) {
-        std::string staticIndicatorName = "STATIC$" + it->first->getCanonicalName();
-        fs << "global " << staticIndicatorName << '\n';
-        fs << staticIndicatorName << ": ";
-        it->second->generateStaticIndicatorRowToFile(fs);
-    }
 
     fs << '\n';
 

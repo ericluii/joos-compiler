@@ -6,6 +6,9 @@
 #include "classTable.h"
 #include "classDecl.h"
 
+// Label
+#include "labelManager.h"
+
 VTableManager::VTableManager(std::map<std::string, CompilationTable*>& compilations) : compilations(compilations) {}
 
 VTableManager::~VTableManager() {
@@ -42,11 +45,15 @@ void VTableManager::createVTableLayoutForCompilation(CompilationTable* table) {
 void VTableManager::createVTableLayoutForArrays() {
     std::map<std::string, CompilationTable*>::iterator it;
     VTableLayout* ObjectVTable = vTableCollection["java.lang.Object"];
-    vTableCollection[".array"] = new VTableLayout(ObjectVTable);
+    vTableCollection[LabelManager::labelizeForArrays("")] = new VTableLayout(ObjectVTable);
 }
 
-VTableLayout* VTableManager::getVTableLayoutOfType(const std::string& typeName) {
+VTableLayout* VTableManager::getVTableLayoutForType(const std::string& typeName) {
     // precautionary check
     assert(vTableCollection.count(typeName) == 1);
     return vTableCollection[typeName];
+}
+
+VTableLayout* VTableManager::getVTableLayoutForArray() {
+    return getVTableLayoutForType(LabelManager::labelizeForArrays(""));
 }

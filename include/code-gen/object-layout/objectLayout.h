@@ -13,8 +13,6 @@ class ObjectLayout {
     /*****************************
      *    length (if an array)   *
      *---------------------------*
-     *     static indicator      *
-     *---------------------------*
      *     virtual table         *
      *---------------------------*
      *     inheritance table     *
@@ -29,7 +27,6 @@ class ObjectLayout {
         // fields declared in the class, in the order they were declared
         // with superclass's fields coming first
         std::vector<FieldTable*> declaredFields;
-        std::map<FieldTable*, bool> staticFieldsIndicator;
 
         void createLayout(ObjectLayout* parentLayout, CompilationTable*);
     public:

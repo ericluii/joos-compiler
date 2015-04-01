@@ -16,23 +16,16 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
         std::vector<FieldTable*>::iterator it;
         for(it = parentLayout->declaredFields.begin(); it != parentLayout->declaredFields.end(); it++) {
             std::string fieldName = (*it)->getField()->getFieldDeclared()->getIdAsString();
-            if(table->fieldIsInherited(fieldName)) {
-                // just copy everything of the parent's
+            FieldTable* field = table->getAField(fieldName);
+            assert(field != NULL);
+            if(!table->fieldIsInherited(fieldName) && !field->getField()->isStatic()) {
+                // not inherited and not static
                 declaredFields.push_back(*it);
-                staticFieldsIndicator[*it] = parentLayout->staticFieldsIndicator[*it];
             } else {
-                FieldTable* ownField = table->getAField(fieldName);
-                // precautionary check
-                assert(ownField != NULL);
-                declaredFields.push_back(ownField);
-                // indicate it's a static field or not
-                if(ownField->getField()->isStatic()) {
-                    staticFieldsIndicator[ownField] = true;
-                } else {
-                    staticFieldsIndicator[ownField] = false;
-                }
+                // all other cases
+                declaredFields.push_back(field);
                 // indicate field has been registered
-                registeredFields.insert(ownField);
+                registeredFields.insert(field);
             }
         }
     }
@@ -40,11 +33,10 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
     SymbolTable* symTable = table->getSymbolTable()->getNextTable();
     while(symTable != NULL) {
         if(symTable->isFieldTable() && registeredFields.count((FieldTable*) symTable) == 0) {
-            declaredFields.push_back((FieldTable*) symTable);
-            if(((FieldTable*) symTable)->getField()->isStatic()) {
-                staticFieldsIndicator[(FieldTable*) symTable] = true;
-            } else {
-                staticFieldsIndicator[(FieldTable*) symTable] = false;
+            // if the symbol table represents a field that has not been registered
+            if(!((FieldTable*) symTable)->getField()->isStatic()) {
+                // and the field is not static
+                declaredFields.push_back((FieldTable*) symTable);
             }
         }
         symTable = symTable->getNextTable();
@@ -66,16 +58,4 @@ unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
         }
     }
     return i;
-}
-
-void ObjectLayout::generateStaticIndicatorRowToFile(std::ofstream& fs) {
-    for(unsigned int i = 0; i < declaredFields.size(); i++) {
-        if(i == 0) {
-            fs << "dd ";
-        } else {
-            fs << ",";
-        }
-        fs << staticFieldsIndicator[declaredFields[i]];
-    }
-    fs << '\n';
 }
