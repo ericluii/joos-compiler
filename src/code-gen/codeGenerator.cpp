@@ -127,6 +127,7 @@ void CodeGenerator::traverseAndGenerate() {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
             fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+            processing = it->second;
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
             // fs = NULL;
@@ -752,6 +753,9 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
+        asmc("\nMethod Body - " << method->getMethodHeader()->labelizedMethodSignature());
+        asml(method->getMethodHeader()->labelizedMethodSignature());
+
         scope_offset = 0;
 
         // the method has a body, then generate code
@@ -911,5 +915,16 @@ void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
+    std::stringstream labelizedConstructorSignature;
+    labelizedConstructorSignature << processing->getCanonicalName() << "$";
+    if(!ctor->getConstructorParameters()->isEpsilon()) {
+        labelizedConstructorSignature << ctor->getConstructorParameters()->getListOfParameters()->parametersAsString('$');
+    }
+    labelizedConstructorSignature << "$";
+
+    asmc("\nConstructor Body - " << labelizedConstructorSignature.str());
+    asml(labelizedConstructorSignature.str());
+
+    scope_offset = 0;
     traverseAndGenerate(ctor->getConstructorBody());
 }

@@ -67,6 +67,7 @@ class CodeGenerator {
         StaticFieldsManager* staticManager;
         std::ofstream* fs;
 
+        CompilationTable* processing;
         unsigned int scope_offset;
         std::map<std::string, unsigned int> addressTable;
 
