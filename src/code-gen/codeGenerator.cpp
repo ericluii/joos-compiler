@@ -470,9 +470,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asmc("CONCAT string with null");
                 // Save eax to prevent thrashing
                 asma("push eax");
-                // Create an array of size 4
-                asma("mov eax, 4");
-                CALL_FUNCTION("makeArrayBanana");
+                // Create an array of size 4 * 4
+                asma("mov eax, 16");
+                CALL_FUNCTION("makeArrayBanana$");
                 // Write the word "null" in char array
                 asma("mov [eax + 16], 110 ;; n");
                 asma("mov [eax + 20], 117 ;; u");
@@ -681,8 +681,8 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
 
         asmc("String literal");
         // Create character array to hold string
-        asma("mov eax, " << string_literal.length());
-        CALL_FUNCTION("makeArrayBanana");
+        asma("mov eax, " << (string_literal.length() * 4));
+        CALL_FUNCTION("makeArrayBanana$");
         // Copy over string into array
         unsigned int offset = 16;
         for (unsigned int i = 0; i < string_literal.length(); i++) {
@@ -887,6 +887,7 @@ void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
 void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
     // JLS 14.16
     traverseAndGenerate(stmt->getReturnExpr());
+    asma("ret");
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
