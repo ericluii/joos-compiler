@@ -9,9 +9,18 @@ std::string LabelManager::implInterface = "INTER" + LabelManager::labelizer;
 std::string LabelManager::initializer = "INIT" + LabelManager::labelizer;
 std::string LabelManager::array = ".array";
 std::string LabelManager::constructor = "CTOR" + LabelManager::labelizer;
+std::string LabelManager::alloc = "ALLOC" + LabelManager::labelizer;
 
 std::string LabelManager::getLabelizer() {
 	return LabelManager::labelizer;
+}
+
+std::string LabelManager::getConstructor() {
+	return LabelManager::constructor;
+}
+
+std::string LabelManager::labelizeForAlloc(const std::string& toLabelize) {
+	return alloc + toLabelize;
 }
 
 std::string LabelManager::labelizeForConstructor(const std::string& toLabelize) {
@@ -45,7 +54,7 @@ std::string LabelManager::labelizeForConstructor(const std::string& toLabelize, 
     va_end(ap);
 
     ss << "$";
-	return constructor + toLabelize;
+	return ss.str();
 }
 
 std::string LabelManager::labelizeForArrays(const std::string& toLabelize) {

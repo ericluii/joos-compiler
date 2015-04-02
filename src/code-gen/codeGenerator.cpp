@@ -57,6 +57,12 @@
 #include "implementedInterfaceMethodTableManager.h"
 #include "staticFieldsManager.h"
 
+// Tables and layouts
+#include "vtableLayout.h"
+#include "objectLayout.h"
+#include "implementedInterfaceMethodTable.h"
+#include "inheritanceTable.h"
+
 // Label
 #include "labelManager.h"
 #include "RLG.h"
@@ -65,11 +71,27 @@ void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
     std::string constructor_prefix = LabelManager::labelizeForConstructor(processing->getCanonicalName()) + "$";
     std::string method_prefix = processing->getCanonicalName() + "$";
 
+    // If it is a constructor we need to allocate 'this'
+    if (fn_name.find(LabelManager::getConstructor()) == 0) {
+        // Get canonincal name of type constructor being invoked
+        std::string canonical_name = fn_name.substr(LabelManager::getConstructor().size());
+        canonical_name = canonical_name.substr(0, canonical_name.find("$"));
+
+        CALL_FUNCTION(LabelManager::labelizeForAlloc(canonical_name));
+        asma("push eax ; push this");
+    }
+
+    // Check if we need to extern the constructor
     if (fn_name.find(constructor_prefix) != 0 &&
-        fn_name.find(method_prefix) != 0) {
+               fn_name.find(method_prefix) != 0) {
         asma("extern " << fn_name);   
     }
     asma("call " << fn_name);
+
+    // If it is a constructor we need to pop 'this'
+    if (fn_name.find(LabelManager::getConstructor()) == 0) {
+        asma("pop ebx ; pop this");
+    }
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
@@ -167,14 +189,25 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
+            std::string classCanonicalName = it->second->getCanonicalName();
 #if defined(CODE_OUT)
             std::stringstream ss;
-            ss << CODE_OUT << "/" << it->second->getCanonicalName() << ".s";
+            ss << CODE_OUT << "/" << classCanonicalName << ".s";
             fs = new std::ofstream(ss.str());
 #else
-            fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+            fs = new std::ofstream(classCanonicalName + ".s");
 #endif
             processing = it->second;
+            asma("section .text");
+            asma("extern __malloc");
+            asml(LabelManager::labelizeForAlloc(classCanonicalName));
+            asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
+            CALL_FUNCTION("__malloc");
+            asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
+            asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
+            asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
+            // Call fields initializers here
+            asma("ret");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
             // fs = NULL;
