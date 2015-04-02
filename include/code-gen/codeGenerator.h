@@ -110,6 +110,7 @@ class CodeGenerator {
         void traverseAndGenerate(NestedBlock*);
         void traverseAndGenerate(ReturnStmt*);
 
+        void createNullForEBX();
         void* getSymbolTableForName(Name* name);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);

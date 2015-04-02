@@ -62,7 +62,13 @@
 #include "RLG.h"
 
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
-    asma("extern " << fn_name);
+    std::string constructor_prefix = LabelManager::labelizeForConstructor(processing->getCanonicalName()) + "$";
+    std::string method_prefix = processing->getCanonicalName() + "$";
+
+    if (fn_name.find(constructor_prefix) != 0 &&
+        fn_name.find(method_prefix) != 0) {
+        asma("extern " << fn_name);   
+    }
     asma("call " << fn_name);
 }
 
@@ -112,6 +118,45 @@ void CodeGenerator::generateStartFile() {
 
     starter->generateStartupFile(virtualManager->getVTableLayoutForArray(), arrayInheritance,
                 interManager->getTableForArray(), statics);
+}
+
+void CodeGenerator::createNullForEBX() {
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Create an array of size 4 * 4
+    asma("mov eax, 16");
+    CALL_FUNCTION("makeArrayBanana$");
+    // Write the word "null" in char array
+    asma("mov [eax - 12], 110 ;; n");
+    asma("mov [eax - 16], 117 ;; u");
+    asma("mov [eax - 20], 108 ;; l");
+    asma("mov [eax - 24], 108 ;; l");
+    asma("mov ebx, eax");
+    asma("pop eax");
+
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Push char[] for constructor of java.lang.String
+    asma("push ebx");
+    // Call constructor for java.lang.String(char.array)
+    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
+    asma("pop ebx");
+    asma("mov ebx, eax");
+    asma("pop eax");
+}
+
+void* CodeGenerator::getSymbolTableForName(Name* name) {
+    if (name->isReferringToField()) {
+        return name->getReferredField();
+    } else if (name->isReferringToParameter()) {
+        return name->getReferredParameter();
+    } else if (name->isReferringToLocalVar()) {
+        return name->getReferredLocalVar();
+    } else {
+        assert(false);
+    }
+
+    return NULL;
 }
 
 // --------------------------------------------------------------------------------
@@ -377,7 +422,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Integer
-                CALL_FUNCTION("java.lang.Integer$int$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Integer", 1, "int"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -398,7 +443,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Short
-                CALL_FUNCTION("java.lang.Short$short$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Short", 1, "short"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -419,7 +464,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Byte
-                CALL_FUNCTION("java.lang.Byte$byte$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Byte", 1, "byte"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -440,7 +485,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Character
-                CALL_FUNCTION("java.lang.Character$char$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Character", 1, "char"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -461,7 +506,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Boolean
-                CALL_FUNCTION("java.lang.Boolean$boolean$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Boolean", 1, "boolean"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -477,28 +522,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop eax");
             } else if (rhs_expr->getExpressionTypeString() == "null") {
                 asmc("CONCAT string with null");
-                // Save eax and ebx to prevent thrashing
-                asma("push eax");
-                // Create an array of size 4 * 4
-                asma("mov eax, 16");
-                CALL_FUNCTION("makeArrayBanana$");
-                // Write the word "null" in char array
-                asma("mov [eax - 12], 110 ;; n");
-                asma("mov [eax - 16], 117 ;; u");
-                asma("mov [eax - 20], 108 ;; l");
-                asma("mov [eax - 24], 108 ;; l");
-                asma("mov ebx, eax");
-                asma("pop eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push char[] for constructor of java.lang.String
-                asma("push ebx");
-                // Call constructor for java.lang.String(char.array)
-                CALL_FUNCTION("java.lang.String$char.array$");
-                asma("pop ebx");
-                asma("mov eax, ebx");
-                asma("pop eax");
+                createNullForEBX();
             } else {
                 // Reference Type
                 asmc("CONCAT string with reference type");
@@ -511,6 +535,13 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
+
+                // Check if returned string is null
+                std::string non_null_lbl = LABEL_GEN();
+                asma("cmp ebx, 0");
+                asma("jne " <<  non_null_lbl);
+                createNullForEBX();
+                asml(non_null_lbl);
             }
 
             if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
@@ -756,8 +787,9 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
-        asmc("Method Body - " << method->getMethodHeader()->labelizedMethodSignature());
-        asmgl(method->getMethodHeader()->labelizedMethodSignature());
+        std::string signature = processing->getCanonicalName() + "." + method->getMethodHeader()->labelizedMethodSignature();
+        asmc("Method Body - " << signature);
+        asmgl(signature);
         asma("push ebp");
         asma("mov ebp, esp");
 
@@ -938,15 +970,10 @@ void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
-    std::stringstream labelizedConstructorSignature;
-    labelizedConstructorSignature << processing->getCanonicalName() << "$";
-    if(!ctor->getConstructorParameters()->isEpsilon()) {
-        labelizedConstructorSignature << ctor->getConstructorParameters()->getListOfParameters()->parametersAsString('$');
-    }
-    labelizedConstructorSignature << "$";
+    std::string signature = ctor->labelizedConstructorSignature();
 
-    asmc("Constructor Body - " << labelizedConstructorSignature.str());
-    asmgl(labelizedConstructorSignature.str());
+    asmc("Constructor Body - " << signature);
+    asmgl(signature);
     asma("push ebp");
     asma("mov ebp, esp");
 
@@ -957,18 +984,4 @@ void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
     asma("mov esp, ebp");
     asma("pop ebp");
     asma("ret");
-}
-
-void* CodeGenerator::getSymbolTableForName(Name* name) {
-    if (name->isReferringToField()) {
-        return name->getReferredField();
-    } else if (name->isReferringToParameter()) {
-        return name->getReferredParameter();
-    } else if (name->isReferringToLocalVar()) {
-        return name->getReferredLocalVar();
-    } else {
-        assert(false);
-    }
-
-    return NULL;
 }
