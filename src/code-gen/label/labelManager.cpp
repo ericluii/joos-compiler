@@ -34,3 +34,7 @@ std::string LabelManager::getLabelForArrayImplInterfaceMethodTable() {
 std::string LabelManager::getLabelForArrayVirtualTable() {
     return LabelManager::virt + LabelManager::array;
 }
+
+std::string LabelManager::getLabelForArrayInheritanceTable(const std::string& arrayComponentType) {
+    return LabelManager::labelizeForArrays(LabelManager::labelizeToInheritanceTable(arrayComponentType));
+}

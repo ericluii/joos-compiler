@@ -19,6 +19,7 @@ class LabelManager {
         static std::string labelizeToStaticInitializer(const std::string&);
         static std::string getLabelForArrayVirtualTable();
         static std::string getLabelForArrayImplInterfaceMethodTable();
+        static std::string getLabelForArrayInheritanceTable(const std::string&);
 };
 
 #endif
