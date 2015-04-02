@@ -43,10 +43,12 @@
 #include "stmtExprCreation.h"
 #include "nestedBlock.h"
 #include "expressionStar.h"
+#include "referenceType.h"
 
 // Symbol table
 #include "compilationTable.h"
 #include "classTable.h"
+#include "paramTable.h"
 
 // Code generation related
 #include "codeGenerator.h"
@@ -669,19 +671,86 @@ void CodeGenerator::traverseAndGenerate(Primary* prim) {
 }
 
 void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
+    traverseAndGenerate(access->getAccessExpression());
+
     // Order based on JLS 15.13
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
     } else {
         traverseAndGenerate(((ArrayAccessPrimary*) access)->getAccessedPrimaryArray());
     }
-    traverseAndGenerate(access->getAccessExpression());
 }
 
-void CodeGenerator::traverseAndGenerate(Name* name) {
+void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeForName) {
     // Order implicit based on JLS 15.7
-    if(!name->isLastPrefix()) {
-        traverseAndGenerate(name->getNextName());
+    if (!name->isLastPrefix()) {
+        CompilationTable* prevType = NULL;
+        traverseAndGenerate(name->getNextName(), &prevType);
+
+        Name* qualifier = name->getNextName();
+
+        if (name->isReferringToField()) {
+            assert(prevType != NULL);
+
+            FieldTable* field = name->getReferredField();
+            if(qualifier->isReferringToType()) {
+                std::string staticName = field->generateFieldLabel();
+
+                asmc("Accessing static variable, get global variable");
+                if(prevType != processing) {
+                    asma("extern " << staticName);
+                }
+                asma("mov eax, " << staticName);
+            } else {
+                std::string null_chk_lbl = LABEL_GEN();
+
+                asmc("Accessing non-statically. Assumption is eax has 'this' if we are here");
+                asma("cmp eax, 0");
+                asma("jne " << null_chk_lbl);
+                CALL_FUNCTION("__exception");
+                asml(null_chk_lbl);
+                asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "]");
+            }
+
+            Type* fieldType = name->getReferredField()->getField()->getFieldType();
+            if (fieldType->isReferenceType()) {
+                *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
+            } //  ELSE IS PRIMITIVE TYPE, BETTER NOT BE A PREFIX
+        } else if(name->isReferringToType()) {
+            *prevTypeForName = name->getReferredType();
+        } // ELSE IS PACKAGE/FIELD DECL/PARAM <- the last two is impossible. We hope.
+    } else {
+        if (name->isReferringToField()) {
+            FieldTable* field = name->getReferredField();
+            asma("mov eax, ebp + 8");
+            asma("mov eax, [eax - " << (objManager->getLayoutForClass(processing)->indexOfFieldInObject(field) + 12) << "]");
+
+            Type* fieldType = field->getField()->getFieldType();
+            if (fieldType->isReferenceType() && prevTypeForName != NULL) {
+                *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
+            } //  ELSE IS PRIMITIVE TYPE
+        } else if(name->isReferringToParameter() || name->isReferringToLocalVar()) {
+            void* paramOrLocal = NULL;
+            if (name->isReferringToParameter()) {
+                paramOrLocal = name->getReferredParameter();
+                Type* paramType = name->getReferredParameter()->getParameter()->getParameterType();
+
+                if (paramType->isReferenceType() && prevTypeForName != NULL) {
+                    *prevTypeForName = static_cast<ReferenceType*>(paramType)->getReferenceTypeTable();
+                } //  ELSE IS PRIMITIVE TYPE
+            } else {
+                paramOrLocal = name->getReferredLocalVar();
+                Type* localType = name->getReferredLocalVar()->getLocalDecl()->getLocalType();
+
+                if (localType->isReferenceType() && prevTypeForName != NULL) {
+                    *prevTypeForName = static_cast<ReferenceType*>(localType)->getReferenceTypeTable();
+                } //  ELSE IS PRIMITIVE TYPE
+            }
+
+            asma("mov eax, [ebp + " << addressTable[paramOrLocal] << "]");
+        } else if (name->isReferringToType() && prevTypeForName != NULL) {
+            *prevTypeForName = name->getReferredType();
+        } // BETTER BE CORRECT - ELSE IS PACKAGE
     }
 }
 

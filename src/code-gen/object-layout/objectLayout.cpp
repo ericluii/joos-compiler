@@ -57,5 +57,6 @@ unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
             break;
         }
     }
-    return i;
+    // multiplied by 4 for doubleword access (32 bits)
+    return i * 4;
 }

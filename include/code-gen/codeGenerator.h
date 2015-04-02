@@ -83,7 +83,7 @@ class CodeGenerator {
         void traverseAndGenerate(PrimaryExpression*);
         void traverseAndGenerate(Primary*);
         void traverseAndGenerate(ArrayAccess*);
-        void traverseAndGenerate(Name*);
+        void traverseAndGenerate(Name* name, CompilationTable** prevTypeForName = NULL);
         void traverseAndGenerate(FieldAccess*);
         void traverseAndGenerate(MethodInvoke*);
         void traverseAndGenerate(ArgumentsStar*);
