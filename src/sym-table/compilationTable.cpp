@@ -168,18 +168,6 @@ bool CompilationTable::classMethodIsInherited(const std::string& methodSignature
     return inheritedClassMethods.count(methodSignature) == 1;
 }
 
-std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsInClass() {
-    return classMethods;
-}
-
-std::map<std::string, ClassMethodTable*>& CompilationTable::getAllClassMethodsInherited() {
-    return inheritedClassMethods;
-}
-
-std::map<std::string, InterfaceMethodTable*>& CompilationTable::getAllInheritedInterfaceMethodsForClass() {
-    return inheritedInterfaceMethodsForClass;
-}
-
 ConstructorTable* CompilationTable::getAConstructor(const std::string& constructorSignature) {
     assert(symTable->isClassTable());
     if(constructors.count(constructorSignature) == 1) {
@@ -603,6 +591,14 @@ std::map<std::string, InterfaceMethodTable*>& CompilationTable::getDefinedInterf
     // precautionary check that a type was defined and the type is a class
     assert(symTable != NULL && symTable->isInterfaceTable());
     return interfaceMethods;
+}
+
+// ------------------------------------------------------------------------------------------
+// Interface to get all inherited interface methods for class
+std::map<std::string, InterfaceMethodTable*>& CompilationTable::getInheritedInterfaceMethodsForClass() {
+    // precautionary check
+    assert(symTable != NULL && symTable->isClassTable());
+    return inheritedInterfaceMethods;
 }
 
 // -------------------------------------------------------------------------------------------

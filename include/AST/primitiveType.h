@@ -4,6 +4,8 @@
 #include "type.h"
 #include "token.h"
 
+#include "labelManager.h"
+
 class PrimitiveType : public Type {
     // Rule: all the primitive type derivations and ARRAY_PRIMITIVE
     private:
@@ -18,7 +20,7 @@ class PrimitiveType : public Type {
             std::string type = primitiveType->getString();
             if(isArray) {
                 if(!labelForm) { return type + "[]"; }
-                else { return type + ".array"; }
+                else { return LabelManager::labelizeForArrays(type); }
             }
             return type;
         }

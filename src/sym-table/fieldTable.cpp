@@ -4,6 +4,8 @@
 #include "fieldDecl.h"
 #include "compilationTable.h"
 
+#include "labelManager.h"
+
 FieldTable::FieldTable(FieldDecl* field, CompilationTable* declaringClass) : SymbolTable(STT_FIELD), field(field), 
             declaringClass(declaringClass) {}
 FieldTable::~FieldTable() {}
@@ -23,6 +25,5 @@ std::string FieldTable::generateFieldLabel() {
 }
 
 std::string FieldTable::generateStaticInitializerLabel() {
-    return "INIT$" + declaringClass->getCanonicalName() + '.' +
-            field->getFieldDeclared()->getIdAsString();
+    return LabelManager::labelizeToStaticInitializer(generateFieldLabel());
 }

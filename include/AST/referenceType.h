@@ -5,6 +5,8 @@
 #include "name.h"
 #include "compilationTable.h"
 
+#include "labelManager.h"
+
 class ReferenceType : public Type {
     // Rule: REFERENCE_CLASSINTERFACE, and ARRAY_NONPRIMITIVE
     private:
@@ -29,7 +31,7 @@ class ReferenceType : public Type {
             }
             if(isReferenceArrayType()) {
                 if(!labelForm) { return typeName + "[]"; }
-                else { return typeName + ".array"; }
+                else { return LabelManager::labelizeForArrays(typeName); }
             }
             return typeName;
         }
