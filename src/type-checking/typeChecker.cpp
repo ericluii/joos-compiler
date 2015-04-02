@@ -304,7 +304,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
         // TODO: CHECK SOMETHING...
         //       Theoretically should fall through and be checked correctly...
 
-        return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()) && check(methodInvoke->getArgsForInvokedMethod());
+        return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldPrimary()) && check(methodInvoke->getArgsForInvokedMethod());
     }
 }
 
@@ -676,6 +676,14 @@ bool TypeChecking::check(QualifiedThis* qualifiedThis) {
 }
 
 bool TypeChecking::check(FieldAccess* fieldAccess) {
+    if (fieldAccess->isReferringToField()) {
+        if (fieldAccess->getReferredField()->getField()->isStatic()) {
+            std::stringstream ss;
+            ss << "Cannot access static field non-statically.";
+            NOTIFY_ERROR(fieldAccess->getAccessedFieldId()->getToken(), ss);
+        }
+    }
+
     restrict_type_name_expressions = true;
     bool rv = check(fieldAccess->getAccessedFieldPrimary());
     restrict_type_name_expressions = false;
