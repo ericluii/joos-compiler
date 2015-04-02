@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <stack>
 
 // AST
 #include "classDecl.h"
@@ -42,10 +43,12 @@
 #include "stmtExprCreation.h"
 #include "nestedBlock.h"
 #include "expressionStar.h"
+#include "referenceType.h"
 
 // Symbol table
 #include "compilationTable.h"
 #include "classTable.h"
+#include "paramTable.h"
 
 // Code generation related
 #include "codeGenerator.h"
@@ -57,13 +60,41 @@
 #include "implementedInterfaceMethodTableManager.h"
 #include "staticFieldsManager.h"
 
+// Tables and layouts
+#include "vtableLayout.h"
+#include "objectLayout.h"
+#include "implementedInterfaceMethodTable.h"
+#include "inheritanceTable.h"
+
 // Label
 #include "labelManager.h"
 #include "RLG.h"
 
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
-    asma("extern " << fn_name);
+    std::string constructor_prefix = LabelManager::labelizeForConstructor(processing->getCanonicalName()) + "$";
+    std::string method_prefix = processing->getCanonicalName() + "$";
+
+    // If it is a constructor we need to allocate 'this'
+    if (fn_name.find(LabelManager::getConstructor()) == 0) {
+        // Get canonincal name of type constructor being invoked
+        std::string canonical_name = fn_name.substr(LabelManager::getConstructor().size());
+        canonical_name = canonical_name.substr(0, canonical_name.find("$"));
+
+        CALL_FUNCTION(LabelManager::labelizeForAlloc(canonical_name));
+        asma("push eax ; push this");
+    }
+
+    // Check if we need to extern the constructor
+    if (fn_name.find(constructor_prefix) != 0 &&
+               fn_name.find(method_prefix) != 0) {
+        asma("extern " << fn_name);   
+    }
     asma("call " << fn_name);
+
+    // If it is a constructor we need to pop 'this'
+    if (fn_name.find(LabelManager::getConstructor()) == 0) {
+        asma("pop ebx ; pop this");
+    }
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
@@ -114,6 +145,45 @@ void CodeGenerator::generateStartFile() {
                 interManager->getTableForArray(), statics);
 }
 
+void CodeGenerator::createNullForEBX() {
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Create an array of size 4 * 4
+    asma("mov eax, 16");
+    CALL_FUNCTION("makeArrayBanana$");
+    // Write the word "null" in char array
+    asma("mov [eax - 12], 110 ;; n");
+    asma("mov [eax - 16], 117 ;; u");
+    asma("mov [eax - 20], 108 ;; l");
+    asma("mov [eax - 24], 108 ;; l");
+    asma("mov ebx, eax");
+    asma("pop eax");
+
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Push char[] for constructor of java.lang.String
+    asma("push ebx");
+    // Call constructor for java.lang.String(char.array)
+    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
+    asma("pop ebx");
+    asma("mov ebx, eax");
+    asma("pop eax");
+}
+
+void* CodeGenerator::getSymbolTableForName(Name* name) {
+    if (name->isReferringToField()) {
+        return name->getReferredField();
+    } else if (name->isReferringToParameter()) {
+        return name->getReferredParameter();
+    } else if (name->isReferringToLocalVar()) {
+        return name->getReferredLocalVar();
+    } else {
+        assert(false);
+    }
+
+    return NULL;
+}
+
 // --------------------------------------------------------------------------------
 // Code generation section
 
@@ -122,14 +192,25 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
+            std::string classCanonicalName = it->second->getCanonicalName();
 #if defined(CODE_OUT)
             std::stringstream ss;
-            ss << CODE_OUT << "/" << it->second->getCanonicalName() << ".s";
+            ss << CODE_OUT << "/" << classCanonicalName << ".s";
             fs = new std::ofstream(ss.str());
 #else
-            fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+            fs = new std::ofstream(classCanonicalName + ".s");
 #endif
             processing = it->second;
+            asma("section .text");
+            asma("extern __malloc");
+            asml(LabelManager::labelizeForAlloc(classCanonicalName));
+            asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
+            CALL_FUNCTION("__malloc");
+            asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
+            asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
+            asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
+            // Call fields initializers here
+            asma("ret");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
             // fs = NULL;
@@ -377,7 +458,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Integer
-                CALL_FUNCTION("java.lang.Integer$int$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Integer", 1, "int"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -398,7 +479,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Short
-                CALL_FUNCTION("java.lang.Short$short$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Short", 1, "short"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -419,7 +500,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Byte
-                CALL_FUNCTION("java.lang.Byte$byte$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Byte", 1, "byte"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -440,7 +521,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Character
-                CALL_FUNCTION("java.lang.Character$char$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Character", 1, "char"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -461,7 +542,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push integer for constructor parameter
                 asma("push ebx");
                 // Call Constructor for java.lang.Boolean
-                CALL_FUNCTION("java.lang.Boolean$boolean$");
+                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Boolean", 1, "boolean"));
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
@@ -477,28 +558,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop eax");
             } else if (rhs_expr->getExpressionTypeString() == "null") {
                 asmc("CONCAT string with null");
-                // Save eax and ebx to prevent thrashing
-                asma("push eax");
-                // Create an array of size 4 * 4
-                asma("mov eax, 16");
-                CALL_FUNCTION("makeArrayBanana$");
-                // Write the word "null" in char array
-                asma("mov [eax - 12], 110 ;; n");
-                asma("mov [eax - 16], 117 ;; u");
-                asma("mov [eax - 20], 108 ;; l");
-                asma("mov [eax - 24], 108 ;; l");
-                asma("mov ebx, eax");
-                asma("pop eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push char[] for constructor of java.lang.String
-                asma("push ebx");
-                // Call constructor for java.lang.String(char.array)
-                CALL_FUNCTION("java.lang.String$char.array$");
-                asma("pop ebx");
-                asma("mov eax, ebx");
-                asma("pop eax");
+                createNullForEBX();
             } else {
                 // Reference Type
                 asmc("CONCAT string with reference type");
@@ -511,6 +571,13 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
+
+                // Check if returned string is null
+                std::string non_null_lbl = LABEL_GEN();
+                asma("cmp ebx, 0");
+                asma("jne " <<  non_null_lbl);
+                createNullForEBX();
+                asml(non_null_lbl);
             }
 
             if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
@@ -604,19 +671,86 @@ void CodeGenerator::traverseAndGenerate(Primary* prim) {
 }
 
 void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
+    traverseAndGenerate(access->getAccessExpression());
+
     // Order based on JLS 15.13
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
     } else {
         traverseAndGenerate(((ArrayAccessPrimary*) access)->getAccessedPrimaryArray());
     }
-    traverseAndGenerate(access->getAccessExpression());
 }
 
-void CodeGenerator::traverseAndGenerate(Name* name) {
+void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeForName) {
     // Order implicit based on JLS 15.7
-    if(!name->isLastPrefix()) {
-        traverseAndGenerate(name->getNextName());
+    if (!name->isLastPrefix()) {
+        CompilationTable* prevType = NULL;
+        traverseAndGenerate(name->getNextName(), &prevType);
+
+        Name* qualifier = name->getNextName();
+
+        if (name->isReferringToField()) {
+            assert(prevType != NULL);
+
+            FieldTable* field = name->getReferredField();
+            if(qualifier->isReferringToType()) {
+                std::string staticName = field->generateFieldLabel();
+
+                asmc("Accessing static variable, get global variable");
+                if(prevType != processing) {
+                    asma("extern " << staticName);
+                }
+                asma("mov eax, " << staticName);
+            } else {
+                std::string null_chk_lbl = LABEL_GEN();
+
+                asmc("Accessing non-statically. Assumption is eax has 'this' if we are here");
+                asma("cmp eax, 0");
+                asma("jne " << null_chk_lbl);
+                CALL_FUNCTION("__exception");
+                asml(null_chk_lbl);
+                asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "]");
+            }
+
+            Type* fieldType = name->getReferredField()->getField()->getFieldType();
+            if (fieldType->isReferenceType()) {
+                *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
+            } //  ELSE IS PRIMITIVE TYPE, BETTER NOT BE A PREFIX
+        } else if(name->isReferringToType()) {
+            *prevTypeForName = name->getReferredType();
+        } // ELSE IS PACKAGE/FIELD DECL/PARAM <- the last two is impossible. We hope.
+    } else {
+        if (name->isReferringToField()) {
+            FieldTable* field = name->getReferredField();
+            asma("mov eax, ebp + 8");
+            asma("mov eax, [eax - " << (objManager->getLayoutForClass(processing)->indexOfFieldInObject(field) + 12) << "]");
+
+            Type* fieldType = field->getField()->getFieldType();
+            if (fieldType->isReferenceType() && prevTypeForName != NULL) {
+                *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
+            } //  ELSE IS PRIMITIVE TYPE
+        } else if(name->isReferringToParameter() || name->isReferringToLocalVar()) {
+            void* paramOrLocal = NULL;
+            if (name->isReferringToParameter()) {
+                paramOrLocal = name->getReferredParameter();
+                Type* paramType = name->getReferredParameter()->getParameter()->getParameterType();
+
+                if (paramType->isReferenceType() && prevTypeForName != NULL) {
+                    *prevTypeForName = static_cast<ReferenceType*>(paramType)->getReferenceTypeTable();
+                } //  ELSE IS PRIMITIVE TYPE
+            } else {
+                paramOrLocal = name->getReferredLocalVar();
+                Type* localType = name->getReferredLocalVar()->getLocalDecl()->getLocalType();
+
+                if (localType->isReferenceType() && prevTypeForName != NULL) {
+                    *prevTypeForName = static_cast<ReferenceType*>(localType)->getReferenceTypeTable();
+                } //  ELSE IS PRIMITIVE TYPE
+            }
+
+            asma("mov eax, [ebp + " << addressTable[paramOrLocal] << "]");
+        } else if (name->isReferringToType() && prevTypeForName != NULL) {
+            *prevTypeForName = name->getReferredType();
+        } // BETTER BE CORRECT - ELSE IS PACKAGE
     }
 }
 
@@ -756,12 +890,33 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
-        asmc("Method Body - " << method->getMethodHeader()->labelizedMethodSignature());
-        asmgl(method->getMethodHeader()->labelizedMethodSignature());
+        std::string signature = processing->getCanonicalName() + "." + method->getMethodHeader()->labelizedMethodSignature();
+        asmc("Method Body - " << signature);
+        asmgl(signature);
         asma("push ebp");
         asma("mov ebp, esp");
+        scope_offset = -4;
 
-        scope_offset = 4;
+        // Add Parameters to the address table
+        // If static there is no implicit this
+        int param_offset = method->isStatic() ? 8 : 12;
+        ParamList* params = method->getMethodHeader()->getClassMethodParams()->getListOfParameters();
+
+        // Param List is right to left, but we need to increment by left to right
+        // So flip it
+        std::stack<ParamList*> paramStack;
+        while (params) {
+            paramStack.push(params);
+            params = params->getNextParameter();
+        }
+
+        while (!paramStack.empty()) {
+            params = paramStack.top();
+            paramStack.pop();
+
+            addressTable[params->getParamTable()] = param_offset;
+            param_offset += 4;
+        }
 
         // the method has a body, then generate code
         // for the body
@@ -814,7 +969,7 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Everything primitive/reference type/array will be stored in a DD on the stack
     asmc("Local Decl - " << id);
     addressTable[local->getLocalTable()] = scope_offset;
-    scope_offset += 4;
+    scope_offset -= 4;
 
     // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
@@ -873,7 +1028,7 @@ void CodeGenerator::traverseAndGenerate(WhileStmt* stmt) {
 void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     // Order based on JLS 14.13.2
     asmc("For statement init");
-    unsigned int saved_scope_offset = scope_offset;
+    int saved_scope_offset = scope_offset;
     if(!stmt->emptyForInit()) {
         traverseAndGenerate(stmt->getForInit());
     }
@@ -922,7 +1077,7 @@ void CodeGenerator::traverseAndGenerate(StmtExpr* stmt) {
 void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
     // JLS 14.2
     if(!stmt->isEmptyNestedBlock()) {
-        unsigned int saved_scope_offset = scope_offset;
+        int saved_scope_offset = scope_offset;
         traverseAndGenerate(stmt->getNestedBlock());
         scope_offset = saved_scope_offset;
     }
@@ -938,37 +1093,18 @@ void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
-    std::stringstream labelizedConstructorSignature;
-    labelizedConstructorSignature << processing->getCanonicalName() << "$";
-    if(!ctor->getConstructorParameters()->isEpsilon()) {
-        labelizedConstructorSignature << ctor->getConstructorParameters()->getListOfParameters()->parametersAsString('$');
-    }
-    labelizedConstructorSignature << "$";
+    std::string signature = ctor->labelizedConstructorSignature();
 
-    asmc("Constructor Body - " << labelizedConstructorSignature.str());
-    asmgl(labelizedConstructorSignature.str());
+    asmc("Constructor Body - " << signature);
+    asmgl(signature);
     asma("push ebp");
     asma("mov ebp, esp");
 
-    scope_offset = 4;
+    scope_offset = -4;
     traverseAndGenerate(ctor->getConstructorBody());
 
     asmc("Implicit Return");
     asma("mov esp, ebp");
     asma("pop ebp");
     asma("ret");
-}
-
-void* CodeGenerator::getSymbolTableForName(Name* name) {
-    if (name->isReferringToField()) {
-        return name->getReferredField();
-    } else if (name->isReferringToParameter()) {
-        return name->getReferredParameter();
-    } else if (name->isReferringToLocalVar()) {
-        return name->getReferredLocalVar();
-    } else {
-        assert(false);
-    }
-
-    return NULL;
 }

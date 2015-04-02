@@ -70,8 +70,8 @@ class CodeGenerator {
         std::ofstream* fs;
 
         CompilationTable* processing;
-        unsigned int scope_offset;
-        std::map<void*, unsigned int> addressTable;
+        int scope_offset;
+        std::map<void*, int> addressTable;
 
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
@@ -83,7 +83,7 @@ class CodeGenerator {
         void traverseAndGenerate(PrimaryExpression*);
         void traverseAndGenerate(Primary*);
         void traverseAndGenerate(ArrayAccess*);
-        void traverseAndGenerate(Name*);
+        void traverseAndGenerate(Name* name, CompilationTable** prevTypeForName = NULL);
         void traverseAndGenerate(FieldAccess*);
         void traverseAndGenerate(MethodInvoke*);
         void traverseAndGenerate(ArgumentsStar*);
@@ -110,6 +110,7 @@ class CodeGenerator {
         void traverseAndGenerate(NestedBlock*);
         void traverseAndGenerate(ReturnStmt*);
 
+        void createNullForEBX();
         void* getSymbolTableForName(Name* name);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);

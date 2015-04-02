@@ -7,6 +7,8 @@
 #include "blockStmtsStar.h"
 #include "constructorTable.h"
 
+#include "labelManager.h"
+
 class Constructor : public ClassBodyDecls {
     // Rule: CLASS_CONSTRUCTOR
     private:
@@ -34,6 +36,16 @@ class Constructor : public ClassBodyDecls {
                 signature+= params->getListOfParameters()->parametersAsString(',');
             }
             return signature + ')';
+        }
+
+        std::string labelizedConstructorSignature() {
+            std::string delimiter = LabelManager::getLabelizer();
+            std::string labelSignature = getConstructorTable()->getDeclaringClass()->getCanonicalName() + delimiter;
+            if(!params->isEpsilon()) {
+                labelSignature+= params->getListOfParameters()->parametersAsString(delimiter[0]);
+            }
+            labelSignature+= delimiter;
+            return LabelManager::labelizeForConstructor(labelSignature);
         }
 
         void setConstructorTable(ConstructorTable* set) { table = set; }

@@ -44,8 +44,8 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
 }
 
 unsigned int ObjectLayout::sizeOfObject() {
-    // 16, the size of the virtual table, inheritance table,
-    // interface method table pointer and static indicator table,
+    // 12, the size of the virtual table, inheritance table,
+    // interface method table pointer,
     // plus the number of fields times 4 bytes (size of each fields)
     return 12 + (declaredFields.size() * 4);
 }
@@ -57,5 +57,6 @@ unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
             break;
         }
     }
-    return i;
+    // multiplied by 4 for doubleword access (32 bits)
+    return i * 4;
 }

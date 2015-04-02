@@ -11,7 +11,14 @@ class LabelManager {
         static std::string implInterface;
         static std::string initializer;
         static std::string array;
+        static std::string constructor;
+        static std::string alloc;
     public:
+        static std::string getLabelizer();
+        static std::string getConstructor();
+        static std::string labelizeForAlloc(const std::string& toLabelize);
+        static std::string labelizeForConstructor(const std::string& toLabelize);
+        static std::string labelizeForConstructor(const std::string&, int n_args, ...);
         static std::string labelizeForArrays(const std::string&);
         static std::string labelizeToInheritanceTable(const std::string&);
         static std::string labelizeToVirtualTable(const std::string&);
