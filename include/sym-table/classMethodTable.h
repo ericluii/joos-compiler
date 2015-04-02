@@ -14,7 +14,6 @@ class ClassMethodTable : public SymbolTable {
         // compilation table of the class that declares
         // this method
         CompilationTable* declaringClass;
-        bool registeredVTable;
     public:
         ClassMethodTable(ClassMethod* method, CompilationTable* declaringClass); 
         ~ClassMethodTable(); 

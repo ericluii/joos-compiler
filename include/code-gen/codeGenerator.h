@@ -14,6 +14,7 @@ class ObjectLayoutManager;
 class InheritanceTableManager;
 class ImplInterfaceMethodTableManager;
 class StaticFieldsManager;
+class SymbolTable;
 
 // AST related
 class ClassDecl;
@@ -53,6 +54,7 @@ class ReturnStmt;
 class ExpressionStar;
 
 #define asmc(comment) *fs << ";; " << comment << "\n"
+#define asmgl(global) *fs << "global " << global << "\n" << global << ":\n"
 #define asml(label) *fs << "  " << label << ":\n"
 #define asma(code) *fs << "\t" << code << "\n"
 
@@ -66,6 +68,10 @@ class CodeGenerator {
         ImplInterfaceMethodTableManager* interManager;
         StaticFieldsManager* staticManager;
         std::ofstream* fs;
+
+        CompilationTable* processing;
+        unsigned int scope_offset;
+        std::map<void*, unsigned int> addressTable;
 
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
@@ -104,6 +110,7 @@ class CodeGenerator {
         void traverseAndGenerate(NestedBlock*);
         void traverseAndGenerate(ReturnStmt*);
 
+        void* getSymbolTableForName(Name* name);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
     public:

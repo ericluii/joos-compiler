@@ -1,5 +1,6 @@
 #include <cassert>
 #include <fstream>
+#include <sstream>
 
 // Code generation related
 #include "startup.h"
@@ -32,7 +33,14 @@ Startup::Startup(std::map<std::string, CompilationTable*>& compilations, Compila
 
 void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<InheritanceTable*>& arrayInheritance,
                 ImplInterfaceMethodTable* arrayMethods, std::vector<StaticFields*>& statics) {
-    std::ofstream fs("_startup.s");
+#if defined(CODE_OUT)
+            std::stringstream ss;
+            ss << CODE_OUT << "/_startup.s";
+            std::ofstream fs(ss.str());
+#else
+            std::ofstream fs("_startup.s");
+#endif
+    
     // data section
     fs << "section .data\n";
 

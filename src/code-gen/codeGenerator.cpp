@@ -62,19 +62,21 @@
 #include "RLG.h"
 
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
-    asma("push ebp");
-    asma("mov ebp, esp");
     asma("extern " << fn_name);
     asma("call " << fn_name);
-    asma("mov esp, ebp");
-    asma("pop ebp");
 }
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
-            compilations(compilations), starter(new Startup(compilations, firstUnit)),
-            virtualManager(new VTableManager(compilations)), objManager(new ObjectLayoutManager(compilations)),
-            inhManager(new InheritanceTableManager(compilations)), interManager(new ImplInterfaceMethodTableManager(compilations)),
-            staticManager(new StaticFieldsManager(compilations)), fs(NULL) {}
+    compilations(compilations),
+    starter(new Startup(compilations, firstUnit)),
+    virtualManager(new VTableManager(compilations)),
+    objManager(new ObjectLayoutManager(compilations)),
+    inhManager(new InheritanceTableManager(compilations)),
+    interManager(new ImplInterfaceMethodTableManager(compilations)),
+    staticManager(new StaticFieldsManager(compilations)),
+    fs(NULL),
+    scope_offset(0)
+{}
 
 CodeGenerator::~CodeGenerator() {
     delete starter;
@@ -120,7 +122,14 @@ void CodeGenerator::traverseAndGenerate() {
     for(it = compilations.begin(); it != compilations.end(); it++) {
         if(it->second->aTypeWasDefined() && it->second->isClassSymbolTable()) {
             // a type was defined and it's a class
+#if defined(CODE_OUT)
+            std::stringstream ss;
+            ss << CODE_OUT << "/" << it->second->getCanonicalName() << ".s";
+            fs = new std::ofstream(ss.str());
+#else
             fs = new std::ofstream(it->second->getCanonicalName() + ".s");
+#endif
+            processing = it->second;
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
             // fs = NULL;
@@ -466,6 +475,30 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
+            } else if (rhs_expr->getExpressionTypeString() == "null") {
+                asmc("CONCAT string with null");
+                // Save eax and ebx to prevent thrashing
+                asma("push eax");
+                // Create an array of size 4 * 4
+                asma("mov eax, 16");
+                CALL_FUNCTION("makeArrayBanana$");
+                // Write the word "null" in char array
+                asma("mov [eax - 12], 110 ;; n");
+                asma("mov [eax - 16], 117 ;; u");
+                asma("mov [eax - 20], 108 ;; l");
+                asma("mov [eax - 24], 108 ;; l");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
+                // Save eax to prevent thrashing
+                asma("push eax");
+                // Push char[] for constructor of java.lang.String
+                asma("push ebx");
+                // Call constructor for java.lang.String(char.array)
+                CALL_FUNCTION("java.lang.String$char.array$");
+                asma("pop ebx");
+                asma("mov eax, ebx");
+                asma("pop eax");
             } else {
                 // Reference Type
                 asmc("CONCAT string with reference type");
@@ -630,20 +663,48 @@ void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
 void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
     if(lit->isThis()) {
         // JLS 15.8.3
+        asmc("This literal");
+        asma("mov eax, [ebp + 8]");
     } else if(lit->isNumber()) {
         // JLS 15.8.1
+        asmc("Number Literal");
+        asma("mov eax, " << lit->getLiteralToken()->getString());
     } else if(lit->isTrueBoolean()) {
         // JLS 15.8.1
+        asmc("True Boolean literal");
+        asma("mov eax, 1");
     } else if(lit->isFalseBoolean()) {
         // JLS 15.8.1
+        asmc("False Boolean literal");
+        asma("mov eax, 0");
     } else if(lit->isCharLiteral()) {
         // JLS 15.8.1
+        std::string character = lit->getLiteralToken()->getString();
+        character.erase(std::remove(character.begin(), character.end(), '\''), character.end());
+
+        asmc("Character literal");
+        asma("mov eax, " << ((int)(character.c_str()[0])));
     } else if(lit->isStringLiteral()) {
         // JLS 15.8.1
-    } else {
+        std::string string_literal = lit->getLiteralToken()->getString();
+        string_literal.erase(std::remove(string_literal.begin(), string_literal.end(), '"'), string_literal.end());
+
+        asmc("String literal");
+        // Create character array to hold string
+        asma("mov eax, " << (string_literal.length() * 4));
+        CALL_FUNCTION("makeArrayBanana$");
+        // Copy over string into array
+        unsigned int offset = 12;
+        for (unsigned int i = 0; i < string_literal.length(); i++) {
+            asma("mov [eax - " << offset << "], " << ((int)string_literal[i]));
+            offset += 4;
+        }
+    } else if (lit->isNull()) {
         // JLS 15.8.1
-        // precautionary check
-        assert(lit->isNull());
+        asmc("Null literal");
+        asma("mov eax, 0");
+    } else {
+        assert(false);
     }
 }
 
@@ -652,9 +713,13 @@ void CodeGenerator::traverseAndGenerate(NegationExpression* negExpr) {
     traverseAndGenerate(negExpr->getNegatedExpression());
     if(negExpr->isNumericNegation()) {
         // Specific: JLS 15.18.2
+        asmc("Numeric Negation");
+        asma("neg eax");
     } else {
         // Specific: JLS 15.15.6
         // boolean negation
+        asmc("Boolean Negation");
+        asma("xor eax, 1");
     }
 }
 
@@ -691,9 +756,21 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
     if(!method->getMethodBody()->noDefinition()) {
+        asmc("Method Body - " << method->getMethodHeader()->labelizedMethodSignature());
+        asmgl(method->getMethodHeader()->labelizedMethodSignature());
+        asma("push ebp");
+        asma("mov ebp, esp");
+
+        scope_offset = 4;
+
         // the method has a body, then generate code
         // for the body
         traverseAndGenerate(method->getMethodBody());
+
+        asmc("Implicit Return");
+        asma("mov esp, ebp");
+        asma("pop ebp");
+        asma("ret");
     }
 }
 
@@ -731,36 +808,98 @@ void CodeGenerator::traverseAndGenerate(BlockStmts* stmt) {
 
 void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Order based on JLS 14.4.4
+    std::string id = local->getLocalId()->getIdAsString();
+    std::string type = local->getLocalType()->getTypeAsString();
+
+    // Everything primitive/reference type/array will be stored in a DD on the stack
+    asmc("Local Decl - " << id);
+    addressTable[local->getLocalTable()] = scope_offset;
+    scope_offset += 4;
+
+    // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
+    asmc("Initialize Local Decl - " << id);
+    asma("push eax");
 }
 
 void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
     // Order based on JLS 14.9
+    asmc("If Statement");
     traverseAndGenerate(stmt->getExpressionToEvaluate());
+
+    std::string lbl_false = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
+    // Check if exprssion is true, if not jump to lbl_false
+    asma("cmp eax, 1");
+    asma("jne " << lbl_false);
     traverseAndGenerate(stmt->getExecuteTruePart());
+    asma("jmp " << lbl_end);
+
+    // ELSE
+    asmc("If Statement Else");
+    asml(lbl_false);
     if(!stmt->noElsePart()) {
         traverseAndGenerate(stmt->getExecuteFalsePart());
     }
+
+    // END
+    asmc("If statement end");
+    asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(WhileStmt* stmt) {
     // Order based on JLS 14.11
+    std::string lbl_begin = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
+
+    asmc("While statement");
+
+    // Check expression is true, if not lbl_end
+    asml(lbl_begin);
     traverseAndGenerate(stmt->getExpressionToEvaluate());
+    asma("cmp eax, 1");
+    asma("jne " << lbl_end);
+
+    asmc("While statement body");
+    // If true run loop statement
     traverseAndGenerate(stmt->getLoopStmt());
+    asma("jmp " << lbl_begin);
+
+    // END
+    asmc("While statement end");
+    asml(lbl_end);
 }
 
 void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     // Order based on JLS 14.13.2
+    asmc("For statement init");
+    unsigned int saved_scope_offset = scope_offset;
     if(!stmt->emptyForInit()) {
         traverseAndGenerate(stmt->getForInit());
     }
 
-    traverseAndGenerate(stmt->getForUpdate());
-    traverseAndGenerate(stmt->getLoopStmt());
+    std::string lbl_begin = LABEL_GEN();
+    std::string lbl_end = LABEL_GEN();
 
+    // Check expression is true, if not lbl_end
+    asmc("For Statement condition");
+    asml(lbl_begin);
+    traverseAndGenerate(stmt->getExpressionToEvaluate());
+    asma("cmp eax, 1");
+    asma("jne " << lbl_end);
+
+    asmc("For statement body");
+    // If true run loop statement and update
+    traverseAndGenerate(stmt->getLoopStmt());
     if(!stmt->emptyForUpdate()) {
         traverseAndGenerate(stmt->getForUpdate());
     }
+    asma("jmp " << lbl_begin);
+
+    // END
+    asmc("For statement end");
+    asml(lbl_end);
+    scope_offset = saved_scope_offset;
 }
 
 void CodeGenerator::traverseAndGenerate(ExpressionStar* exprStar) {
@@ -783,15 +922,53 @@ void CodeGenerator::traverseAndGenerate(StmtExpr* stmt) {
 void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
     // JLS 14.2
     if(!stmt->isEmptyNestedBlock()) {
+        unsigned int saved_scope_offset = scope_offset;
         traverseAndGenerate(stmt->getNestedBlock());
+        scope_offset = saved_scope_offset;
     }
 }
 
 void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
     // JLS 14.16
     traverseAndGenerate(stmt->getReturnExpr());
+
+    asma("mov esp, ebp");
+    asma("pop ebp");
+    asma("ret");
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
+    std::stringstream labelizedConstructorSignature;
+    labelizedConstructorSignature << processing->getCanonicalName() << "$";
+    if(!ctor->getConstructorParameters()->isEpsilon()) {
+        labelizedConstructorSignature << ctor->getConstructorParameters()->getListOfParameters()->parametersAsString('$');
+    }
+    labelizedConstructorSignature << "$";
+
+    asmc("Constructor Body - " << labelizedConstructorSignature.str());
+    asmgl(labelizedConstructorSignature.str());
+    asma("push ebp");
+    asma("mov ebp, esp");
+
+    scope_offset = 4;
     traverseAndGenerate(ctor->getConstructorBody());
+
+    asmc("Implicit Return");
+    asma("mov esp, ebp");
+    asma("pop ebp");
+    asma("ret");
+}
+
+void* CodeGenerator::getSymbolTableForName(Name* name) {
+    if (name->isReferringToField()) {
+        return name->getReferredField();
+    } else if (name->isReferringToParameter()) {
+        return name->getReferredParameter();
+    } else if (name->isReferringToLocalVar()) {
+        return name->getReferredLocalVar();
+    } else {
+        assert(false);
+    }
+
+    return NULL;
 }
