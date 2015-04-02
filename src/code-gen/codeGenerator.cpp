@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <stack>
 
 // AST
 #include "classDecl.h"
@@ -825,8 +826,28 @@ void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
         asmgl(signature);
         asma("push ebp");
         asma("mov ebp, esp");
+        scope_offset = -4;
 
-        scope_offset = 4;
+        // Add Parameters to the address table
+        // If static there is no implicit this
+        int param_offset = method->isStatic() ? 8 : 12;
+        ParamList* params = method->getMethodHeader()->getClassMethodParams()->getListOfParameters();
+
+        // Param List is right to left, but we need to increment by left to right
+        // So flip it
+        std::stack<ParamList*> paramStack;
+        while (params) {
+            paramStack.push(params);
+            params = params->getNextParameter();
+        }
+
+        while (!paramStack.empty()) {
+            params = paramStack.top();
+            paramStack.pop();
+
+            addressTable[params->getParamTable()] = param_offset;
+            param_offset += 4;
+        }
 
         // the method has a body, then generate code
         // for the body
@@ -879,7 +900,7 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Everything primitive/reference type/array will be stored in a DD on the stack
     asmc("Local Decl - " << id);
     addressTable[local->getLocalTable()] = scope_offset;
-    scope_offset += 4;
+    scope_offset -= 4;
 
     // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
@@ -938,7 +959,7 @@ void CodeGenerator::traverseAndGenerate(WhileStmt* stmt) {
 void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     // Order based on JLS 14.13.2
     asmc("For statement init");
-    unsigned int saved_scope_offset = scope_offset;
+    int saved_scope_offset = scope_offset;
     if(!stmt->emptyForInit()) {
         traverseAndGenerate(stmt->getForInit());
     }
@@ -987,7 +1008,7 @@ void CodeGenerator::traverseAndGenerate(StmtExpr* stmt) {
 void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
     // JLS 14.2
     if(!stmt->isEmptyNestedBlock()) {
-        unsigned int saved_scope_offset = scope_offset;
+        int saved_scope_offset = scope_offset;
         traverseAndGenerate(stmt->getNestedBlock());
         scope_offset = saved_scope_offset;
     }
@@ -1010,7 +1031,7 @@ void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
     asma("push ebp");
     asma("mov ebp, esp");
 
-    scope_offset = 4;
+    scope_offset = -4;
     traverseAndGenerate(ctor->getConstructorBody());
 
     asmc("Implicit Return");

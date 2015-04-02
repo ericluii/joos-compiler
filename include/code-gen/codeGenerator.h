@@ -70,8 +70,8 @@ class CodeGenerator {
         std::ofstream* fs;
 
         CompilationTable* processing;
-        unsigned int scope_offset;
-        std::map<void*, unsigned int> addressTable;
+        int scope_offset;
+        std::map<void*, int> addressTable;
 
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
