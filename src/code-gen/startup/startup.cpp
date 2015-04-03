@@ -86,7 +86,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     for(unsigned int i = 0; i < statics.size(); i++) {
         std::vector<FieldTable*>& staticFields = statics[i]->getAllStaticFieldsOfClass();
         for(unsigned int j = 0; j < staticFields.size(); j++) {
-            std::string staticInitCall = staticFields[j]->generateStaticInitializerLabel();
+            std::string staticInitCall = staticFields[j]->generateFieldInitializerLabel();
             fs << "extern " << staticInitCall << '\n';
             fs << "call " << staticInitCall << '\n';
         }

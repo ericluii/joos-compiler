@@ -18,14 +18,16 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
             std::string fieldName = (*it)->getField()->getFieldDeclared()->getIdAsString();
             FieldTable* field = table->getAField(fieldName);
             assert(field != NULL);
-            if(!table->fieldIsInherited(fieldName) && !field->getField()->isStatic()) {
-                // not inherited and not static
-                declaredFields.push_back(*it);
+            if(!table->fieldIsInherited(fieldName)) {
+                if(!field->getField()->isStatic()) {
+                    // not inherited and not static
+                    declaredFields.push_back(field);
+                    // indicate field has been registered
+                    registeredFields.insert(field);
+                }
             } else {
-                // all other cases
-                declaredFields.push_back(field);
-                // indicate field has been registered
-                registeredFields.insert(field);
+                // inherited
+                declaredFields.push_back(*it);
             }
         }
     }
@@ -51,12 +53,13 @@ unsigned int ObjectLayout::sizeOfObject() {
 }
 
 unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
-    unsigned int i = 0;
-    for(; i < declaredFields.size(); i++) {
+    for(unsigned int i = 0; i < declaredFields.size(); i++) {
         if(declaredFields[i] == field) {
-            break;
+            // multiplied by 4 for doubleword access (32 bits)
+            // plus 12 due to the 3 tables
+            return i * 4 + 12;
         }
     }
-    // multiplied by 4 for doubleword access (32 bits)
-    return i * 4;
+    // couldn't find the field
+    assert(false);
 }

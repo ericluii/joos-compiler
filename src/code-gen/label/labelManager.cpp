@@ -75,7 +75,7 @@ std::string LabelManager::labelizeToInterfaceMethodTable(const std::string& toLa
     return LabelManager::implInterface + toLabelize;
 }
 
-std::string LabelManager::labelizeToStaticInitializer(const std::string& toLabelize) {
+std::string LabelManager::labelizeToFieldInitializer(const std::string& toLabelize) {
     return LabelManager::initializer + toLabelize;
 }
 

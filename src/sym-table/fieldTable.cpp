@@ -24,6 +24,6 @@ std::string FieldTable::generateFieldLabel() {
            field->getFieldDeclared()->getIdAsString();
 }
 
-std::string FieldTable::generateStaticInitializerLabel() {
-    return LabelManager::labelizeToStaticInitializer(generateFieldLabel());
+std::string FieldTable::generateFieldInitializerLabel() {
+    return LabelManager::labelizeToFieldInitializer(generateFieldLabel());
 }

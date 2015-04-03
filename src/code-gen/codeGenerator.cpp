@@ -112,6 +112,64 @@ void CodeGenerator::RETURN_IDIOM() {
     asma("ret");
 }
 
+void CodeGenerator::createNullForEBX() {
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Create an array of size 4 * 4
+    asma("mov eax, 16");
+    CALL_FUNCTION("makeArrayBanana$");
+    // Write the word "null" in char array
+    asma("mov [eax - 12], 110 ;; n");
+    asma("mov [eax - 16], 117 ;; u");
+    asma("mov [eax - 20], 108 ;; l");
+    asma("mov [eax - 24], 108 ;; l");
+    asma("mov ebx, eax");
+    asma("pop eax");
+
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Push char[] for constructor of java.lang.String
+    asma("push ebx");
+    // Call constructor for java.lang.String(char.array)
+    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
+    asma("pop ebx");
+    asma("mov ebx, eax");
+    asma("pop eax");
+}
+
+SymbolTable* CodeGenerator::getSymbolTableForName(Name* name) {
+    if (name->isReferringToField()) {
+        return name->getReferredField();
+    } else if (name->isReferringToParameter()) {
+        return name->getReferredParameter();
+    } else if (name->isReferringToLocalVar()) {
+        return name->getReferredLocalVar();
+    } else {
+        assert(false);
+    }
+
+    return NULL;
+}
+
+void CodeGenerator::setParameterOffsetFromEBP(ParamList* params, int start_offset) {
+    // Param List is right to left, but we need to increment by left to right
+    // So flip it
+    std::stack<ParamList*> paramStack;
+    unsigned int param_offset = start_offset;
+    while (params != NULL) {
+        paramStack.push(params);
+        params = params->getNextParameter();
+    }
+
+    while (!paramStack.empty()) {
+        params = paramStack.top();
+        paramStack.pop();
+
+        addressTable[params->getParamTable()] = param_offset;
+        param_offset += 4;
+    }
+}
+
 // -------------------------------------------------------------------------------------
 // Real deal
 
@@ -163,45 +221,6 @@ void CodeGenerator::generateStartFile() {
                 interManager->getTableForArray(), statics);
 }
 
-void CodeGenerator::createNullForEBX() {
-    // Save eax to prevent thrashing
-    asma("push eax");
-    // Create an array of size 4 * 4
-    asma("mov eax, 16");
-    CALL_FUNCTION("makeArrayBanana$");
-    // Write the word "null" in char array
-    asma("mov [eax - 12], 110 ;; n");
-    asma("mov [eax - 16], 117 ;; u");
-    asma("mov [eax - 20], 108 ;; l");
-    asma("mov [eax - 24], 108 ;; l");
-    asma("mov ebx, eax");
-    asma("pop eax");
-
-    // Save eax to prevent thrashing
-    asma("push eax");
-    // Push char[] for constructor of java.lang.String
-    asma("push ebx");
-    // Call constructor for java.lang.String(char.array)
-    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
-    asma("pop ebx");
-    asma("mov ebx, eax");
-    asma("pop eax");
-}
-
-void* CodeGenerator::getSymbolTableForName(Name* name) {
-    if (name->isReferringToField()) {
-        return name->getReferredField();
-    } else if (name->isReferringToParameter()) {
-        return name->getReferredParameter();
-    } else if (name->isReferringToLocalVar()) {
-        return name->getReferredLocalVar();
-    } else {
-        assert(false);
-    }
-
-    return NULL;
-}
-
 // --------------------------------------------------------------------------------
 // Code generation section
 
@@ -219,16 +238,26 @@ void CodeGenerator::traverseAndGenerate() {
             fs = new std::ofstream(classCanonicalName + ".s");
 #endif
             processing = it->second;
-            asma("section .text");
-            asma("extern __malloc");
+            section(".text");
             asml(LabelManager::labelizeForAlloc(classCanonicalName));
             asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
             CALL_FUNCTION("__malloc");
             asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
             asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
             asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
+            asma("push eax ; push allocated object onto the stack as 'this'");
             // Call fields initializers here
-            asma("ret");
+            SymbolTable* symTable = it->second->getSymbolTable()->getNextTable();
+            while(symTable != NULL) {
+                if(symTable->isFieldTable()) {
+                    if(!((FieldTable*) symTable)->getField()->isStatic()) {
+                        // a non-static field, call it's initializer
+                        asma("call " << (((FieldTable*) symTable)->generateFieldInitializerLabel()));
+                    }
+                }
+                symTable = symTable->getNextTable();
+            }
+            asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
             // fs = NULL;
@@ -261,8 +290,50 @@ void CodeGenerator::traverseAndGenerate(ClassBodyDecls* body) {
 }
 
 void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
+    std::string initializerLabel = field->getFieldTable()->generateFieldInitializerLabel();
+    bool isStatic = field->isStatic();
+    asmc("Field initializer for " << initializerLabel);
+    
+    if(isStatic) {
+        // static field, initializer needs to be globaled
+        asmc("Initializer of static needs to be globalled");
+        asmgl(initializerLabel);
+    }
+    
+    asml(initializerLabel);
+
+    unsigned int indexOfField = 0;
+    if(!isStatic) {
+        // not static field, 
+        // then need to have the call idiom
+        CALL_IDIOM();
+        // non-static get the index of the field in the object
+        indexOfField = objManager->getLayoutForClass(processing)->indexOfFieldInObject(field->getFieldTable());
+    }
+
     if(field->isInitialized()) {
         traverseAndGenerate(field->getInitializingExpression());
+        asmc("Initialize field with it's initializer value");
+        if(isStatic) {
+            asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], eax");
+        } else {
+            asma("mov ebx, [ebp + 8] ; get this");
+            asma("mov [ebx - " << indexOfField << "], eax");
+        }
+    } else {
+        asmc("Initialize the field with default value - which is 0 for all types");
+        if(isStatic) {
+            asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], 0");
+        } else {
+            asma("mov ebx, [ebp + 8] ; get this");
+            asma("mov [ebx - " << indexOfField << "], 0");
+        }
+    }
+
+    if(isStatic) {
+        asma("ret ; just return from static initializer");
+    } else {
+        RETURN_IDIOM();
     }
 }
 
@@ -740,24 +811,22 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
     } else {
         if (name->isReferringToField()) {
             FieldTable* field = name->getReferredField();
-            asma("mov eax, ebp + 8");
-            asma("mov eax, [eax - " << (objManager->getLayoutForClass(processing)->indexOfFieldInObject(field) + 12) << "]");
+            asma("mov eax, [ebp + 8] ; get this");
+            asma("mov eax, [eax - " << objManager->getLayoutForClass(processing)->indexOfFieldInObject(field) << "]");
 
             Type* fieldType = field->getField()->getFieldType();
             if (fieldType->isReferenceType() && prevTypeForName != NULL) {
                 *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
             } //  ELSE IS PRIMITIVE TYPE
         } else if(name->isReferringToParameter() || name->isReferringToLocalVar()) {
-            void* paramOrLocal = NULL;
+            SymbolTable* paramOrLocal = getSymbolTableForName(name);
             if (name->isReferringToParameter()) {
-                paramOrLocal = name->getReferredParameter();
                 Type* paramType = name->getReferredParameter()->getParameter()->getParameterType();
 
                 if (paramType->isReferenceType() && prevTypeForName != NULL) {
                     *prevTypeForName = static_cast<ReferenceType*>(paramType)->getReferenceTypeTable();
                 } //  ELSE IS PRIMITIVE TYPE
             } else {
-                paramOrLocal = name->getReferredLocalVar();
                 Type* localType = name->getReferredLocalVar()->getLocalDecl()->getLocalType();
 
                 if (localType->isReferenceType() && prevTypeForName != NULL) {
@@ -917,24 +986,8 @@ void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
         // Add Parameters to the address table
         // If static there is no implicit this
         int param_offset = method->isStatic() ? 8 : 12;
-        ParamList* params = method->getMethodHeader()->getClassMethodParams()->getListOfParameters();
 
-        // Param List is right to left, but we need to increment by left to right
-        // So flip it
-        std::stack<ParamList*> paramStack;
-        while (params) {
-            paramStack.push(params);
-            params = params->getNextParameter();
-        }
-
-        while (!paramStack.empty()) {
-            params = paramStack.top();
-            paramStack.pop();
-
-            addressTable[params->getParamTable()] = param_offset;
-            param_offset += 4;
-        }
-
+        setParameterOffsetFromEBP(method->getMethodHeader()->getClassMethodParams()->getListOfParameters(), param_offset);
         // the method has a body, then generate code
         // for the body
         traverseAndGenerate(method->getMethodBody());
@@ -1116,6 +1169,11 @@ void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
     CALL_IDIOM();
 
     scope_offset = -4;
+    // set offset for constructor parameters from EBP,
+    // starting offset is always 12 for constructors, because
+    // there's always this
+    setParameterOffsetFromEBP(ctor->getConstructorParameters()->getListOfParameters(), 12);
+
     traverseAndGenerate(ctor->getConstructorBody());
 
     if(ctor->canConstructorCompleteNormally()) {

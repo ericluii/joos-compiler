@@ -18,13 +18,13 @@ class ObjectLayout {
      *---------------------------*
      *   interface method table  *
      *---------------------------*
-     *         members           *
+     *     non-static members    *
      *                           *
      * --------------------------*/
 
     private:
         // fields declared in the class, in the order they were declared
-        // with superclass's fields coming first
+        // with superclass's fields coming first, only non-static ones
         std::vector<FieldTable*> declaredFields;
 
         void createLayout(ObjectLayout* parentLayout, CompilationTable*);
