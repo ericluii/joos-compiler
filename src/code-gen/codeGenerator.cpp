@@ -71,6 +71,9 @@
 #include "labelManager.h"
 #include "RLG.h"
 
+// ------------------------------------------------------------------------------------
+// Helper
+
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
     std::string constructor_prefix = LabelManager::labelizeForConstructor(processing->getCanonicalName()) + "$";
     std::string method_prefix = processing->getCanonicalName() + "$";
@@ -97,6 +100,20 @@ void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
         asma("pop ebx ; pop this");
     }
 }
+
+void CodeGenerator::CALL_IDIOM() {
+    asma("push ebp");
+    asma("mov ebp, esp");
+}
+
+void CodeGenerator::RETURN_IDIOM() {
+    asma("mov esp, ebp");
+    asma("pop ebp");
+    asma("ret");
+}
+
+// -------------------------------------------------------------------------------------
+// Real deal
 
 CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) :
     compilations(compilations),
@@ -894,8 +911,7 @@ void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
         std::string signature = processing->getCanonicalName() + "." + method->getMethodHeader()->labelizedMethodSignature();
         asmc("Method Body - " << signature);
         asmgl(signature);
-        asma("push ebp");
-        asma("mov ebp, esp");
+        CALL_IDIOM();
         scope_offset = -4;
 
         // Add Parameters to the address table
@@ -923,10 +939,12 @@ void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
         // for the body
         traverseAndGenerate(method->getMethodBody());
 
-        asmc("Implicit Return");
-        asma("mov esp, ebp");
-        asma("pop ebp");
-        asma("ret");
+        if(method->getMethodBody()->canMethodCompleteNormally()) {
+            // by this stage all methods that can complete normally
+            // are methods that have return type void
+            asmc("Implicit Return");
+            RETURN_IDIOM();
+        }
     }
 }
 
@@ -1087,10 +1105,7 @@ void CodeGenerator::traverseAndGenerate(NestedBlock* stmt) {
 void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
     // JLS 14.16
     traverseAndGenerate(stmt->getReturnExpr());
-
-    asma("mov esp, ebp");
-    asma("pop ebp");
-    asma("ret");
+    RETURN_IDIOM();
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
@@ -1098,14 +1113,13 @@ void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
 
     asmc("Constructor Body - " << signature);
     asmgl(signature);
-    asma("push ebp");
-    asma("mov ebp, esp");
+    CALL_IDIOM();
 
     scope_offset = -4;
     traverseAndGenerate(ctor->getConstructorBody());
 
-    asmc("Implicit Return");
-    asma("mov esp, ebp");
-    asma("pop ebp");
-    asma("ret");
+    if(ctor->canConstructorCompleteNormally()) {
+        asmc("Implicit Return");
+        RETURN_IDIOM();
+    }
 }

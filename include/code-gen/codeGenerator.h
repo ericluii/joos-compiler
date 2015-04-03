@@ -114,6 +114,8 @@ class CodeGenerator {
         void* getSymbolTableForName(Name* name);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
+        void CALL_IDIOM();
+        void RETURN_IDIOM();
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

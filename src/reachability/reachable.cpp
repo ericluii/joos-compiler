@@ -83,6 +83,7 @@ void Reachable::checkReachability(MethodBody* body) {
             // was encoutered
             BlockStmts* stmt = body->getBlockStmtsStar()->getStatements();
             if(curReturnType != NULL && stmt != NULL) {
+                body->setMethodCompletion(stmt->canComplete());
                 // there is a non-void return type and the body of
                 // the method is not empty
                 if(stmt->isForStmt()) {
@@ -270,6 +271,9 @@ void Reachable::checkReachability(Constructor* ctor) {
     inConstructor = true;
     curSignature = ctor->getConstructorId()->getIdAsString() + ctor->constructorSignatureAsString();
     checkReachability(ctor->getConstructorBody());
+    if(!ctor->getConstructorBody()->isEpsilon()) {
+        ctor->setConstructorCompletion(ctor->getConstructorBody()->getStatements()->canComplete());
+    }
     // reset
     inConstructor = false;
 }

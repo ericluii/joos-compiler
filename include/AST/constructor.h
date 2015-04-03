@@ -16,9 +16,12 @@ class Constructor : public ClassBodyDecls {
         FormalParamStar* params;
         BlockStmtsStar* body;
         ConstructorTable* table;
+        // indicates whether the constructor
+        // can complete normally or not
+        bool completion;
     public:
         Constructor(Modifiers* mod, Identifier* id, FormalParamStar* params, BlockStmtsStar* body) :
-                ClassBodyDecls(mod), id(id), params(params), body(body), table(NULL) {}
+                ClassBodyDecls(mod), id(id), params(params), body(body), table(NULL), completion(true) {}
         ~Constructor() {
             delete id;
             delete params;
@@ -50,6 +53,9 @@ class Constructor : public ClassBodyDecls {
 
         void setConstructorTable(ConstructorTable* set) { table = set; }
         ConstructorTable* getConstructorTable() { return table; }
+
+        void setConstructorCompletion(bool set) { completion = set; }
+        bool canConstructorCompleteNormally() { return completion; }
 };
 
 #endif
