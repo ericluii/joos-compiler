@@ -6,36 +6,18 @@
 #include "fieldTable.h"
 #include "fieldDecl.h"
 
-ObjectLayout::ObjectLayout(ObjectLayout* parentLayout, CompilationTable* table) {
+// there are three tables, each table is 4 bytes
+unsigned int ObjectLayout::sizeOfTables = 12;
+
+ObjectLayout::ObjectLayout(ObjectLayout* parentLayout, CompilationTable* table) : parentLayout(parentLayout) {
     createLayout(parentLayout, table);
 }
 
 void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* table) {
-    std::set<FieldTable*> registeredFields;
-    if(parentLayout != NULL) {
-        std::vector<FieldTable*>::iterator it;
-        for(it = parentLayout->declaredFields.begin(); it != parentLayout->declaredFields.end(); it++) {
-            std::string fieldName = (*it)->getField()->getFieldDeclared()->getIdAsString();
-            FieldTable* field = table->getAField(fieldName);
-            assert(field != NULL);
-            if(!table->fieldIsInherited(fieldName)) {
-                if(!field->getField()->isStatic()) {
-                    // not inherited and not static
-                    declaredFields.push_back(field);
-                    // indicate field has been registered
-                    registeredFields.insert(field);
-                }
-            } else {
-                // inherited
-                declaredFields.push_back(*it);
-            }
-        }
-    }
-
     SymbolTable* symTable = table->getSymbolTable()->getNextTable();
     while(symTable != NULL) {
-        if(symTable->isFieldTable() && registeredFields.count((FieldTable*) symTable) == 0) {
-            // if the symbol table represents a field that has not been registered
+        if(symTable->isFieldTable()) {
+            // if the symbol table represents a field
             if(!((FieldTable*) symTable)->getField()->isStatic()) {
                 // and the field is not static
                 declaredFields.push_back((FieldTable*) symTable);
@@ -46,20 +28,50 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
 }
 
 unsigned int ObjectLayout::sizeOfObject() {
-    // 12, the size of the virtual table, inheritance table,
-    // interface method table pointer,
-    // plus the number of fields times 4 bytes (size of each fields)
-    return 12 + (declaredFields.size() * 4);
+    unsigned int sizeOfParent = 0;
+    if(parentLayout != NULL) {
+        // get the size of the parent
+        sizeOfParent = sizeOfObject();
+    } else {
+        // no superclass, must be java.lang.Object
+        // return the size of the tables + the number of
+        // fields defined multiplied by 4
+        return ObjectLayout::sizeOfTables + (declaredFields.size() * 4);
+    }
+
+    // return size of parent + number of declared fields multiplied by 4
+    return sizeOfParent + declaredFields.size() * 4;
 }
 
 unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
     for(unsigned int i = 0; i < declaredFields.size(); i++) {
         if(declaredFields[i] == field) {
             // multiplied by 4 for doubleword access (32 bits)
-            // plus 12 due to the 3 tables
-            return i * 4 + 12;
+            // plus the size of the tables
+            return i * 4 + ObjectLayout::sizeOfTables;
         }
     }
-    // couldn't find the field
+
+    // return whatever is in the parent, assumption
+    // is that we can always find it, or else things will break
+    if(parentLayout != NULL) {
+        return parentLayout->indexOfFieldInObject(field);
+    }
+
+    // if we got here then we must have reached
+    // java.lang.Object and couldn't find the field
     assert(false);
+}
+
+unsigned int ObjectLayout::numberOfFieldsInObject() {
+    // gets the number of fields in a class, including hidden ones
+    if(parentLayout != NULL) {
+        return parentLayout->numberOfFieldsInObject() + declaredFields.size();
+    } else {
+        return declaredFields.size();
+    }
+}
+
+unsigned int ObjectLayout::transformToFieldIndexInAClass(unsigned int i) {
+    return i * 4 + ObjectLayout::sizeOfTables;
 }

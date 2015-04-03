@@ -344,7 +344,7 @@ void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
     } else {
         asmc("Initialize the field with default value - which is 0 for all types");
         if(isStatic) {
-            asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], 0");
+            asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], dword 0");
         } else {
             asma("mov ebx, [ebp + 8] ; get this");
             asma("mov [ebx - " << indexOfField << "], 0");
