@@ -66,6 +66,7 @@
 #include "objectLayout.h"
 #include "implementedInterfaceMethodTable.h"
 #include "inheritanceTable.h"
+#include "staticFields.h"
 
 // Label
 #include "labelManager.h"
@@ -118,6 +119,11 @@ void CodeGenerator::createNullForEBX() {
     // Create an array of size 4 * 4
     asma("mov eax, 16");
     CALL_FUNCTION("makeArrayBanana$");
+
+    // insert the inheritance table for char[]
+    std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
+    asma("extern " << charArrayInheritance);
+    asma("mov [eax - 4], " << charArrayInheritance);
     // Write the word "null" in char array
     asma("mov [eax - 12], 110 ;; n");
     asma("mov [eax - 16], 117 ;; u");
@@ -132,9 +138,9 @@ void CodeGenerator::createNullForEBX() {
     asma("push ebx");
     // Call constructor for java.lang.String(char.array)
     CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
-    asma("pop ebx");
-    asma("mov ebx, eax");
-    asma("pop eax");
+    asma("pop ebx ; get newly created String");
+    asma("pop eax ; pop old ebx");
+    asma("pop eax ; pop old eax");
 }
 
 SymbolTable* CodeGenerator::getSymbolTableForName(Name* name) {
@@ -238,7 +244,21 @@ void CodeGenerator::traverseAndGenerate() {
             fs = new std::ofstream(classCanonicalName + ".s");
 #endif
             processing = it->second;
-            section(".text");
+
+            // data section
+            section("data");
+
+            // expose all static fields declared within the class
+            // initialize all of them to default values
+            std::vector<FieldTable*>& staticFields = staticManager->getStaticFieldsForClass(processing)->getAllStaticFieldsOfClass();
+            for(unsigned int i = 0; i < staticFields.size(); i++) {
+                asmgl(staticFields[i]->generateFieldLabel());
+                asma("dd " <<  0);
+            }
+
+            // text section
+            section("text");
+
             asml(LabelManager::labelizeForAlloc(classCanonicalName));
             asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
             CALL_FUNCTION("__malloc");
@@ -246,6 +266,7 @@ void CodeGenerator::traverseAndGenerate() {
             asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
             asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
             asma("push eax ; push allocated object onto the stack as 'this'");
+            
             // Call fields initializers here
             SymbolTable* symTable = it->second->getSymbolTable()->getNextTable();
             while(symTable != NULL) {
@@ -257,10 +278,10 @@ void CodeGenerator::traverseAndGenerate() {
                 }
                 symTable = symTable->getNextTable();
             }
+            
             asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
-            // fs = NULL;
         }
     }
 }
@@ -298,9 +319,9 @@ void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
         // static field, initializer needs to be globaled
         asmc("Initializer of static needs to be globalled");
         asmgl(initializerLabel);
+    } else {
+        asml(initializerLabel);
     }
-    
-    asml(initializerLabel);
 
     unsigned int indexOfField = 0;
     if(!isStatic) {
@@ -548,9 +569,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("push ebx");
                 // Call Constructor for java.lang.Integer
                 CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Integer", 1, "int"));
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; get newly created Integer");
+                asma("pop eax ; get old ebx");
+                asma("pop eax ; get old eax");
 
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -569,9 +590,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("push ebx");
                 // Call Constructor for java.lang.Short
                 CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Short", 1, "short"));
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; get newly created Short");
+                asma("pop eax ; get old ebx");
+                asma("pop eax ; get old eax");
 
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -590,9 +611,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("push ebx");
                 // Call Constructor for java.lang.Byte
                 CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Byte", 1, "byte"));
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; get newly created Byte");
+                asma("pop eax ; get old ebx");
+                asma("pop eax ; get old eax");
 
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -611,9 +632,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("push ebx");
                 // Call Constructor for java.lang.Character
                 CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Character", 1, "char"));
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; get newly created Character");
+                asma("pop eax ; get old ebx");
+                asma("pop eax ; get old eax");
 
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -632,9 +653,9 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("push ebx");
                 // Call Constructor for java.lang.Boolean
                 CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Boolean", 1, "boolean"));
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; get newly created Boolean");
+                asma("pop eax ; get old ebx");
+                asma("pop eax ; get old eax");
 
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -645,11 +666,8 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("pop ebx");
                 asma("mov ebx, eax");
                 asma("pop eax");
-            } else if (rhs_expr->getExpressionTypeString() == "null") {
-                asmc("CONCAT string with null");
-                createNullForEBX();
             } else {
-                // Reference Type
+                // Reference Type and null type
                 asmc("CONCAT string with reference type");
                 // Save eax to prevent thrashing
                 asma("push eax");
@@ -665,7 +683,15 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 std::string non_null_lbl = LABEL_GEN();
                 asma("cmp ebx, 0");
                 asma("jne " <<  non_null_lbl);
-                createNullForEBX();
+                
+                asmc("If previous attempt returns null, make the 'null' string");
+                asma("push eax");
+                asma("push ebx");
+                CALL_FUNCTION("java.lang.String.valueOf$java.lang.Object$");
+                asma("pop ebx");
+                asma("mov ebx, eax");
+                asma("pop eax");
+
                 asml(non_null_lbl);
             }
 
@@ -914,12 +940,24 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
         // Create character array to hold string
         asma("mov eax, " << (string_literal.length() * 4));
         CALL_FUNCTION("makeArrayBanana$");
+
+        // insert the inheritance table for char[]
+        std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
+        asma("extern " << charArrayInheritance);
+        asma("mov [eax - 4], " << charArrayInheritance);
         // Copy over string into array
         unsigned int offset = 12;
         for (unsigned int i = 0; i < string_literal.length(); i++) {
             asma("mov [eax - " << offset << "], " << ((int)string_literal[i]));
             offset += 4;
         }
+
+        asmc("Call String constructor");
+        asma("push eax");
+        CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String$char.array$"));
+        //CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
+        asma("pop eax ; pop created string into eax");
+        asma("pop ebx ; pop old eax");
     } else if (lit->isNull()) {
         // JLS 15.8.1
         asmc("Null literal");

@@ -55,10 +55,10 @@ class ExpressionStar;
 class ParamList;
 
 #define asmc(comment) *fs << ";; " << comment << "\n"
-#define asmgl(global) *fs << "global " << global << "\n" << global << ":\n"
+#define asmgl(global) *fs << "global " << global << "\n" << "  " << global << ":\n"
 #define asml(label) *fs << "  " << label << ":\n"
 #define asma(code) *fs << "\t" << code << "\n"
-#define section(sect) * fs << "section " << sect << "\n"
+#define section(sect) * fs << "section ." << sect << "\n"
 
 class CodeGenerator {
     private:
