@@ -190,6 +190,11 @@ void CodeGenerator::callInitializersOfDeclaredFields() {
     }
 }
 
+
+void CodeGenerator::exceptionCall() {
+    asma("extern __exception");
+    asma("call __exception");
+}
 // -------------------------------------------------------------------------------------
 // Real deal
 
@@ -738,8 +743,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
         asmc("DIVIDE expr");
         asma("cmp ebx, 0");
         asma("jne " << lbl_valid_div);
-        asma("extern __exception");
-        asma("call __exception");
+        exceptionCall();
         asml(lbl_valid_div);
         asma("cdq");
         asma("idiv ebx");
@@ -751,8 +755,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
         asmc("MODULO expr");
         asma("cmp ebx, 0");
         asma("jne " << lbl_valid_div);
-        asma("extern __exception");
-        asma("call __exception");
+        exceptionCall();
         asml(lbl_valid_div);
         asma("cdq");
         asma("idiv ebx");
@@ -788,14 +791,35 @@ void CodeGenerator::traverseAndGenerate(Primary* prim) {
 }
 
 void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
+    // Order based on JLS 15.13
     traverseAndGenerate(access->getAccessExpression());
 
-    // Order based on JLS 15.13
+    asma("push eax ; push the result of the index access");
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
     } else {
         traverseAndGenerate(((ArrayAccessPrimary*) access)->getAccessedPrimaryArray());
     }
+
+    asma("cmp eax, 0 ; check if value of array is null or not");
+    std::string null_lbl_chk = LABEL_GEN();
+    asma("jne " << null_lbl_chk << " ; if array is not null");
+    exceptionCall();
+    
+    asml(null_lbl_chk);
+    std::string exceptional_index_access = LABEL_GEN();
+    std::string proper_index_access = LABEL_GEN();
+    asma("pop ebx ; retrieve index access back from stack");
+    asma("cmp ebx, 0 ; see if index is less than 0 or not");
+    asma("jl " << exceptional_index_access);
+    asma("cmp ebx, [eax + 4] ; see if specified index is greater than or equal to length of the array");
+    asma("jge " << exceptional_index_access);
+    asma("jmp " << proper_index_access << " ; everything is fine");
+    asml(exceptional_index_access);
+    exceptionCall();
+    asml(proper_index_access);
+    asma("neg ebx ; negate index");
+    asma("mov eax, [eax + 4*ebx] ; get the value of the array at the specified index multiplied by 4");
 }
 
 void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeForName) {

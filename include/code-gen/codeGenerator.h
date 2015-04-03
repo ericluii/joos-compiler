@@ -117,6 +117,8 @@ class CodeGenerator {
         void setParameterOffsetFromEBP(ParamList* params, int start_offset);
         void callInitializersOfDeclaredFields();
 
+        // modularize certain calls
+        void exceptionCall();
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
         void CALL_IDIOM();
