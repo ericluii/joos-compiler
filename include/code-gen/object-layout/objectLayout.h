@@ -32,7 +32,7 @@ class ObjectLayout {
         static unsigned int sizeOfTables;
         std::vector<FieldTable*> declaredFields;
 
-        void createLayout(ObjectLayout* parentLayout, CompilationTable*);
+        void createLayout(CompilationTable*);
     public:
         ObjectLayout(ObjectLayout*, CompilationTable*);
 

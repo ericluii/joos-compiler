@@ -10,10 +10,10 @@
 unsigned int ObjectLayout::sizeOfTables = 12;
 
 ObjectLayout::ObjectLayout(ObjectLayout* parentLayout, CompilationTable* table) : parentLayout(parentLayout) {
-    createLayout(parentLayout, table);
+    createLayout(table);
 }
 
-void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* table) {
+void ObjectLayout::createLayout(CompilationTable* table) {
     SymbolTable* symTable = table->getSymbolTable()->getNextTable();
     while(symTable != NULL) {
         if(symTable->isFieldTable()) {
@@ -28,19 +28,15 @@ void ObjectLayout::createLayout(ObjectLayout* parentLayout, CompilationTable* ta
 }
 
 unsigned int ObjectLayout::sizeOfObject() {
-    unsigned int sizeOfParent = 0;
     if(parentLayout != NULL) {
-        // get the size of the parent
-        sizeOfParent = sizeOfObject();
+        // return size of parent + number of declared fields multiplied by 4
+        return parentLayout->sizeOfObject() + declaredFields.size() * 4;
     } else {
         // no superclass, must be java.lang.Object
         // return the size of the tables + the number of
         // fields defined multiplied by 4
         return ObjectLayout::sizeOfTables + (declaredFields.size() * 4);
     }
-
-    // return size of parent + number of declared fields multiplied by 4
-    return sizeOfParent + declaredFields.size() * 4;
 }
 
 unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {

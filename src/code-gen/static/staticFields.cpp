@@ -11,8 +11,9 @@
 StaticFields::StaticFields(CompilationTable* table) {
     SymbolTable* symTable = table->getSymbolTable()->getNextTable();
     while(symTable != NULL) {
-        if(symTable->isFieldTable() && ((FieldTable*) symTable)->getField()->isStatic()) {
-            // it is a static field
+        if(symTable->isFieldTable() && ((FieldTable*) symTable)->getField()->isStatic()
+           && ((FieldTable*) symTable)->getField()->isInitialized()) {
+            // it is a static field that has an initializer
             statics.push_back((FieldTable*) symTable);
         }
         symTable = symTable->getNextTable();

@@ -115,10 +115,13 @@ class CodeGenerator {
         void createNullForEBX();
         SymbolTable* getSymbolTableForName(Name* name);
         void setParameterOffsetFromEBP(ParamList* params, int start_offset);
+        void callInitializersOfDeclaredFields();
+
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
         void CALL_IDIOM();
         void RETURN_IDIOM();
+
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

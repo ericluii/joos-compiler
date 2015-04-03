@@ -176,6 +176,20 @@ void CodeGenerator::setParameterOffsetFromEBP(ParamList* params, int start_offse
     }
 }
 
+void CodeGenerator::callInitializersOfDeclaredFields() {
+    // Call fields initializers here
+    SymbolTable* symTable = processing->getSymbolTable()->getNextTable();
+    while(symTable != NULL) {
+        if(symTable->isFieldTable()) {
+            if(!((FieldTable*) symTable)->getField()->isStatic()) {
+                // a non-static field, call it's initializer
+                asma("call " << (((FieldTable*) symTable)->generateFieldInitializerLabel()));
+            }
+        }
+        symTable = symTable->getNextTable();
+    }
+}
+
 // -------------------------------------------------------------------------------------
 // Real deal
 
@@ -261,22 +275,17 @@ void CodeGenerator::traverseAndGenerate() {
 
             asml(LabelManager::labelizeForAlloc(classCanonicalName));
             asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
+
             CALL_FUNCTION("__malloc");
             asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
             asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
             asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
             asma("push eax ; push allocated object onto the stack as 'this'");
             
-            // Call fields initializers here
-            SymbolTable* symTable = it->second->getSymbolTable()->getNextTable();
-            while(symTable != NULL) {
-                if(symTable->isFieldTable()) {
-                    if(!((FieldTable*) symTable)->getField()->isStatic()) {
-                        // a non-static field, call it's initializer
-                        asma("call " << (((FieldTable*) symTable)->generateFieldInitializerLabel()));
-                    }
-                }
-                symTable = symTable->getNextTable();
+            ObjectLayout* layoutOfClass = objManager->getLayoutForClass(processing);
+            asmc("Initialize all fields to their default 0");
+            for(unsigned int i = 0; i < layoutOfClass->numberOfFieldsInObject(); i++) {
+                asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAClass(i) << "], 0");
             }
             
             asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
@@ -311,28 +320,29 @@ void CodeGenerator::traverseAndGenerate(ClassBodyDecls* body) {
 }
 
 void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
-    std::string initializerLabel = field->getFieldTable()->generateFieldInitializerLabel();
-    bool isStatic = field->isStatic();
-    asmc("Field initializer for " << initializerLabel);
-    
-    if(isStatic) {
-        // static field, initializer needs to be globaled
-        asmc("Initializer of static needs to be globalled");
-        asmgl(initializerLabel);
-    } else {
-        asml(initializerLabel);
-    }
-
-    unsigned int indexOfField = 0;
-    if(!isStatic) {
-        // not static field, 
-        // then need to have the call idiom
-        CALL_IDIOM();
-        // non-static get the index of the field in the object
-        indexOfField = objManager->getLayoutForClass(processing)->indexOfFieldInObject(field->getFieldTable());
-    }
-
     if(field->isInitialized()) {
+        std::string initializerLabel = field->getFieldTable()->generateFieldInitializerLabel();
+        bool isStatic = field->isStatic();
+
+        asmc("Field initializer for " << initializerLabel);
+        
+        if(isStatic) {
+            // static field, initializer needs to be globaled
+            asmc("Initializer of static needs to be globalled");
+            asmgl(initializerLabel);
+        } else {
+            asml(initializerLabel);
+        }
+
+        unsigned int indexOfField = 0;
+        if(!isStatic) {
+            // not static field, 
+            // then need to have the call idiom
+            CALL_IDIOM();
+            // non-static get the index of the field in the object
+            indexOfField = objManager->getLayoutForClass(processing)->indexOfFieldInObject(field->getFieldTable());
+        }
+
         traverseAndGenerate(field->getInitializingExpression());
         asmc("Initialize field with it's initializer value");
         if(isStatic) {
@@ -341,20 +351,12 @@ void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
             asma("mov ebx, [ebp + 8] ; get this");
             asma("mov [ebx - " << indexOfField << "], eax");
         }
-    } else {
-        asmc("Initialize the field with default value - which is 0 for all types");
-        if(isStatic) {
-            asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], dword 0");
-        } else {
-            asma("mov ebx, [ebp + 8] ; get this");
-            asma("mov [ebx - " << indexOfField << "], 0");
-        }
-    }
 
-    if(isStatic) {
-        asma("ret ; just return from static initializer");
-    } else {
-        RETURN_IDIOM();
+        if(isStatic) {
+            asma("ret ; just return from static initializer");
+        } else {
+            RETURN_IDIOM();
+        }
     }
 }
 
@@ -1200,18 +1202,33 @@ void CodeGenerator::traverseAndGenerate(ReturnStmt* stmt) {
 }
 
 void CodeGenerator::traverseAndGenerate(Constructor* ctor) {
+    // JLS 12.5 for what happens when a constructor is called
     std::string signature = ctor->labelizedConstructorSignature();
 
     asmc("Constructor Body - " << signature);
     asmgl(signature);
     CALL_IDIOM();
 
-    scope_offset = -4;
+    CompilationTable* superclass = ((ClassTable*) processing->getSymbolTable())->getClass()->getSuper()->getSuperClassTable();
+    if(superclass != NULL) {
+        // there is a superclass -> then call the superclass
+        // zero argument constructor
+        asma("push dword [ebp - 8] ; push created this onto the stack before calling super constructor");
+        std::string superctor = superclass->getAConstructor("()")->getConstructor()->labelizedConstructorSignature();
+        asma("extern " << superctor);
+        asma("call " << superctor);
+        asma("pop ebx ; pop pushed this");
+    }
+
+    // call initializers here
+    callInitializersOfDeclaredFields();
+
     // set offset for constructor parameters from EBP,
     // starting offset is always 12 for constructors, because
     // there's always this
     setParameterOffsetFromEBP(ctor->getConstructorParameters()->getListOfParameters(), 12);
 
+    scope_offset = -4;
     traverseAndGenerate(ctor->getConstructorBody());
 
     if(ctor->canConstructorCompleteNormally()) {
