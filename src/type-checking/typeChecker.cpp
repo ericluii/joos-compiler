@@ -304,6 +304,16 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
         // TODO: CHECK SOMETHING...
         //       Theoretically should fall through and be checked correctly...
 
+        if(methodInvoke->isReferringToClassMethod()) {
+            if(methodInvoke->getReferredClassMethod()->getClassMethod()->isStatic()) {
+                // method is static, error out
+                std::stringstream ss;
+                ss << "Non-static access of static method '"
+                   << methodInvoke->getReferredClassMethod()->getClassMethod()->getMethodHeader()->methodSignatureAsString() << "'.";
+                NOTIFY_ERROR(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldId()->getToken(), ss);
+                return false;
+            }
+        }
         return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldPrimary()) && check(methodInvoke->getArgsForInvokedMethod());
     }
 }

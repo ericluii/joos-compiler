@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <stack>
+#include <algorithm>
 
 // AST
 #include "classDecl.h"

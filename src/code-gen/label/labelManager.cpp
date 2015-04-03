@@ -1,6 +1,8 @@
 #include "labelManager.h"
 #include <sstream>
 #include <vector>
+#include <stdarg.h>
+#include <string.h>
 
 std::string LabelManager::labelizer = "$";
 std::string LabelManager::virt = "VIRT" + LabelManager::labelizer;
@@ -40,10 +42,10 @@ std::string LabelManager::labelizeForConstructor(const std::string& toLabelize, 
     	ss << "$";
 
     	temp = va_arg(ap, char*);
-    	char *token = std::strtok(temp, ".");
+    	char *token = strtok(temp, ".");
 	    while (token != NULL) {
 	        tokens.push_back(token);
-	        token = std::strtok(NULL, " ");
+	        token = strtok(NULL, " ");
 	    }
     	if (tokens.size() > 1 && std::string(tokens[1]) == "array") {
     		ss << LabelManager::labelizeForArrays(tokens[0]);
