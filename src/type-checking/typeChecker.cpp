@@ -314,6 +314,7 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
                 return false;
             }
         }
+
         return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldPrimary()) && check(methodInvoke->getArgsForInvokedMethod());
     }
 }
@@ -682,6 +683,12 @@ bool TypeChecking::check(ArrayAccess* arrayAccess) {
 }
 
 bool TypeChecking::check(QualifiedThis* qualifiedThis) {
+    if (restrict_this) {
+        std::stringstream ss;
+        ss << "Cannot use qualified 'this' in a static context.";
+        NOTIFY_ERROR(qualifiedThis->getQualifyingClassName()->getNameId()->getToken(), ss);
+    }
+
     return true;
 }
 
@@ -702,110 +709,346 @@ bool TypeChecking::check(FieldAccess* fieldAccess) {
 }
 
 bool TypeChecking::check(CastExpression* castExpression){
-    Expression* paramaterExpression = castExpression->getExpressionToCast();
+    Expression* expression = castExpression->getExpressionToCast();
 
-    if(castExpression->isCastToArrayName()){
-        return check(paramaterExpression);
-    } else if(castExpression->isCastToReferenceType()){
-        if(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString()))
-        {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains a cast from a primitive to non-primitive type.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains a cast from a primitive to non-primitive type.";
-            } else {
-                assert(false);
-            }
+    std::string expression_type = expression->getExpressionTypeString();
+    CompilationTable* expression_table = expression->getTableTypeOfExpression();
+    CompilationTable* cast_table = castExpression->getTableTypeOfExpression();
+    std::string cast_type = castExpression->getExpressionTypeString();
 
-            NOTIFY_ERROR(closest_token, ss);
+    // JLS 5.5 - Cannot cast a primitive to a reference type
+    if (isPrimitive(expression_type) && !isPrimitive(cast_type)) {
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains a cast from a primitive type '" << expression_type << "' to a reference type '" << cast_type << "'.";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains a cast from a primitive type '" << expression_type << "' to a reference type '" << cast_type << "'.";
+        } else {
+            assert(false);
         }
-        else
-        {
-            if(!inheritsOrExtendsOrImplements(paramaterExpression->getExpressionTypeString(), castExpression->getExpressionTypeString()) &&
-               !inheritsOrExtendsOrImplements(castExpression->getExpressionTypeString(), paramaterExpression->getExpressionTypeString()) &&
-               paramaterExpression->getExprType() != ET_NULL)
-            {
+
+        NOTIFY_ERROR(closest_token, ss);
+    }
+
+    // JLS 5.5 - Cannot cast a reference type to a primitive type
+    if (!isPrimitive(expression_type) && isPrimitive(cast_type)) {
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains a cast from a reference type '" << expression_type << "' to a primitive type '" << cast_type << ".'";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains a cast from a reference type '" << expression_type << "' to a primitive type '" << cast_type << ".'";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
+    }
+
+    // JLS 5.5 Breakdown - S is CLASS, INTERFACE, OR ARRAY
+    //                   - T is CLASS, INTERFACE, OR ARRAY
+    if (!isPrimitive(expression_type) && !isPrimitive(cast_type) &&
+        expression_type != "null") {
+        if (isArray(expression_type)) { // S IS ARRAY
+            // JLS 5.5 - TC and SC are the same primitive type or TC and SC are reference types and type SC can be cast to TC.
+            if (isArray(cast_type)) { // T IS ARRAY
+                std::string raw_cast_type = cast_type.substr(0, cast_type.size() - 2);
+                std::string raw_expr_type = expression_type.substr(0, expression_type.size() - 2);
+
+                // TC and SC are the same primitive type and there is not reference to primitive and vice versa
+                if (isPrimitive(raw_cast_type) && !isPrimitive(raw_expr_type)) {
+                    std::stringstream ss;
+                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                           <<  "' contains an illegal cast from reference type '" << expression_type << "' to primitive type '" << cast_type << "'.";
+                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                           <<  "' contains an illegal cast from reference type '" << expression_type << "' to primitive type '" << cast_type << "'.";
+                    } else {
+                        assert(false);
+                    }
+
+                    NOTIFY_ERROR(closest_token, ss);
+                } else if (isPrimitive(raw_expr_type) && !isPrimitive(raw_cast_type)) {
+                    std::stringstream ss;
+                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                           <<  "' contains an illegal cast from primtive type '" << expression_type << "' to reference type '" << cast_type << "'.";
+                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                           <<  "' contains an illegal cast from primitive type '" << expression_type << "' to reference type '" << cast_type << "'.";
+                    } else {
+                        assert(false);
+                    }
+
+                    NOTIFY_ERROR(closest_token, ss);
+                }
+
+                // reference types and type SC can be cast to TC
+                // Refer to other parts of method for JLS rules
+                if (!isPrimitive(raw_cast_type) && !isPrimitive(raw_expr_type)) { 
+                    if (cast_table->isClassSymbolTable() && expression_table->isClassSymbolTable() &&
+                        expression_table != cast_table &&
+                        !inheritsOrExtendsOrImplements(raw_expr_type, raw_cast_type) &&
+                        !inheritsOrExtendsOrImplements(raw_cast_type, raw_expr_type)) {
+                        std::stringstream ss;
+                        if (cur_st_type == CONSTRUCTOR_TABLE) {
+                            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                               <<  "' contains a cast to array type '" << cast_table->getCanonicalName() << "' on no-related array type '"
+                               << expression_table->getCanonicalName() << ".'";
+                        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                               <<  "' contains a cast to array type '" << cast_table->getCanonicalName() << "' on array no-related type '"
+                               << expression_table->getCanonicalName() << ".'";
+                        } else {
+                            assert(false);
+                        }
+
+                        NOTIFY_ERROR(closest_token, ss);
+                    } else if (cast_table->isClassSymbolTable() && !expression_table->isClassSymbolTable()) {
+                        if (expression_table != cast_table &&
+                            !inheritsOrExtendsOrImplements(raw_expr_type, raw_cast_type) &&
+                            !inheritsOrExtendsOrImplements(raw_cast_type, raw_expr_type)) {
+                            std::stringstream ss;
+                            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                                   <<  "' contains a cast to array type '" << cast_table->getCanonicalName() << "' on no-related array type '"
+                                   << expression_table->getCanonicalName() << ".'";
+                            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                                   <<  "' contains a cast to array type '" << cast_table->getCanonicalName() << "' on no-related array type '"
+                                   << expression_table->getCanonicalName() << ".'";
+                            } else {
+                                assert(false);
+                            }
+
+                            NOTIFY_ERROR(closest_token, ss);
+                        }
+                    } else if (!cast_table->isClassSymbolTable() && expression_table->isClassSymbolTable()) {
+                        InterfaceTable* it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
+                        if (it->getInterface()->isFinal() &&
+                            !inheritsOrExtendsOrImplements(raw_expr_type, raw_cast_type)) {
+                            std::stringstream ss;
+                            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                                   <<  "' contains a cast to interface array type '" << cast_table->getCanonicalName() << "' but type '"
+                                   << expression_table->getCanonicalName() << "' is final and does not implement the interface.";
+                            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                                   <<  "' contains a cast to interface array type '" << cast_table->getCanonicalName() << "' but type '"
+                                   << expression_table->getCanonicalName() << "' is final and does not implement the interface.";
+                            } else {
+                                assert(false);
+                            }
+
+                            NOTIFY_ERROR(closest_token, ss);
+                        }
+                    } else {
+                        InterfaceTable* cast_it = static_cast<InterfaceTable*>(cast_table->getSymbolTable());
+                        InterfaceTable* expr_it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
+                        InterfaceMethod* cast_im = cast_it->getInterface()->getInterfaceBodyStar()->getInterfaceMethods();
+                        InterfaceMethod* expr_im = expr_it->getInterface()->getInterfaceBodyStar()->getInterfaceMethods();
+
+                        while (cast_im != NULL) {
+                            InterfaceMethod* expr_im_copy = expr_im;
+
+                            while (expr_im_copy != NULL) {
+                                if (cast_im->methodSignatureAsString() == expr_im_copy->methodSignatureAsString() &&
+                                    cast_im->getReturnType()->getTypeAsString() != expr_im_copy->getReturnType()->getTypeAsString()) {
+                                    std::stringstream ss;
+                                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                                           <<  "' contains a cast from interface array type '" << cast_table->getCanonicalName() << "' to interface array type '"
+                                           << expression_table->getCanonicalName() << "', but both contain the same method signatures but with return types.";
+                                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                                           <<  "' contains a cast from interface array type '" << cast_table->getCanonicalName() << "' to interface array type '"
+                                           << expression_table->getCanonicalName() << "', but both contain the same method signatures but with return types.";
+                                    } else {
+                                        assert(false);
+                                    }
+
+                                    NOTIFY_ERROR(closest_token, ss);
+                                }
+
+                                expr_im_copy = expr_im_copy->getNextInterfaceMethod();
+                            }
+
+                            cast_im = cast_im->getNextInterfaceMethod();
+                        }
+                    }
+                }
+            // JLS 5.5 - If T is a class, it must be object, since Object is the only class type to which arrays can be assigned
+            } else if (cast_table->isClassSymbolTable() && cast_type != "java.lang.Object") { // T IS CLASS
                 std::stringstream ss;
                 if (cur_st_type == CONSTRUCTOR_TABLE) {
                     ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                       <<  "' contains an invalid reference type cast.";
+                       <<  "' contains a cast from '" << expression_type << "' to a type other than 'java.lang.Object'.";
                 } else if (cur_st_type == CLASSMETHOD_TABLE) {
                     ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                       <<  "' contains an invalid reference type cast.";
+                       <<  "' contains a cast from '" << expression_type << "' to a type other than 'java.lang.Object'.";
+                } else {
+                    assert(false);
+                }
+
+                NOTIFY_ERROR(closest_token, ss);
+            // JLS 5.5 - If T is an interface type, then a compile-time error occurs unless
+            //           T is the type java.io.Serializable or the type Cloneable
+            } else if (cast_type != "java.io.Serializable" && cast_type != "java.lang.Cloneable") { // T IS INTERFACE
+                std::stringstream ss;
+                if (cur_st_type == CONSTRUCTOR_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains a cast from '" << expression_type << "' to an interface type other than "
+                        << "'java.lang.Cloneable' and 'java.io.Serializable'.";
+                } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains a cast from '" << expression_type << "' to an interface type other than "
+                        << "'java.lang.Cloneable' and 'java.io.Serializable'.";
                 } else {
                     assert(false);
                 }
 
                 NOTIFY_ERROR(closest_token, ss);
             }
-        }
-    } else {
-        if(!(isPrimitive(paramaterExpression->getExpressionTypeString()) || isPrimitiveArray(paramaterExpression->getExpressionTypeString())))
-        {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains a cast from a non-primitve type to a primitive type.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains a cast from a non-primitve type to a primitive type.";
-            } else {
-                assert(false);
-            }
+        } else if (expression_table->isClassSymbolTable()) { // S IS CLASS
+            // JLS 5.5 - If T is an array type, then S must be the class Object
+            if (isArray(cast_type) && expression_type != "java.lang.Object") {
+                std::stringstream ss;
+                if (cur_st_type == CONSTRUCTOR_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains a cast to an array of a type other than 'java.lang.Object'.";
+                } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                    ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       <<  "' contains a cast to an array of a type other than 'java.lang.Object'.";
+                } else {
+                    assert(false);
+                }
 
-            NOTIFY_ERROR(closest_token, ss);
-        }
-        else if(paramaterExpression->isExprTypeBoolean() && (castExpression->getExprType() != ET_BOOLEAN))
-        {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains a cast on a boolean.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains a cast on a boolean.";
-            } else {
-                assert(false);
-            }
+                NOTIFY_ERROR(closest_token, ss);
+            // JLS 5.5 - If T is a class type, then S and T must be related classes-that is,
+            //           S and T must be the same class, or S a subclass of T, or T a subclass of S
+            } else if (cast_table->isClassSymbolTable()) { // T IS CLASS
+                if (expression_table != cast_table &&
+                    !inheritsOrExtendsOrImplements(expression_type, cast_type) &&
+                    !inheritsOrExtendsOrImplements(cast_type, expression_type)) {
+                    std::stringstream ss;
+                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                           <<  "' contains a cast to type '" << cast_table->getCanonicalName() << "' on no-related type '"
+                           << expression_table->getCanonicalName() << ".'";
+                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                           <<  "' contains a cast to type '" << cast_table->getCanonicalName() << "' on no-related type '"
+                           << expression_table->getCanonicalName() << ".'";
+                    } else {
+                        assert(false);
+                    }
 
-            NOTIFY_ERROR(closest_token, ss);
-        }
-        else if(isPrimitive(paramaterExpression->getExpressionTypeString()) && static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
-        {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains a cast from a primtive to a primitive array.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains a cast from a primtive to a primitive array.";
-            } else {
-                assert(false);
-            }
+                    NOTIFY_ERROR(closest_token, ss);
+                }
+            } else { // T IS INTERFACE
+                // JLS 5.5 - If S is not a final class (§8.1.1), then the cast is always correct
+                //           If S is a final class (§8.1.1), then S must implement T
+                InterfaceTable* it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
+                if (it->getInterface()->isFinal() &&
+                    !inheritsOrExtendsOrImplements(expression_type, cast_type)) {
+                    std::stringstream ss;
+                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                           <<  "' contains a cast to interface type '" << cast_table->getCanonicalName() << "' but type '"
+                           << expression_table->getCanonicalName() << "' is final and does not implement the interface.";
+                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                           <<  "' contains a cast to interface type '" << cast_table->getCanonicalName() << "' but type '"
+                           << expression_table->getCanonicalName() << "' is final and does not implement the interface.";
+                    } else {
+                        assert(false);
+                    }
 
-            NOTIFY_ERROR(closest_token, ss);
-        }
-        else if(isPrimitiveArray(paramaterExpression->getExpressionTypeString()) && !static_cast<CastPrimitive*>(castExpression)->isPrimitiveArrayCast())
-        {
-            std::stringstream ss;
-            if (cur_st_type == CONSTRUCTOR_TABLE) {
-                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
-                   <<  "' contains a cast from a primtive array to a primitive.";
-            } else if (cur_st_type == CLASSMETHOD_TABLE) {
-                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
-                   <<  "' contains a cast from a primtive array to a primitive.";
-            } else {
-                assert(false);
+                    NOTIFY_ERROR(closest_token, ss);
+                }
             }
+        } else { // S IS INTERFACE
+            // JLS 5.5 - If T is an array type, then T must implement S
+            //           S must be cloneable or serializable
+            if (isArray(cast_type) &&
+                expression_type != "java.lang.Cloneable" &&
+                expression_type != "java.io.Serializable") { // T IS ARRAY
+                std::stringstream ss;
+                if (cur_st_type == CONSTRUCTOR_TABLE) {
+                    ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                       <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to array type '"
+                       << expression_table->getCanonicalName() << "', but array type does not implement the interface type.";
+                } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                    ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                       <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to array type '"
+                       << expression_table->getCanonicalName() << "', but array type does not implement the interface type.";
+                } else {
+                    assert(false);
+                }
 
-            NOTIFY_ERROR(closest_token, ss);
+                NOTIFY_ERROR(closest_token, ss);
+            } else if (cast_table->isClassSymbolTable()) { // T IS CLASS
+                // JLS 5.5 - If T is a class type that is final, T must implement S
+                ClassTable* ct = static_cast<ClassTable*>(cast_table->getSymbolTable());
+                if (ct->getClass()->isFinal() &&
+                    !inheritsOrExtendsOrImplements(cast_type, expression_type)) {
+                    std::stringstream ss;
+                    if (cur_st_type == CONSTRUCTOR_TABLE) {
+                        ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                           <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to final type '"
+                           << expression_table->getCanonicalName() << "', but type does not implement the interface type.";
+                    } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                        ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                           <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to final type '"
+                           << expression_table->getCanonicalName() << "', but type does not implement the interface type.";
+                    } else {
+                        assert(false);
+                    }
+
+                    NOTIFY_ERROR(closest_token, ss);
+                }
+            } else { // T IS INTERFACE
+                InterfaceTable* cast_it = static_cast<InterfaceTable*>(cast_table->getSymbolTable());
+                InterfaceTable* expr_it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
+                InterfaceMethod* cast_im = cast_it->getInterface()->getInterfaceBodyStar()->getInterfaceMethods();
+                InterfaceMethod* expr_im = expr_it->getInterface()->getInterfaceBodyStar()->getInterfaceMethods();
+
+                while (cast_im != NULL) {
+                    InterfaceMethod* expr_im_copy = expr_im;
+
+                    while (expr_im_copy != NULL) {
+                        if (cast_im->methodSignatureAsString() == expr_im_copy->methodSignatureAsString() &&
+                            cast_im->getReturnType()->getTypeAsString() != expr_im_copy->getReturnType()->getTypeAsString()) {
+                            std::stringstream ss;
+                            if (cur_st_type == CONSTRUCTOR_TABLE) {
+                                ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+                                   <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to interface type '"
+                                   << expression_table->getCanonicalName() << "', but both contain the same method signatures but with return types.";
+                            } else if (cur_st_type == CLASSMETHOD_TABLE) {
+                                ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+                                   <<  "' contains a cast from interface type '" << cast_table->getCanonicalName() << "' to interface type '"
+                                   << expression_table->getCanonicalName() << "', but both contain the same method signatures but with return types.";
+                            } else {
+                                assert(false);
+                            }
+
+                            NOTIFY_ERROR(closest_token, ss);
+                        }
+
+                        expr_im_copy = expr_im_copy->getNextInterfaceMethod();
+                    }
+
+                    cast_im = cast_im->getNextInterfaceMethod();
+                }
+            }
         }
     }
 
-    return check(paramaterExpression);
+    return check(expression);
 }
 
 bool TypeChecking::check(LiteralOrThis* literalOrThis) {
