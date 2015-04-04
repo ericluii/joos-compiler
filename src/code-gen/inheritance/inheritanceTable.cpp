@@ -54,3 +54,11 @@ void InheritanceTable::outputInheritanceTableToFile(std::ofstream& file) {
     }
     file << '\n' << std::endl;
 }
+
+bool InheritanceTable::inheritanceStatusForType(unsigned int mappingOfType) {
+    return inheritance[mappingOfType];
+}
+
+void InheritanceTable::setInheritanceForAType(unsigned int mappingOfType, bool inheritanceStatus) {
+    inheritance[mappingOfType] = inheritanceStatus;
+}

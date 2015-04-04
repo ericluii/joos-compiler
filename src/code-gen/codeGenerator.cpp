@@ -120,17 +120,19 @@ void CodeGenerator::createNullForEBX() {
     // Save eax to prevent thrashing
     asma("push eax");
     // Create an array of size 4 * 4
-    arrayCreationCall(16);
+    arrayCreationCall("16");
 
-    // insert the inheritance table for char[]
+    asmc("Insering inheritance table for char[]");
     std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
     asma("extern " << charArrayInheritance);
     asma("mov [eax - 4], " << charArrayInheritance);
+    asmc("Insert char[]'s type number");
+    asma("mov [eax - 12], " << inhManager->getTypeMapping("char[]"));
     // Write the word "null" in char array
-    asma("mov [eax - 12], 110 ;; n");
-    asma("mov [eax - 16], 117 ;; u");
-    asma("mov [eax - 20], 108 ;; l");
-    asma("mov [eax - 24], 108 ;; l");
+    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(0) << "], 110 ;; n");
+    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(1) << "], 117 ;; u");
+    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(2) << "], 108 ;; l");
+    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(3) << "], 108 ;; l");
     asma("mov ebx, eax");
     asma("pop eax");
 
@@ -218,7 +220,7 @@ void CodeGenerator::LOAD_EAX_TMP_STORAGE() {
     tmp_storage_used = false;
 }
 
-void CodeGenerator::arrayCreationCall(unsigned int size) {
+void CodeGenerator::arrayCreationCall(const std::string& size) {
     asma("mov eax, " << size);
     CALL_FUNCTION("makeArrayBanana$");
 }
@@ -320,17 +322,19 @@ void CodeGenerator::traverseAndGenerate() {
                 // not an abstract class, create allocator for class
                 asml(LabelManager::labelizeForAlloc(classCanonicalName));
                 asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
-
                 CALL_FUNCTION("__malloc");
+                
+                asmc("In this order fill in: virtual table, inheritance table, interface methods, type number");
                 asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
                 asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
                 asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
+                asma("mov [eax-12], " << inhManager->getTypeMapping(classCanonicalName));
                 asma("push eax ; push allocated object onto the stack as 'this'");
                 
                 ObjectLayout* layoutOfClass = objManager->getLayoutForClass(processing);
                 asmc("Initialize all fields to their default 0");
                 for(unsigned int i = 0; i < layoutOfClass->numberOfFieldsInObject(); i++) {
-                    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAClass(i) << "], 0");
+                    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(i) << "], 0");
                 }
                 asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             }
@@ -862,7 +866,8 @@ void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
     exceptionCall();
     asml(proper_index_access);
     asma("neg ebx ; negate index");
-    asma("mov eax, [eax + 4*ebx] ; get the value of the array at the specified index multiplied by 4");
+    asma("mov eax, [eax - " << ObjectLayout::transformToFieldIndexInAnObject(0) << " + 4*ebx]"
+         << " ; get the value of the array at the specified index multiplied by 4");
 }
 
 void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeForName) {
@@ -894,7 +899,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
                 asma("jne " << null_chk_lbl << " ; check if accessed object is null or not");
                 CALL_FUNCTION("__exception");
                 asml(null_chk_lbl);
-                asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "]");
+                asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "] ; grab field");
             }
 
             Type* fieldType = name->getReferredField()->getField()->getFieldType();
@@ -1113,13 +1118,17 @@ void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
     asma("jge " << less_than_zero_chk << " ; check if dimension expression is less than zero or not");
     exceptionCall();
     asml(less_than_zero_chk);
-    CALL_FUNCTION("makeArrayBanana$");
+    arrayCreationCall("eax * 4");
     
     Type* arrayType = newArray->getArrayType();
     std::string labelizedInhTable = LabelManager::getLabelForArrayInheritanceTable(arrayType->getTypeAsString());
 
+    if(arrayType->isReferenceType()) {
+        asma("mov [eax + 8], " << inhManager->getTypeMapping(arrayType->getTypeAsString()) << " ; insert component type");
+    }
     asma("extern " << labelizedInhTable);
     asma("mov [eax - 4], " << labelizedInhTable << " ; insert array inheritance table");
+    asma("mov [eax - 12], " << inhManager->getTypeMapping(arrayType->getTypeAsString() + "[]") << " ; insert type number");
 }
 
 void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
@@ -1158,14 +1167,18 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
 
         asmc("String literal");
         // Create character array to hold string
-        arrayCreationCall(string_literal.length() * 4);
+        std::stringstream ss;
+        ss << (string_literal.length() * 4);
+        arrayCreationCall(ss.str());
 
-        // insert the inheritance table for char[]
         std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
+        asmc("Insert inheritance table of char[]");
         asma("extern " << charArrayInheritance);
         asma("mov [eax - 4], " << charArrayInheritance);
+        asmc("Insert char[]'s type number");
+        asma("mov [eax - 12], " << inhManager->getTypeMapping("char[]"));
         // Copy over string into array
-        unsigned int offset = 12;
+        unsigned int offset = ObjectLayout::transformToFieldIndexInAnObject(0);
         for (unsigned int i = 0; i < string_literal.length(); i++) {
             asma("mov [eax - " << offset << "], " << ((int)string_literal[i]));
             offset += 4;
@@ -1205,6 +1218,7 @@ void CodeGenerator::traverseAndGenerate(CastExpression* cast) {
     // Order based on JLS 15.7
     // Specific: JLS 15.16 and JLS 5.2 (assignment conversion rules for Joos, review A3 type-checking)
     traverseAndGenerate(cast->getExpressionToCast());
+
     if ((cast->isCastToPrimitiveType() && (((CastPrimitive*) cast)->isPrimitiveArrayCast())) ||
         cast->isCastToReferenceType() || cast->isCastToArrayName()) {
         if (cast->isCastToPrimitiveType()) {
@@ -1242,13 +1256,13 @@ void CodeGenerator::traverseAndGenerate(CastExpression* cast) {
        Type* primType = ((CastPrimitive*) cast)->getPrimitiveTypeToCastTo();
        if (primType->isTypeShort() && castedExpr->isExprTypeInt()) {
            asmc("Casting type integer to type short");
-           asma("shl 16 ; shift left by 16, throwing off last 16 MSB");
-           asma("shr 16 ; shift right by 16, retain last 16 LSB");
+           asma("shl eax, 16 ; shift left by 16, throwing off last 16 MSB");
+           asma("shr eax, 16 ; shift right by 16, retain last 16 LSB");
        } else if ((primType->isTypeByte() || primType->isTypeChar()) &&
                (castedExpr->isExprTypeShort() || castedExpr->isExprTypeInt())) {
            asmc("Casting type short or integer to byte or char");
-           asma("shl 24 ; shift left by 24, throwing off last 24 MSB");
-           asma("shr 24 ; shift right by 24, retain last 8 LSB");
+           asma("shl eax, 24 ; shift left by 24, throwing off last 24 MSB");
+           asma("shr eax, 24 ; shift right by 24, retain last 8 LSB");
        } // The rest doesn't need anything to be done, since
          // the bits will remain the same way for all primitive types
     }
@@ -1282,10 +1296,70 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
         traverseAndGenerate(((AssignField*) assign)->getAssignedField());
     } else {
         // assigning to an array component
-        traverseAndGenerate(((AssignArray*) assign)->getAssignedArray());
+        ArrayAccess* accessed = ((AssignArray*) assign)->getAssignedArray();
+        traverseAndGenerate(accessed->getAccessExpression());
     }
     
-    traverseAndGenerate(assign->getExpressionToAssign());
+    Expression* assignExpr = assign->getExpressionToAssign();
+    if(assign->isAssignName() || assign->isAssignField()) {
+        asma("push eax ; push gotten lhs reference value");
+    } else {
+        asma("push eax ; push access index");
+    }
+
+    traverseAndGenerate(assignExpr);
+    
+    if(assign->isAssignArray()) {
+        asma("push eax ; push rhs value");
+        ArrayAccess* accessed = ((AssignArray*) assign)->getAssignedArray();
+        if(accessed->isArrayAccessName()) {
+            traverseAndGenerate(((ArrayAccessName*) accessed)->getNameOfAccessedArray());
+        } else {
+            traverseAndGenerate(((ArrayAccessPrimary*) accessed)->getAccessedPrimaryArray());
+        }
+        
+        std::string exceptional_access = LABEL_GEN();
+        asma("cmp eax, 0");
+        asma("je " <<  exceptional_access << " ; check if array accessed is null or not");
+
+        asma("pop ebx ; pop rhs value");
+        asma("pop edx ; pop access index");
+        asma("cmp edx, 0");
+        asma("jl " << exceptional_access << " ; check if access index is less than 0 or not");
+        
+        asma("cmp edx, [eax + 4]");
+        asma("jge " << exceptional_access << " ; check if access index is greater than or equal to array length");
+
+        std::string proper_array_access = LABEL_GEN();
+        asma("jmp " << proper_array_access);
+
+        asml(exceptional_access);
+        exceptionCall();
+        asml(proper_array_access);
+        if(accessed->isAccessingObjectArray()) {
+            asmc("Accessing an array of reference");
+            asma("mov esi, eax ; temporarily store gotten array reference");
+            asma("mov eax, [eax + 8] ; grab component type number");
+
+            std::string good_assignment = LABEL_GEN();
+            asma("cmp ebx, 0");
+            asma("je " << good_assignment << " ; check if rhs value is null or not");
+            asma("mov ecx, [ebx - 4] ; grab rhs inheritance table");
+            asma("mov eax, [ecx + eax] ; grab inheritance status from inheritance table");
+            asma("cmp eax, 1");
+            asma("je " << good_assignment << " ; check if rhs value is a subclass of component type of array");
+            exceptionCall();
+
+            asml(good_assignment);
+            asma("neg edx ; negate index");
+            asma("mov eax, [esi - " << ObjectLayout::transformToFieldIndexInAnObject(0) << " + 4*edx] ; get array component at index");
+        }
+    } else {
+        asma("mov ebx, eax ; move gotten rhs value to ebx");
+        asma("pop eax ; get back lhs reference value");
+    }
+    asma("mov [eax], ebx ; store the rhs value to the memory location referred to in eax");
+    asma("mov eax, ebx ; store the rhs value to eax for as the return value of an assignment");
 }
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {

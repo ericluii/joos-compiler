@@ -114,15 +114,15 @@ class CodeGenerator {
         void traverseAndGenerate(ReturnStmt*);
 
         void createNullForEBX();
-        SymbolTable* getSymbolTableForName(Name* name);
-        void setParameterOffsetFromEBP(ParamList* params, int start_offset);
+        SymbolTable* getSymbolTableForName(Name*);
+        void setParameterOffsetFromEBP(ParamList*, int);
         void callInitializersOfDeclaredFields();
 
         // modularize certain calls
         void exceptionCall();
-        void arrayCreationCall(unsigned int size);
+        void arrayCreationCall(const std::string&);
         // lol bad cade
-        void CALL_FUNCTION(std::string fn_name);
+        void CALL_FUNCTION(std::string);
         void CALL_IDIOM();
         void RETURN_IDIOM();
         void STORE_EAX_TMP_STORAGE();
