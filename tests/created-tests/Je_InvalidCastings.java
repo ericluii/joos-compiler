@@ -8,5 +8,14 @@ public class Je_InvalidCastings {
         Object o = (Je_InvalidCastings[]) new Je_InvalidCastings();
         Object o2 = (String[]) new Je_InvalidCastings();
         Object o3 = (Cloneable[]) new Integer[2];
+
+        int a = 1;
+        o = (Object)a;
+        a = (int)o;
+
+        int[] ia = new int[5];
+        String[] sa = (String[])ia;
+        ia = (int[])sa;
+
     }
 }
