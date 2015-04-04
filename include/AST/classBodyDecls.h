@@ -51,6 +51,10 @@ class ClassBodyDecls : public Ast {
         bool isFinal() {
             return checkForModifier("final");
         }
+
+        bool isNative() {
+            return checkForModifier("native");
+        }
 };
 
 #endif

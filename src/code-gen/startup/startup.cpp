@@ -64,7 +64,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << "extern __malloc\n";
     fs << "; assumption is eax contains the size of the created array (not including space for length and the tables) in bytes\n";
     fs << "push eax\n";
-    fs << "add eax, 28 ; add 28 bytes for length and all of table space and type number\n";
+    fs << "add eax, 24 ; add 24 bytes for length and all of table space and type number\n";
     fs << "call __malloc ; call malloc\n";
     fs << "pop ebx ; get back old pushed eax\n";
     fs << "mov [eax], -1 ; store invalid component type\n";
