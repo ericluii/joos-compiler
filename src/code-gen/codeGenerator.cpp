@@ -880,9 +880,8 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
             } else {
                 std::string null_chk_lbl = LABEL_GEN();
 
-                asmc("Accessing non-statically. Assumption is eax has 'this' if we are here");
                 asma("cmp eax, 0");
-                asma("jne " << null_chk_lbl);
+                asma("jne " << null_chk_lbl << " ; check if accessed object is null or not");
                 CALL_FUNCTION("__exception");
                 asml(null_chk_lbl);
                 asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "]");
@@ -894,6 +893,14 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
             } //  ELSE IS PRIMITIVE TYPE, BETTER NOT BE A PREFIX
         } else if(name->isReferringToType()) {
             *prevTypeForName = name->getReferredType();
+        } else if(name->linkToArrayLength()) {
+            std::string null_chk_lbl = LABEL_GEN();
+
+            asma("cmp eax, 0");
+            asma("jne " << null_chk_lbl << " ; check if accessed array is null or not");
+            CALL_FUNCTION("__exception");
+            asml(null_chk_lbl);
+            asma("mov eax, [eax + 4] ; grab array length");
         } // ELSE IS PACKAGE/FIELD DECL/PARAM <- the last two is impossible. We hope.
     } else {
         if (name->isReferringToField()) {
