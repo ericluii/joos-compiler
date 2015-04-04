@@ -35,15 +35,15 @@ InheritanceTableManager::InheritanceTableManager(std::map<std::string, Compilati
 
     for(unsigned int i = 0; i < definedTypes.size(); i++) {
         std::string typeCanonicalName = definedTypes[i]->getCanonicalName();
-        buildInheritanceTableForArray(typeCanonicalName + "[]", LabelManager::labelizeForArrays(typeCanonicalName));
+        buildInheritanceTableForArray(typeCanonicalName + "[]", LabelManager::labelizeForArrays(typeCanonicalName), typeCanonicalName);
     }
 
     // primitive type arrays
-    buildInheritanceTableForArray("int[]", LabelManager::labelizeForArrays("int"));
-    buildInheritanceTableForArray("short[]", LabelManager::labelizeForArrays("short"));
-    buildInheritanceTableForArray("byte[]", LabelManager::labelizeForArrays("byte"));
-    buildInheritanceTableForArray("char[]", LabelManager::labelizeForArrays("char"));
-    buildInheritanceTableForArray("boolean[]", LabelManager::labelizeForArrays("boolean"));
+    buildInheritanceTableForArray("int[]", LabelManager::labelizeForArrays("int"), "");
+    buildInheritanceTableForArray("short[]", LabelManager::labelizeForArrays("short"), "");
+    buildInheritanceTableForArray("byte[]", LabelManager::labelizeForArrays("byte"), "");
+    buildInheritanceTableForArray("char[]", LabelManager::labelizeForArrays("char"), "");
+    buildInheritanceTableForArray("boolean[]", LabelManager::labelizeForArrays("boolean"), "");
 
 }
 
@@ -87,19 +87,29 @@ void InheritanceTableManager::buildInheritanceTableForCompilation(CompilationTab
     }
 
     // generate inheritance with a particular self index
-    tableForType->generateInheritance(typeCounter++);
     typeMapping[typeCanonicalName] = typeCounter;
+    tableForType->generateInheritance(typeCounter++);
 
     inheritanceTables[typeCanonicalName] = tableForType;
 }
 
-void InheritanceTableManager::buildInheritanceTableForArray(const std::string& arrayType, const std::string& tableName) {
-    InheritanceTable* inh = new InheritanceTable(tableName, inheritanceTables["java.lang.Object"], numTypes);
+void InheritanceTableManager::buildInheritanceTableForArray(const std::string& arrayType, const std::string& tableName,
+            const std::string& canonicalName) {
+    InheritanceTable* inh = NULL;
+    if(canonicalName == "") {
+        // canonical name not given because it's an array of primitive type
+        inh = new InheritanceTable(tableName, inheritanceTables["java.lang.Object"], numTypes);
+    } else {
+        // canonical name is given because it's an array of reference type
+        inh = new InheritanceTable(tableName, inheritanceTables[canonicalName], numTypes);
+    }
+
     inh->pushSuperInterfaceInheritance(inheritanceTables["java.lang.Cloneable"]);
     inh->pushSuperInterfaceInheritance(inheritanceTables["java.io.Serializable"]);
 
-    inh->generateInheritance(typeCounter++);
     typeMapping[arrayType] = typeCounter;
+    inh->generateInheritance(typeCounter++);
+    
     inheritanceTables[arrayType] = inh;
 }
 

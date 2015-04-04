@@ -21,7 +21,13 @@ class CastName : public CastExpression {
         void setCastTypeTable(CompilationTable* set) { castTable = set; }
         CompilationTable* getCastTypeTable() { return castTable; }
         std::string getTypeToCastAsString() {
-            std::string ret = castType->getFullName();
+            std::string ret;
+            if(castTable != NULL) {
+                ret = castTable->getCanonicalName();
+            } else {
+                ret = castType->getFullName();
+            }
+
             if(isCastToArrayName()) {
                 return ret+"[]";
             }

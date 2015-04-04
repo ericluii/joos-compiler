@@ -1039,14 +1039,14 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
             InterfaceMethodTable* interfaceMethod = invoke->getReferredInterfaceMethod();
 
             std::string interfaceMethodSignature = interfaceMethod->getInterfaceMethod()->methodSignatureAsString();
-            asma("call [eax - " << interManager->getInterfaceMethodIndexInTable(interfaceMethodSignature) << "]");
+            asma("call [eax + " << interManager->getInterfaceMethodIndexInTable(interfaceMethodSignature) << "]");
 
         } else {
             ClassMethodTable* classMethod = invoke->getReferredClassMethod();
             
             std::string typeCanonicalName = classMethod->getDeclaringClass()->getCanonicalName();
             std::string signature = classMethod->getClassMethod()->getMethodHeader()->methodSignatureAsString();
-            asma("call [eax - " <<
+            asma("call [eax + " <<
                  virtualManager->getVTableLayoutForType(typeCanonicalName)->getIndexOfMethodInVTable(signature) << "]");
         }
     } else {
@@ -1109,9 +1109,8 @@ void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
     CALL_FUNCTION("makeArrayBanana$");
     
     Type* arrayType = newArray->getArrayType();
-    std::string arrayLabel = LabelManager::labelizeForArrays(arrayType->getTypeAsString());
-    std::string labelizedInhTable = LabelManager::labelizeToInheritanceTable(arrayLabel);
-    
+    std::string labelizedInhTable = LabelManager::getLabelForArrayInheritanceTable(arrayType->getTypeAsString());
+
     asma("extern " << labelizedInhTable);
     asma("mov [eax - 4], " << labelizedInhTable << " ; insert array inheritance table");
 }
@@ -1119,14 +1118,14 @@ void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
 void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
     // JLS 15.8.4
     asmc("QUALIFIED THIS");
-    asma("mov eax, [ebp + 8] ; put into eax 'this'");
+    asma("mov eax, [ebp + 8] ; put 'this' into eax");
 }
 
 void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
     if(lit->isThis()) {
         // JLS 15.8.3
         asmc("This literal");
-        asma("mov eax, [ebp + 8]");
+        asma("mov eax, [ebp + 8] ; put 'this' into eax");
     } else if(lit->isNumber()) {
         // JLS 15.8.1
         asmc("Number Literal");
@@ -1142,10 +1141,9 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
     } else if(lit->isCharLiteral()) {
         // JLS 15.8.1
         std::string character = lit->getLiteralToken()->getString();
-        character.erase(std::remove(character.begin(), character.end(), '\''), character.end());
 
         asmc("Character literal");
-        asma("mov eax, " << ((int)(character.c_str()[0])));
+        asma("mov eax, " << character);
     } else if(lit->isStringLiteral()) {
         // JLS 15.8.1
         std::string string_literal = lit->getLiteralToken()->getString();
@@ -1168,7 +1166,7 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
 
         asmc("Call String constructor");
         asma("push eax");
-        CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String$char.array$"));
+        CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String$" + LabelManager::labelizeForArrays("char") + "$"));
         //CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
         asma("pop eax ; pop created string into eax");
         asma("pop ebx ; pop old eax");
@@ -1198,11 +1196,54 @@ void CodeGenerator::traverseAndGenerate(NegationExpression* negExpr) {
 
 void CodeGenerator::traverseAndGenerate(CastExpression* cast) {
     // Order based on JLS 15.7
-    // Specific: JLS 15.20.2 and JLS 5.2 (assignment conversion rules for Joos, review A3 type-checking)
+    // Specific: JLS 15.16 and JLS 5.2 (assignment conversion rules for Joos, review A3 type-checking)
     traverseAndGenerate(cast->getExpressionToCast());
-    if(cast->isCastToPrimitiveType()) {
-    } else {
-        // cast to array or some reference type
+    if ((cast->isCastToPrimitiveType() && (((CastPrimitive*) cast)->isPrimitiveArrayCast())) ||
+        cast->isCastToReferenceType() || cast->isCastToArrayName()) {
+        if (cast->isCastToPrimitiveType()) {
+            asmc("Casting to primitive array");
+        } else if (cast->isCastToReferenceType()) {
+            asmc("Casting to reference type");
+        } else {
+            asmc("Casting to reference array");
+        }
+        
+        std::string all_good_lbl = LABEL_GEN();
+        asma("cmp eax, 0");
+        asma("je " << all_good_lbl << " ; check if expression value is null");
+        
+        asma("mov ebx, [eax - 4] ; grab inheritance table");
+        
+        if (cast->isCastToPrimitiveType()) {
+            CastPrimitive* castPrim = (CastPrimitive*) cast;
+            asma("mov ebx, [ebx + " << inhManager->getTypeMapping(castPrim->getPrimitiveTypeToCastTo()->getTypeAsString())
+                  << "] ; grab inheritance value");
+        } else {
+            CastName* castRef = (CastName*) cast;
+            asma("mov ebx, [ebx + " << inhManager->getTypeMapping(castRef->getTypeToCastAsString()) << "] ; grab inheritance value");
+        }
+        
+        asmc("Check if expression can be casted to");
+        asma("cmp ebx, 0");
+        asma("jne " << all_good_lbl);
+        exceptionCall();
+        
+        asml(all_good_lbl);
+   } else {
+       // easy case
+       Expression* castedExpr = cast->getExpressionToCast();
+       Type* primType = ((CastPrimitive*) cast)->getPrimitiveTypeToCastTo();
+       if (primType->isTypeShort() && castedExpr->isExprTypeInt()) {
+           asmc("Casting type integer to type short");
+           asma("shl 16 ; shift left by 16, throwing off last 16 MSB");
+           asma("shr 16 ; shift right by 16, retain last 16 LSB");
+       } else if ((primType->isTypeByte() || primType->isTypeChar()) &&
+               (castedExpr->isExprTypeShort() || castedExpr->isExprTypeInt())) {
+           asmc("Casting type short or integer to byte or char");
+           asma("shl 24 ; shift left by 24, throwing off last 24 MSB");
+           asma("shr 24 ; shift right by 24, retain last 8 LSB");
+       } // The rest doesn't need anything to be done, since
+         // the bits will remain the same way for all primitive types
     }
 }
 
