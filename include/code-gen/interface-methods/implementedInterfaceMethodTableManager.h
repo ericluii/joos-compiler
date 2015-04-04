@@ -27,7 +27,7 @@ class ImplInterfaceMethodTableManager {
         ImplInterfaceMethodTableManager(std::map<std::string, CompilationTable*>&);
         ~ImplInterfaceMethodTableManager();
         
-        unsigned int getInterfaceMethodMapping(const std::string&);
+        unsigned int getInterfaceMethodIndexInTable(const std::string&);
         ImplInterfaceMethodTable* getTableForType(const std::string&);
         ImplInterfaceMethodTable* getTableForArray();
 };

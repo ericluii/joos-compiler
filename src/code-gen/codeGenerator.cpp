@@ -45,11 +45,14 @@
 #include "nestedBlock.h"
 #include "expressionStar.h"
 #include "referenceType.h"
+#include "interfaceMethod.h"
 
 // Symbol table
 #include "compilationTable.h"
 #include "classTable.h"
 #include "paramTable.h"
+#include "classMethodTable.h"
+#include "interfaceMethodTable.h"
 
 // Code generation related
 #include "codeGenerator.h"
@@ -195,6 +198,28 @@ void CodeGenerator::exceptionCall() {
     asma("extern __exception");
     asma("call __exception");
 }
+
+void CodeGenerator::STORE_EAX_TMP_STORAGE() {
+    // should be called when tmpStorage is
+    // not being used
+    assert(!tmp_storage_used);
+    
+    asmc("Store eax value in temporary storage");
+    asma("extern tmpStorage");
+    asma("mov [tmpStorage], eax ; holy this is bad");
+    tmp_storage_used = true;
+}
+
+void CodeGenerator::LOAD_EAX_TMP_STORAGE() {
+    // no need for extern, should be called
+    // only when STORE_EAX_TMP_STORAGE was previously called
+    assert(tmp_storage_used);
+    
+    asmc("Load back eax value from temporary storage");
+    asma("mov eax, [tmpStorage]");
+    tmp_storage_used = false;
+}
+
 // -------------------------------------------------------------------------------------
 // Real deal
 
@@ -207,7 +232,8 @@ CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilati
     interManager(new ImplInterfaceMethodTableManager(compilations)),
     staticManager(new StaticFieldsManager(compilations)),
     fs(NULL),
-    scope_offset(0)
+    scope_offset(0),
+    tmp_storage_used(false)
 {}
 
 CodeGenerator::~CodeGenerator() {
@@ -912,33 +938,129 @@ void CodeGenerator::traverseAndGenerate(FieldAccess* access) {
     exceptionCall();
     asml(null_lbl_chk);
     
-    if(access->linkToArrayLength()) {
+    if (access->linkToArrayLength()) {
         // accessing the length of an array
         asma("mov eax, [eax + 4] ; get length of array");
-    } else {
+    } else if (access->isReferringToField()) {
         // must be accessing some field then
         FieldTable* field = access->getReferredField();
         unsigned int indexInClass = objManager->getLayoutForClass(field->getDeclaringClass())->indexOfFieldInObject(field);
         asma("mov eax, [eax - " << indexInClass << "] ; access field from some class");
+    } else {
+        assert(false);
     }
 }
 
 void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
     // Order based on JLS 15.12.4
-    traverseAndGenerate(invoke->getArgsForInvokedMethod());
+    bool targetReferencePushed = false;
+
     if(invoke->isNormalMethodCall()) {
+        Name* prefixOfMethod = ((MethodNormalInvoke*) invoke)->getNameOfInvokedMethod()->getNextName();
+        if(prefixOfMethod != NULL && !prefixOfMethod->isReferringToType()) {
+            // there's a prefix to the method call and
+            // the prefix does not refer to a type
+            // i.e this is not a static call
+            
+            // get the value of the prefix first
+            traverseAndGenerate(prefixOfMethod);
+            STORE_EAX_TMP_STORAGE();
+        }
     } else {
+        // method call through a field access
+        // assumption is that the method called is then
+        // not static
+        
+        // get the value of the prefix first
+        traverseAndGenerate(((InvokeAccessedMethod*) invoke)->getAccessedMethod()->getAccessedFieldPrimary());
+        STORE_EAX_TMP_STORAGE();
+    }
+
+    if(tmp_storage_used) {
+        // if temporary storage was used, then
+        // check that the prefix's value is not null
+        asma("cmp eax, 0 ; check that prefix's value is not null");
+        std::string null_chk_lbl = LABEL_GEN();
+        asma("jne " << null_chk_lbl);
+        exceptionCall();
+        asml(null_chk_lbl);
+    }
+
+    traverseAndGenerate(invoke->getArgsForInvokedMethod());
+
+    if (invoke->isReferringToClassMethod() &&
+            invoke->getReferredClassMethod()->getClassMethod()->isStatic()) {
+        // a call to a static class method
+        ClassMethodTable* classMethod = invoke->getReferredClassMethod();
+        asmc("STATIC METHOD INVOCATION");
+        CALL_FUNCTION(classMethod->generateMethodLabel());
+
+    } else if (invoke->isReferringToInterfaceMethod() || invoke->isReferringToClassMethod()) {
+        // if here, then must be calling a non-static method
+        if (invoke->isReferringToInterfaceMethod()) {
+            asmc("METHOD INVOCATION THROUGH INTERFACE TABLE");
+        } else {
+            asmc("METHOD INVOCATION THROUGH VIRTUAL TABLE");
+        }
+
+        if(tmp_storage_used) {
+            // temporary storage was used
+            // load old eax value back now
+            LOAD_EAX_TMP_STORAGE();
+            asma("push eax ; push target reference");
+        } else {   
+            asma("mov eax, [ebp + 8] ; get this");
+            asma("push eax ; push this as target reference");
+        }
+        targetReferencePushed = true;
+
+        if(invoke->isReferringToInterfaceMethod()) {
+            asma("mov eax, [eax - 8] ; get interface table");
+        } else {
+            asma("mov eax, [eax] ; get virtual table");
+        }
+
+        if (invoke->isReferringToInterfaceMethod()) {
+            InterfaceMethodTable* interfaceMethod = invoke->getReferredInterfaceMethod();
+
+            std::string interfaceMethodSignature = interfaceMethod->getInterfaceMethod()->methodSignatureAsString();
+            asma("call [eax - " << interManager->getInterfaceMethodIndexInTable(interfaceMethodSignature) << "]");
+
+        } else {
+            ClassMethodTable* classMethod = invoke->getReferredClassMethod();
+            
+            std::string typeCanonicalName = classMethod->getDeclaringClass()->getCanonicalName();
+            std::string signature = classMethod->getClassMethod()->getMethodHeader()->methodSignatureAsString();
+            asma("call [eax - " <<
+                 virtualManager->getVTableLayoutForType(typeCanonicalName)->getIndexOfMethodInVTable(signature) << "]");
+        }
+    } else {
+        assert(false);
+    }
+
+    if(targetReferencePushed) {
+        // some target reference was pushed
+        asma("pop ebx ; pop target reference from stack");
+    }
+
+    Arguments* args = invoke->getArgsForInvokedMethod()->getListOfArguments();
+    while(args != NULL) {
+        asma("pop ebx ; popping arguments");
+        args = args->getNextArgs();
     }
 }
 
 void CodeGenerator::traverseAndGenerate(ArgumentsStar* args) {
     if(!args->isEpsilon()) {
+        asmc("ARRANGE ARGUMENTS RIGHT-MOST AT THE BOTTOM, LEFT-MOST AT THE TOP");
         traverseAndGenerate(args->getListOfArguments());
     }
 }
 
 void CodeGenerator::traverseAndGenerate(Arguments* arg) {
-    // Left to right on the stack, with this at the top
+    traverseAndGenerate(arg->getSelfArgumentExpr());
+    asma("push eax ; push self first then whatever is to the left of me");
+
     if(!arg->lastArgument()) {
         traverseAndGenerate(arg->getNextArgs());
     }

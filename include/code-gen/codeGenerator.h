@@ -73,6 +73,7 @@ class CodeGenerator {
 
         CompilationTable* processing;
         int scope_offset;
+        bool tmp_storage_used;
         std::map<SymbolTable*, int> addressTable;
 
         // code generation through AST traversal
@@ -123,7 +124,8 @@ class CodeGenerator {
         void CALL_FUNCTION(std::string fn_name);
         void CALL_IDIOM();
         void RETURN_IDIOM();
-
+        void STORE_EAX_TMP_STORAGE();
+        void LOAD_EAX_TMP_STORAGE();
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();
