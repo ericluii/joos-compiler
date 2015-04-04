@@ -1069,6 +1069,14 @@ void CodeGenerator::traverseAndGenerate(Arguments* arg) {
 void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
     // Order based on JLS 15.9.4
     traverseAndGenerate(create->getArgsToCreateClass());
+    CALL_FUNCTION(create->getReferredConstructor()->getConstructor()->labelizedConstructorSignature());
+    asma("pop eax ; pop newly created object to eax");
+    
+    Arguments* args = create->getArgsToCreateClass()->getListOfArguments();
+    while(args != NULL) {
+        asma("pop ebx ; pop arguments to constructor");
+        args = args->getNextArgs();
+    }
 }
 
 void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
