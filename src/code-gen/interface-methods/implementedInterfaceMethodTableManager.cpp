@@ -16,6 +16,8 @@
 // Label
 #include "labelManager.h"
 
+#include<iostream>
+
 ImplInterfaceMethodTableManager::ImplInterfaceMethodTableManager(std::map<std::string, CompilationTable*>& compilations) :
         methodCounter(0), numMethods(0) {
     initializeMapping(compilations);
@@ -95,10 +97,11 @@ void ImplInterfaceMethodTableManager::generateTableForArray() {
     tables[arrayLabel] = new ImplInterfaceMethodTable(arrayLabel, tables["java.lang.Object"], NULL, numMethods, methodMapping); 
 }
 
-unsigned int ImplInterfaceMethodTableManager::getInterfaceMethodMapping(const std::string& methodSignature) {
+unsigned int ImplInterfaceMethodTableManager::getInterfaceMethodIndexInTable(const std::string& methodSignature) {
     // precautionary check
-    assert(tables.count(methodSignature) == 1);
-    return methodMapping[methodSignature];
+    assert(methodMapping.count(methodSignature) == 1);
+    // multiplied by 4 because each entry is 4 bytes
+    return methodMapping[methodSignature] * 4;
 }
 
 ImplInterfaceMethodTable* ImplInterfaceMethodTableManager::getTableForType(const std::string& type) {

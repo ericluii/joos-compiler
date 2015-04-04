@@ -43,6 +43,8 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     
     // data section
     fs << "section .data\n";
+    fs << "global tmpStorage ; temporary storage when needed\n";
+    fs << "tmpStorage: dd 0\n";
 
     // generate virtual table for arrays
     arrayVTable->outputVTableToFile(fs);
@@ -52,11 +54,9 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
         arrayInheritance[i]->outputInheritanceTableToFile(fs);
     }
 
-    fs << '\n';
     // generate implemented interface method table for array
     arrayMethods->outputImplInterfaceMethodTableToFile(fs);
     
-    fs << '\n';
     fs << "section .text\n";
 
     // method for array creation
@@ -67,7 +67,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << "add eax, 20 ; add 20 bytes for length and all of table space\n";
     fs << "call __malloc ; call malloc\n";
     fs << "pop ebx ; get back old pushed eax\n";
-    fs << "mov [eax], ebx ; store length\n";
+    fs << "mov [eax], ebx / 4 ; store length\n";
     fs << "add eax, -4 ; sub 4 to start storing the tables\n";
     fs << "mov [eax], " + LabelManager::getLabelForArrayVirtualTable() + " ; store array virtual table\n";
     fs << "mov [eax-8], " + LabelManager::getLabelForArrayImplInterfaceMethodTable() + " ; store array interface method table\n";
@@ -86,7 +86,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     for(unsigned int i = 0; i < statics.size(); i++) {
         std::vector<FieldTable*>& staticFields = statics[i]->getAllStaticFieldsOfClass();
         for(unsigned int j = 0; j < staticFields.size(); j++) {
-            std::string staticInitCall = staticFields[j]->generateStaticInitializerLabel();
+            std::string staticInitCall = staticFields[j]->generateFieldInitializerLabel();
             fs << "extern " << staticInitCall << '\n';
             fs << "call " << staticInitCall << '\n';
         }

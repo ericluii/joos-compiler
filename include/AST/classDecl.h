@@ -19,6 +19,18 @@ class ClassDecl : public TypeDecl
         InterfaceList* interfaces;
         ClassBodyStar* body;
         ClassTable* table;
+
+        bool checkForModifier(const std::string& lookFor) {
+            Modifiers* m = mods;
+            while(m != NULL) {
+                if(m->getCurrentModifierAsString() == lookFor) {
+                    return true;
+                }
+                m = m->getNextModifier();
+            }
+            return false;
+        }
+
     public:
         ClassDecl(Modifiers* mods, Identifier* id, Super* super, InterfaceList* interfaces, ClassBodyStar* body) 
             : mods(mods), id(id), super(super), interfaces(interfaces), body(body), table(NULL) {}
@@ -37,45 +49,15 @@ class ClassDecl : public TypeDecl
         ClassBodyStar* getClassMembers() { return body; }
 
         bool isAbstract() {
-            Modifiers* m = getClassModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "abstract") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("abstract");
         }
 
         bool isProtected() {
-            Modifiers* m = getClassModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "protected") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("protected");
         }
 
         bool isFinal() {
-            Modifiers* m = getClassModifiers();
-
-            while (m != NULL) {
-                if (m->getCurrentModifierAsString() == "final") {
-                    return true;
-                }
-
-                m = m->getNextModifier();
-            }
-
-            return false;
+            return checkForModifier("final");
         }
 
         bool noSuperClass() { return super->isEpsilon(); }

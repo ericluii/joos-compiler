@@ -52,11 +52,13 @@ class StmtExpr;
 class NestedBlock;
 class ReturnStmt;
 class ExpressionStar;
+class ParamList;
 
 #define asmc(comment) *fs << ";; " << comment << "\n"
-#define asmgl(global) *fs << "global " << global << "\n" << global << ":\n"
+#define asmgl(global) *fs << "global " << global << "\n" << "  " << global << ":\n"
 #define asml(label) *fs << "  " << label << ":\n"
 #define asma(code) *fs << "\t" << code << "\n"
+#define section(sect) * fs << "section ." << sect << "\n"
 
 class CodeGenerator {
     private:
@@ -71,7 +73,8 @@ class CodeGenerator {
 
         CompilationTable* processing;
         int scope_offset;
-        std::map<void*, int> addressTable;
+        bool tmp_storage_used;
+        std::map<SymbolTable*, int> addressTable;
 
         // code generation through AST traversal
         void traverseAndGenerate(ClassDecl*);
@@ -111,9 +114,19 @@ class CodeGenerator {
         void traverseAndGenerate(ReturnStmt*);
 
         void createNullForEBX();
-        void* getSymbolTableForName(Name* name);
+        SymbolTable* getSymbolTableForName(Name* name);
+        void setParameterOffsetFromEBP(ParamList* params, int start_offset);
+        void callInitializersOfDeclaredFields();
+
+        // modularize certain calls
+        void exceptionCall();
+        void arrayCreationCall(unsigned int size);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
+        void CALL_IDIOM();
+        void RETURN_IDIOM();
+        void STORE_EAX_TMP_STORAGE();
+        void LOAD_EAX_TMP_STORAGE();
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

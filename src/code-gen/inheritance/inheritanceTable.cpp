@@ -52,5 +52,5 @@ void InheritanceTable::outputInheritanceTableToFile(std::ofstream& file) {
         else { file << ','; }
         file << inheritance[i];
     }
-    file << std::endl;
+    file << '\n' << std::endl;
 }

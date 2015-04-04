@@ -38,8 +38,6 @@ class ReferenceType : public Type {
 
         void setReferenceTypeTable(CompilationTable* set) { referenceTable = set; }
         CompilationTable* getReferenceTypeTable() { return referenceTable; }
-
-
 };
 
 #endif
