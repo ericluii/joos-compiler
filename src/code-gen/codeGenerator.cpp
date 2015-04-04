@@ -292,6 +292,7 @@ void CodeGenerator::traverseAndGenerate() {
             fs = new std::ofstream(classCanonicalName + ".s");
 #endif
             processing = it->second;
+            bool isAbstractClass = ((ClassTable*) processing->getSymbolTable())->getClass()->isAbstract();
 
             // data section
             section("data");
@@ -303,31 +304,37 @@ void CodeGenerator::traverseAndGenerate() {
                 asmgl(staticFields[i]->generateFieldLabel());
                 asma("dd " <<  0);
             }
-            
-            // Make the virtual, inheritance and interface method table for this class
-            virtualManager->getVTableLayoutForType(classCanonicalName)->outputVTableToFile(*fs);
-            inhManager->getTableForType(classCanonicalName)->outputInheritanceTableToFile(*fs);
-            interManager->getTableForType(classCanonicalName)->outputImplInterfaceMethodTableToFile(*fs);
+
+            if(!isAbstractClass) {
+                // Is not an abstract class
+                // Make the virtual, inheritance and interface method table for this class
+                virtualManager->getVTableLayoutForType(classCanonicalName)->outputVTableToFile(*fs);
+                inhManager->getTableForType(classCanonicalName)->outputInheritanceTableToFile(*fs);
+                interManager->getTableForType(classCanonicalName)->outputImplInterfaceMethodTableToFile(*fs);
+            }
 
             // text section
             section("text");
 
-            asml(LabelManager::labelizeForAlloc(classCanonicalName));
-            asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
+            if(!isAbstractClass) {
+                // not an abstract class, create allocator for class
+                asml(LabelManager::labelizeForAlloc(classCanonicalName));
+                asma("mov eax, " << objManager->getLayoutForClass(processing)->sizeOfObject());
 
-            CALL_FUNCTION("__malloc");
-            asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
-            asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
-            asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
-            asma("push eax ; push allocated object onto the stack as 'this'");
-            
-            ObjectLayout* layoutOfClass = objManager->getLayoutForClass(processing);
-            asmc("Initialize all fields to their default 0");
-            for(unsigned int i = 0; i < layoutOfClass->numberOfFieldsInObject(); i++) {
-                asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAClass(i) << "], 0");
+                CALL_FUNCTION("__malloc");
+                asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
+                asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
+                asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
+                asma("push eax ; push allocated object onto the stack as 'this'");
+                
+                ObjectLayout* layoutOfClass = objManager->getLayoutForClass(processing);
+                asmc("Initialize all fields to their default 0");
+                for(unsigned int i = 0; i < layoutOfClass->numberOfFieldsInObject(); i++) {
+                    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAClass(i) << "], 0");
+                }
+                asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             }
             
-            asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             traverseAndGenerate(((ClassTable*)it->second->getSymbolTable())->getClass());
             delete fs;
         }
@@ -1251,6 +1258,19 @@ void CodeGenerator::traverseAndGenerate(InstanceOf* instanceof) {
     // Order based on JLS 15.7
     // Specific: JLS 15.20.2 and JLS 5.2 (assignment conversion rules for Joos, review A3 type-checking)
     traverseAndGenerate(instanceof->getExpressionToCheck());
+
+    std::string null_lbl_chk = LABEL_GEN();
+    std::string done_chk = LABEL_GEN();
+    asma("cmp eax, 0 ; check if expression evaluates to null");
+    asma("jne " << null_lbl_chk);
+    asma("jmp " << done_chk << " ; finish instanceof check because expression evaluates to null");
+
+    asml(null_lbl_chk);
+    asma("mov eax, [eax - 4] ; grab inheritance table");
+    
+    Type* checkType = instanceof->getTypeToCheck();
+    asma("mov eax, [eax + " << inhManager->getTypeMapping(checkType->getTypeAsString()) << "] ; grab what the inheritance table says");
+    asml(done_chk);
 }
 
 void CodeGenerator::traverseAndGenerate(Assignment* assign) {
