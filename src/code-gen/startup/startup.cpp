@@ -67,7 +67,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << "add eax, 20 ; add 20 bytes for length and all of table space\n";
     fs << "call __malloc ; call malloc\n";
     fs << "pop ebx ; get back old pushed eax\n";
-    fs << "mov [eax], ebx ; store length\n";
+    fs << "mov [eax], ebx / 4 ; store length\n";
     fs << "add eax, -4 ; sub 4 to start storing the tables\n";
     fs << "mov [eax], " + LabelManager::getLabelForArrayVirtualTable() + " ; store array virtual table\n";
     fs << "mov [eax-8], " + LabelManager::getLabelForArrayImplInterfaceMethodTable() + " ; store array interface method table\n";

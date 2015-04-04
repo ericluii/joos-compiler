@@ -120,6 +120,7 @@ class CodeGenerator {
 
         // modularize certain calls
         void exceptionCall();
+        void arrayCreationCall(unsigned int size);
         // lol bad cade
         void CALL_FUNCTION(std::string fn_name);
         void CALL_IDIOM();

@@ -120,8 +120,7 @@ void CodeGenerator::createNullForEBX() {
     // Save eax to prevent thrashing
     asma("push eax");
     // Create an array of size 4 * 4
-    asma("mov eax, 16");
-    CALL_FUNCTION("makeArrayBanana$");
+    arrayCreationCall(16);
 
     // insert the inheritance table for char[]
     std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
@@ -193,7 +192,6 @@ void CodeGenerator::callInitializersOfDeclaredFields() {
     }
 }
 
-
 void CodeGenerator::exceptionCall() {
     asma("extern __exception");
     asma("call __exception");
@@ -218,6 +216,11 @@ void CodeGenerator::LOAD_EAX_TMP_STORAGE() {
     asmc("Load back eax value from temporary storage");
     asma("mov eax, [tmpStorage]");
     tmp_storage_used = false;
+}
+
+void CodeGenerator::arrayCreationCall(unsigned int size) {
+    asma("mov eax, " << size);
+    CALL_FUNCTION("makeArrayBanana$");
 }
 
 // -------------------------------------------------------------------------------------
@@ -1082,6 +1085,20 @@ void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
 void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
     // Order based on JLS 15.10.1
     traverseAndGenerate(newArray->getTheDimension());
+
+    std::string less_than_zero_chk = LABEL_GEN();
+    asma("cmp eax, 0");
+    asma("jge " << less_than_zero_chk << " ; check if dimension expression is less than zero or not");
+    exceptionCall();
+    asml(less_than_zero_chk);
+    CALL_FUNCTION("makeArrayBanana$");
+    
+    Type* arrayType = newArray->getArrayType();
+    std::string arrayLabel = LabelManager::labelizeForArrays(arrayType->getTypeAsString());
+    std::string labelizedInhTable = LabelManager::labelizeToInheritanceTable(arrayLabel);
+    
+    asma("extern " << labelizedInhTable);
+    asma("mov [eax - 4], " << labelizedInhTable << " ; insert array inheritance table");
 }
 
 void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
@@ -1119,8 +1136,7 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
 
         asmc("String literal");
         // Create character array to hold string
-        asma("mov eax, " << (string_literal.length() * 4));
-        CALL_FUNCTION("makeArrayBanana$");
+        arrayCreationCall(string_literal.length() * 4);
 
         // insert the inheritance table for char[]
         std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
