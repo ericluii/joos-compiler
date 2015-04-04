@@ -11,7 +11,7 @@
 #include "labelManager.h"
 
 ImplInterfaceMethodTable::ImplInterfaceMethodTable(const std::string& tableName, ImplInterfaceMethodTable* superclassTable,
-            CompilationTable* type, unsigned int numMethods, std::map<std::string, unsigned int>& mapping) :
+            CompilationTable* type, unsigned int numMethods, std::map<std::string, unsigned int>& mapping) : type(type),
         tableName(tableName), superclassTable(superclassTable) {
     for(unsigned int i = 0; i < numMethods; i++) {
         implementedMethods.push_back(NULL);
@@ -59,11 +59,15 @@ void ImplInterfaceMethodTable::outputImplInterfaceMethodTableToFile(std::ofstrea
     for(unsigned int i = 0; i < implementedMethods.size(); i++) {
         if(implementedMethods[i] != NULL) {
             std::string methodName = implementedMethods[i]->generateMethodLabel();
-            file << "extern " << methodName << '\n';
+            if(implementedMethods[i]->getDeclaringClass() != type) {
+                // the method is not a method of this type
+                // need to extern it
+                file << "extern " << methodName << '\n';
+            }
             file << "  dd " << methodName << '\n';
         } else {
             file << "  dd 0\n";
         }
     }
-    file << std::endl;
+    file << '\n' << std::endl;
 }

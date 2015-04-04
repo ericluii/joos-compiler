@@ -274,6 +274,11 @@ void CodeGenerator::traverseAndGenerate() {
                 asmgl(staticFields[i]->generateFieldLabel());
                 asma("dd " <<  0);
             }
+            
+            // Make the virtual, inheritance and interface method table for this class
+            virtualManager->getVTableLayoutForType(classCanonicalName)->outputVTableToFile(*fs);
+            inhManager->getTableForType(classCanonicalName)->outputInheritanceTableToFile(*fs);
+            interManager->getTableForType(classCanonicalName)->outputImplInterfaceMethodTableToFile(*fs);
 
             // text section
             section("text");

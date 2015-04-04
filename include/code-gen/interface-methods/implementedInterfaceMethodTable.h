@@ -11,6 +11,9 @@ class CompilationTable;
 
 class ImplInterfaceMethodTable {
     private:
+        // the type that this table is for
+        CompilationTable* type;
+        // the name of table to be used for labels
         std::string tableName;
         ImplInterfaceMethodTable* superclassTable;
         // a vector of class methods that implement

@@ -10,8 +10,8 @@
 // Label
 #include "labelManager.h"
 
-VTableLayout::VTableLayout(CompilationTable* table, VTableLayout* superVTable) : typeName(table->getCanonicalName()),
-            superclassVTable(superVTable) {
+VTableLayout::VTableLayout(CompilationTable* table, VTableLayout* superVTable) : type(table),
+    typeName(table->getCanonicalName()), superclassVTable(superVTable) {
     // invoked for reference types
     createVTable(table);
 }
@@ -97,7 +97,8 @@ void VTableLayout::createVTable(CompilationTable* table) {
 
 unsigned int VTableLayout::getIndexOfMethodInVTable(const std::string& methodSignature) {
     if(virtualMethodsMapping.count(methodSignature) == 1) {
-        return virtualMethodsMapping[methodSignature];
+        // multiplied by 4 since every entry is 4 bytes
+        return virtualMethodsMapping[methodSignature] * 4;
     }
     // if we reach here, then indicates some form of error
     assert(false);
@@ -114,7 +115,11 @@ void VTableLayout::outputVTableToFile(std::ofstream& file) {
         // any interface methods then
         assert(classMethod->isClassMethodTable());
         std::string methodLabel = ((ClassMethodTable*) virtualMethods[i])->generateMethodLabel();
-        file << "extern " << methodLabel << "\n";
+        if(((ClassMethodTable*) virtualMethods[i])->getDeclaringClass() != type) {
+            // if the method is not the method of the type
+            // of the virtual table, then we need to extern
+            file << "extern " << methodLabel << "\n";
+        }
         file << "dd " << methodLabel << "\n";
     }
     file << std::endl;

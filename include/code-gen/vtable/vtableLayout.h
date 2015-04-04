@@ -14,7 +14,10 @@ class VTableLayout {
     // each VTableLayout represents the layout
     // of the vtable of a class
     private:
-        // refers to the name of the type
+        // the type this vtable is for
+        CompilationTable* type;
+        // refers to the name of the type to be
+        // used for labels
         std::string typeName;
         VTableLayout* superclassVTable;
         // vector of methods that a class have, inherited or

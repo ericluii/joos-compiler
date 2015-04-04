@@ -52,11 +52,9 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
         arrayInheritance[i]->outputInheritanceTableToFile(fs);
     }
 
-    fs << '\n';
     // generate implemented interface method table for array
     arrayMethods->outputImplInterfaceMethodTableToFile(fs);
     
-    fs << '\n';
     fs << "section .text\n";
 
     // method for array creation
