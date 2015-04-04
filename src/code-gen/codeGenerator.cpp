@@ -1425,7 +1425,8 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     std::string id = local->getLocalId()->getIdAsString();
     std::string type = local->getLocalType()->getTypeAsString();
 
-    // Everything primitive/reference type/array will be stored in a DD on the stack
+    // Everything primitive/reference type/array will
+    // be stored in a DD (32 bits -> 4 bytes) on the stack
     asmc("Local Decl - " << id);
     addressTable[local->getLocalTable()] = scope_offset;
     scope_offset -= 4;
@@ -1433,7 +1434,7 @@ void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Set the value of the expression to the new declaration
     traverseAndGenerate(local->getLocalInitExpr());
     asmc("Initialize Local Decl - " << id);
-    asma("push eax");
+    asma("push eax ; store local variable on stack");
 }
 
 void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
@@ -1496,16 +1497,19 @@ void CodeGenerator::traverseAndGenerate(ForStmt* stmt) {
     std::string lbl_end = LABEL_GEN();
 
     // Check expression is true, if not lbl_end
-    asmc("For Statement condition");
     asml(lbl_begin);
-    traverseAndGenerate(stmt->getExpressionToEvaluate());
-    asma("cmp eax, 1");
-    asma("jne " << lbl_end);
+    if(!stmt->emptyExpression()) {
+        asmc("For Statement condition");
+        traverseAndGenerate(stmt->getExpressionToEvaluate());
+        asma("cmp eax, 1");
+        asma("jne " << lbl_end);
+    }
 
     asmc("For statement body");
     // If true run loop statement and update
     traverseAndGenerate(stmt->getLoopStmt());
     if(!stmt->emptyForUpdate()) {
+        asmc("For statement update");
         traverseAndGenerate(stmt->getForUpdate());
     }
     asma("jmp " << lbl_begin);
