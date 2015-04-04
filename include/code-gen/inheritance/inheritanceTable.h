@@ -26,6 +26,8 @@ class InheritanceTable {
         std::string generateInheritanceTableName();
 
         void outputInheritanceTableToFile(std::ofstream&);
+        bool inheritanceStatusForType(unsigned int);
+        void setInheritanceForAType(unsigned int, bool);
 };
 
 #endif

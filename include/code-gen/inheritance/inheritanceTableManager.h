@@ -19,7 +19,7 @@ class InheritanceTableManager {
         std::map<std::string, unsigned int> typeMapping;
 
         void buildInheritanceTableForCompilation(CompilationTable*);
-        void buildInheritanceTableForArray(const std::string&, const std::string&, const std::string&);
+        void buildInheritanceTableForArray(const std::string&, const std::string&);
     public:
         InheritanceTableManager(std::map<std::string, CompilationTable*>&);
         ~InheritanceTableManager();

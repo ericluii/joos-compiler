@@ -10,6 +10,9 @@ class FieldTable;
 class ObjectLayout {
     // Layout of an object
     /*****************************
+     *   component type number   *
+     *(only if a reference array)*
+     * --------------------------*
      *    length (if an array)   *
      *---------------------------*
      *     virtual table         *
@@ -17,6 +20,8 @@ class ObjectLayout {
      *     inheritance table     *
      *---------------------------*
      *   interface method table  *
+     *---------------------------*
+     *      type number          *
      *---------------------------*
      *     non-static members    *
      *                           *
@@ -39,7 +44,7 @@ class ObjectLayout {
         unsigned int sizeOfObject();
         unsigned int indexOfFieldInObject(FieldTable*);
         unsigned int numberOfFieldsInObject();
-        static unsigned int transformToFieldIndexInAClass(unsigned int);
+        static unsigned int transformToFieldIndexInAnObject(unsigned int);
 };
 
 #endif

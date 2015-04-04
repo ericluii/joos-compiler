@@ -7,7 +7,8 @@
 #include "fieldDecl.h"
 
 // there are three tables, each table is 4 bytes
-unsigned int ObjectLayout::sizeOfTables = 12;
+// plus a type number which is another 4 bytes
+unsigned int ObjectLayout::sizeOfTables = 16;
 
 ObjectLayout::ObjectLayout(ObjectLayout* parentLayout, CompilationTable* table) : parentLayout(parentLayout) {
     createLayout(table);
@@ -68,6 +69,6 @@ unsigned int ObjectLayout::numberOfFieldsInObject() {
     }
 }
 
-unsigned int ObjectLayout::transformToFieldIndexInAClass(unsigned int i) {
+unsigned int ObjectLayout::transformToFieldIndexInAnObject(unsigned int i) {
     return i * 4 + ObjectLayout::sizeOfTables;
 }

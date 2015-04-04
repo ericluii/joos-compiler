@@ -35,16 +35,34 @@ InheritanceTableManager::InheritanceTableManager(std::map<std::string, Compilati
 
     for(unsigned int i = 0; i < definedTypes.size(); i++) {
         std::string typeCanonicalName = definedTypes[i]->getCanonicalName();
-        buildInheritanceTableForArray(typeCanonicalName + "[]", LabelManager::labelizeForArrays(typeCanonicalName), typeCanonicalName);
+        buildInheritanceTableForArray(typeCanonicalName + "[]", LabelManager::labelizeForArrays(typeCanonicalName));
     }
 
     // primitive type arrays
-    buildInheritanceTableForArray("int[]", LabelManager::labelizeForArrays("int"), "");
-    buildInheritanceTableForArray("short[]", LabelManager::labelizeForArrays("short"), "");
-    buildInheritanceTableForArray("byte[]", LabelManager::labelizeForArrays("byte"), "");
-    buildInheritanceTableForArray("char[]", LabelManager::labelizeForArrays("char"), "");
-    buildInheritanceTableForArray("boolean[]", LabelManager::labelizeForArrays("boolean"), "");
+    buildInheritanceTableForArray("int[]", LabelManager::labelizeForArrays("int"));
+    buildInheritanceTableForArray("short[]", LabelManager::labelizeForArrays("short"));
+    buildInheritanceTableForArray("byte[]", LabelManager::labelizeForArrays("byte"));
+    buildInheritanceTableForArray("char[]", LabelManager::labelizeForArrays("char"));
+    buildInheritanceTableForArray("boolean[]", LabelManager::labelizeForArrays("boolean"));
 
+    // for all reference type arrays, set their inheritance status to
+    // other reference type arrays in relation to the inheritance of the component
+    // of the array
+    for(unsigned int i = 0; i < definedTypes.size(); i++) {
+        std::string typeCanonicalName = definedTypes[i]->getCanonicalName();
+        InheritanceTable* componentTable = inheritanceTables[typeCanonicalName];
+        InheritanceTable* arrayInhTable = inheritanceTables[typeCanonicalName + "[]"];
+
+        for(unsigned int j = 0; j < definedTypes.size(); j++) {
+            std::string definedCanonicalName = definedTypes[j]->getCanonicalName();
+            arrayInhTable->setInheritanceForAType(typeMapping[definedCanonicalName + "[]"],
+                           componentTable->inheritanceStatusForType(typeMapping[definedCanonicalName]));
+        }
+
+        // make sure that the reference array type inherits from itself
+        // since it may have been overridden above
+        arrayInhTable->setInheritanceForAType(typeMapping[typeCanonicalName + "[]"], true);
+    }
 }
 
 InheritanceTableManager::~InheritanceTableManager() {
@@ -93,16 +111,8 @@ void InheritanceTableManager::buildInheritanceTableForCompilation(CompilationTab
     inheritanceTables[typeCanonicalName] = tableForType;
 }
 
-void InheritanceTableManager::buildInheritanceTableForArray(const std::string& arrayType, const std::string& tableName,
-            const std::string& canonicalName) {
-    InheritanceTable* inh = NULL;
-    if(canonicalName == "") {
-        // canonical name not given because it's an array of primitive type
-        inh = new InheritanceTable(tableName, inheritanceTables["java.lang.Object"], numTypes);
-    } else {
-        // canonical name is given because it's an array of reference type
-        inh = new InheritanceTable(tableName, inheritanceTables[canonicalName], numTypes);
-    }
+void InheritanceTableManager::buildInheritanceTableForArray(const std::string& arrayType, const std::string& tableName) {
+    InheritanceTable* inh = new InheritanceTable(tableName, inheritanceTables["java.lang.Object"], numTypes);
 
     inh->pushSuperInterfaceInheritance(inheritanceTables["java.lang.Cloneable"]);
     inh->pushSuperInterfaceInheritance(inheritanceTables["java.io.Serializable"]);
