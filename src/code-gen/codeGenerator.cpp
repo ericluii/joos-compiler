@@ -1013,14 +1013,32 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
         asml(null_chk_lbl);
     }
 
-    traverseAndGenerate(invoke->getArgsForInvokedMethod());
+    bool isNativeMethod = invoke->isReferringToClassMethod() && invoke->getReferredClassMethod()->getClassMethod()->isNative();
+    if(!isNativeMethod) {
+        // not a native method
+        traverseAndGenerate(invoke->getArgsForInvokedMethod());
+    } else {
+        // a native method, guaranteed then to have only
+        // one argument of type int
+        traverseAndGenerate(invoke->getArgsForInvokedMethod()->getListOfArguments()->getSelfArgumentExpr());
+    }
 
     if (invoke->isReferringToClassMethod() &&
             invoke->getReferredClassMethod()->getClassMethod()->isStatic()) {
         // a call to a static class method
         ClassMethodTable* classMethod = invoke->getReferredClassMethod();
-        asmc("STATIC METHOD INVOCATION");
-        CALL_FUNCTION(classMethod->generateMethodLabel());
+        if(!isNativeMethod) {
+            asmc("STATIC METHOD INVOCATION");
+            // not a native method being called
+            CALL_FUNCTION(classMethod->generateMethodLabel());
+        } else {
+            asmc("NATIVE METHOD INVOCATION");
+            std::string method = invoke->getReferredClassMethod()->getDeclaringClass()->getCanonicalName() + "." +
+                                 ((MethodNormalInvoke*) invoke)->getNameOfInvokedMethod()->getNameId()->getIdAsString();
+            CALL_FUNCTION(LabelManager::labelizeToNativeMethod(method));
+            // done nothing else to do
+            return;
+        }
 
     } else if (invoke->isReferringToInterfaceMethod() || invoke->isReferringToClassMethod()) {
         // if here, then must be calling a non-static method

@@ -12,6 +12,7 @@ std::string LabelManager::initializer = "INIT" + LabelManager::labelizer;
 std::string LabelManager::array = ".array";
 std::string LabelManager::constructor = "CTOR" + LabelManager::labelizer;
 std::string LabelManager::alloc = "ALLOC" + LabelManager::labelizer;
+std::string LabelManager::native = "NATIVE";
 
 std::string LabelManager::getLabelizer() {
 	return LabelManager::labelizer;
@@ -89,4 +90,8 @@ std::string LabelManager::getLabelForArrayVirtualTable() {
 
 std::string LabelManager::getLabelForArrayInheritanceTable(const std::string& arrayComponentType) {
     return LabelManager::labelizeForArrays(LabelManager::labelizeToInheritanceTable(arrayComponentType));
+}
+
+std::string LabelManager::labelizeToNativeMethod(const std::string& toLabelize) {
+    return LabelManager::native + toLabelize;
 }

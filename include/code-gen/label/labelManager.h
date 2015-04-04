@@ -13,6 +13,7 @@ class LabelManager {
         static std::string array;
         static std::string constructor;
         static std::string alloc;
+        static std::string native;
     public:
         static std::string getLabelizer();
         static std::string getConstructor();
@@ -27,6 +28,7 @@ class LabelManager {
         static std::string getLabelForArrayVirtualTable();
         static std::string getLabelForArrayImplInterfaceMethodTable();
         static std::string getLabelForArrayInheritanceTable(const std::string&);
+        static std::string labelizeToNativeMethod(const std::string&);
 };
 
 #endif
