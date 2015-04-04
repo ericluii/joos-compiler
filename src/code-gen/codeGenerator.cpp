@@ -826,6 +826,7 @@ void CodeGenerator::traverseAndGenerate(Primary* prim) {
 
 void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
     // Order based on JLS 15.13
+    asmc("ARRAY ACCESS");
     traverseAndGenerate(access->getAccessExpression());
 
     asmc("ARRAY ACCESS");
@@ -859,6 +860,8 @@ void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
 
 void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeForName) {
     // Order implicit based on JLS 15.7
+    asmc("ACCESS OF LOCAL VAR/PARAMETER/FIELD FROM NAME");
+    
     if (!name->isLastPrefix()) {
         CompilationTable* prevType = NULL;
         traverseAndGenerate(name->getNextName(), &prevType);
@@ -937,6 +940,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
 
 void CodeGenerator::traverseAndGenerate(FieldAccess* access) {
     // Order based on JLS 15.11.1
+    asmc("FIELD ACCESS FROM PRIMARY");
     traverseAndGenerate(access->getAccessedFieldPrimary());
     
     // we assume from here on out that the accessed field cannot be
@@ -963,6 +967,7 @@ void CodeGenerator::traverseAndGenerate(FieldAccess* access) {
 
 void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
     // Order based on JLS 15.12.4
+    asmc("METHOD INVOCATION");
     bool targetReferencePushed = false;
 
     if(invoke->isNormalMethodCall()) {
@@ -1078,7 +1083,9 @@ void CodeGenerator::traverseAndGenerate(Arguments* arg) {
 
 void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
     // Order based on JLS 15.9.4
+    asmc("NEW CLASS CREATION");
     traverseAndGenerate(create->getArgsToCreateClass());
+    
     CALL_FUNCTION(create->getReferredConstructor()->getConstructor()->labelizedConstructorSignature());
     asma("pop eax ; pop newly created object to eax");
     
@@ -1091,6 +1098,7 @@ void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
 
 void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
     // Order based on JLS 15.10.1
+    asmc("NEW ARRAY CREATION");
     traverseAndGenerate(newArray->getTheDimension());
 
     std::string less_than_zero_chk = LABEL_GEN();
@@ -1110,6 +1118,8 @@ void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
 
 void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
     // JLS 15.8.4
+    asmc("QUALIFIED THIS");
+    asma("mov eax, [ebp + 8] ; put into eax 'this'");
 }
 
 void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
