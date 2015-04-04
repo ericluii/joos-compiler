@@ -799,6 +799,7 @@ void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
     // Order based on JLS 15.13
     traverseAndGenerate(access->getAccessExpression());
 
+    asmc("ARRAY ACCESS");
     asma("push eax ; push the result of the index access");
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
@@ -901,6 +902,25 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
 void CodeGenerator::traverseAndGenerate(FieldAccess* access) {
     // Order based on JLS 15.11.1
     traverseAndGenerate(access->getAccessedFieldPrimary());
+    
+    // we assume from here on out that the accessed field cannot be
+    // a static field
+    asmc("FIELD ACCESS");
+    std::string null_lbl_chk = LABEL_GEN();
+    asma("cmp eax, 0 ; check if primary part of field access is 0");
+    asma("jne " << null_lbl_chk);
+    exceptionCall();
+    asml(null_lbl_chk);
+    
+    if(access->linkToArrayLength()) {
+        // accessing the length of an array
+        asma("mov eax, [eax + 4] ; get length of array");
+    } else {
+        // must be accessing some field then
+        FieldTable* field = access->getReferredField();
+        unsigned int indexInClass = objManager->getLayoutForClass(field->getDeclaringClass())->indexOfFieldInObject(field);
+        asma("mov eax, [eax - " << indexInClass << "] ; access field from some class");
+    }
 }
 
 void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
