@@ -45,7 +45,13 @@ unsigned int ObjectLayout::indexOfFieldInObject(FieldTable* field) {
         if(declaredFields[i] == field) {
             // multiplied by 4 for doubleword access (32 bits)
             // plus the size of the tables
-            return i * 4 + ObjectLayout::sizeOfTables;
+            if(parentLayout != NULL) {
+                // also add in the number of fields in the parent
+                // which are also in this class
+                return (i + parentLayout->numberOfFieldsInObject()) * 4 + ObjectLayout::sizeOfTables;
+            } else {
+                return i * 4 + ObjectLayout::sizeOfTables;
+            }
         }
     }
 

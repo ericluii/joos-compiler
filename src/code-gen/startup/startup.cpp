@@ -97,5 +97,7 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     // call static int test() of the first compilation unit
     // given in the command line to joosc
     // fs << "call " << firstUnit->getAClassMethod("test()")->generateMethodLabel() << '\n';
+    // fs << "extern __debexit" << '\n';
+    // fs << "call __debexit" << std::endl;
     fs.close();
 }
