@@ -1,6 +1,6 @@
 #include <cassert>
 #include <iostream>
-#include <stack>
+#include <queue>
 #include <algorithm>
 
 // AST
@@ -113,37 +113,6 @@ void CodeGenerator::RETURN_IDIOM() {
     asma("ret");
 }
 
-void CodeGenerator::createNullForEBX() {
-    // Save eax to prevent thrashing
-    asma("push eax");
-    // Create an array of size 4 * 4
-    arrayCreationCall("16");
-
-    asmc("Insering inheritance table for char[]");
-    std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
-    asma("extern " << charArrayInheritance);
-    asma("mov [eax - 4], " << charArrayInheritance);
-    asmc("Insert char[]'s type number");
-    asma("mov [eax - 12], " << inhManager->getTypeMapping("char[]"));
-    // Write the word "null" in char array
-    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(0) << "], 110 ;; n");
-    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(1) << "], 117 ;; u");
-    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(2) << "], 108 ;; l");
-    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(3) << "], 108 ;; l");
-    asma("mov ebx, eax");
-    asma("pop eax");
-
-    // Save eax to prevent thrashing
-    asma("push eax");
-    // Push char[] for constructor of java.lang.String
-    asma("push ebx");
-    // Call constructor for java.lang.String(char.array)
-    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.String", 1, "char.array"));
-    asma("pop ebx ; get newly created String");
-    asma("pop eax ; pop old ebx");
-    asma("pop eax ; pop old eax");
-}
-
 SymbolTable* CodeGenerator::getParamOrLocalTableForName(Name* name) {
     if (name->isReferringToParameter()) {
         return name->getReferredParameter();
@@ -159,16 +128,16 @@ SymbolTable* CodeGenerator::getParamOrLocalTableForName(Name* name) {
 void CodeGenerator::setParameterOffsetFromEBP(ParamList* params, int start_offset) {
     // Param List is right to left, but we need to increment by left to right
     // So flip it
-    std::stack<ParamList*> paramStack;
+    std::queue<ParamList*> paramQueue;
     unsigned int param_offset = start_offset;
     while (params != NULL) {
-        paramStack.push(params);
+        paramQueue.push(params);
         params = params->getNextParameter();
     }
 
-    while (!paramStack.empty()) {
-        params = paramStack.top();
-        paramStack.pop();
+    while (!paramQueue.empty()) {
+        params = paramQueue.front();
+        paramQueue.pop();
 
         addressTable[params->getParamTable()] = param_offset;
         param_offset += 4;
@@ -707,7 +676,6 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
         asma("idiv ebx");
     } else if (binExpr->isModulo()) {
         // Specific: JLS 15.17
-        // TODO: Check that yea.
         std::string lbl_valid_div = LABEL_GEN();
 
         asmc("MODULO expr");
@@ -899,6 +867,9 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
     if(invoke->isNormalMethodCall()) {
         Name* prefixOfMethod = ((MethodNormalInvoke*) invoke)->getNameOfInvokedMethod()->getNextName();
         if(prefixOfMethod != NULL && !prefixOfMethod->isReferringToType()) {
+            // precautionary check
+            assert(!(invoke->isReferringToClassMethod() &&
+                     invoke->getReferredClassMethod()->getClassMethod()->isStatic()));
             // there's a prefix to the method call and
             // the prefix does not refer to a type
             // i.e this is not a static call
@@ -1011,22 +982,24 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
 
 void CodeGenerator::traverseAndGenerate(ArgumentsStar* args) {
     if(!args->isEpsilon()) {
-        asmc("ARRANGE ARGUMENTS RIGHT-MOST AT THE BOTTOM, LEFT-MOST AT THE TOP");
+        asmc("ARRANGE ARGUMENTS LEFT-MOST AT THE BOTTOM, RIGHT-MOST AT THE TOP");
         traverseAndGenerate(args->getListOfArguments());
     }
 }
 
 void CodeGenerator::traverseAndGenerate(Arguments* arg) {
-    traverseAndGenerate(arg->getSelfArgumentExpr());
-    asma("push eax ; push self first then whatever is to the left of me");
-
     if(!arg->lastArgument()) {
+        // traverse what ever is to the left of me first
         traverseAndGenerate(arg->getNextArgs());
     }
+
+    traverseAndGenerate(arg->getSelfArgumentExpr());
+    asma("push eax ; now push self");
 }
 
 void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
-    // Order based on JLS 15.9.4
+    // Order based on JLS 15.9.4, with a twise that arguments are evaluated first
+    // then space for class is created
     asmc("NEW CLASS CREATION");
     traverseAndGenerate(create->getArgsToCreateClass());
     

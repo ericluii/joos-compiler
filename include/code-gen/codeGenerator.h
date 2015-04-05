@@ -113,7 +113,6 @@ class CodeGenerator {
         void traverseAndGenerate(NestedBlock*);
         void traverseAndGenerate(ReturnStmt*);
 
-        void createNullForEBX();
         SymbolTable* getParamOrLocalTableForName(Name*);
         void setParameterOffsetFromEBP(ParamList*, int);
         void callInitializersOfDeclaredFields();
