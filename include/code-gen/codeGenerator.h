@@ -114,7 +114,7 @@ class CodeGenerator {
         void traverseAndGenerate(ReturnStmt*);
 
         void createNullForEBX();
-        SymbolTable* getSymbolTableForName(Name*);
+        SymbolTable* getParamOrLocalTableForName(Name*);
         void setParameterOffsetFromEBP(ParamList*, int);
         void callInitializersOfDeclaredFields();
 
@@ -127,6 +127,8 @@ class CodeGenerator {
         void RETURN_IDIOM();
         void STORE_EAX_TMP_STORAGE();
         void LOAD_EAX_TMP_STORAGE();
+
+        void primitiveStringConversion(const std::string&, const std::string&);
     public:
         CodeGenerator(std::map<std::string, CompilationTable*>&, CompilationTable*);
         ~CodeGenerator();

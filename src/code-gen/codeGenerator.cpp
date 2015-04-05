@@ -81,6 +81,7 @@
 void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
     std::string constructor_prefix = LabelManager::labelizeForConstructor(processing->getCanonicalName()) + "$";
     std::string method_prefix = processing->getCanonicalName() + "$";
+    std::string alloc_prefix = LabelManager::labelizeForAlloc(processing->getCanonicalName());
 
     // If it is a constructor we need to allocate 'this'
     if (fn_name.find(LabelManager::getConstructor()) == 0) {
@@ -94,15 +95,11 @@ void CodeGenerator::CALL_FUNCTION(std::string fn_name) {
 
     // Check if we need to extern the constructor
     if (fn_name.find(constructor_prefix) != 0 &&
-               fn_name.find(method_prefix) != 0) {
+               fn_name.find(method_prefix) != 0 &&
+               (fn_name != alloc_prefix)) {
         asma("extern " << fn_name);   
     }
     asma("call " << fn_name);
-
-    // If it is a constructor we need to pop 'this'
-    if (fn_name.find(LabelManager::getConstructor()) == 0) {
-        asma("pop ebx ; pop this");
-    }
 }
 
 void CodeGenerator::CALL_IDIOM() {
@@ -147,10 +144,8 @@ void CodeGenerator::createNullForEBX() {
     asma("pop eax ; pop old eax");
 }
 
-SymbolTable* CodeGenerator::getSymbolTableForName(Name* name) {
-    if (name->isReferringToField()) {
-        return name->getReferredField();
-    } else if (name->isReferringToParameter()) {
+SymbolTable* CodeGenerator::getParamOrLocalTableForName(Name* name) {
+    if (name->isReferringToParameter()) {
         return name->getReferredParameter();
     } else if (name->isReferringToLocalVar()) {
         return name->getReferredLocalVar();
@@ -223,6 +218,22 @@ void CodeGenerator::LOAD_EAX_TMP_STORAGE() {
 void CodeGenerator::arrayCreationCall(const std::string& size) {
     asma("mov eax, " << size);
     CALL_FUNCTION("makeArrayBanana$");
+}
+
+void CodeGenerator::primitiveStringConversion(const std::string& wrapperType, const std::string& primitiveType) {
+    asmc("CONCAT string with " << primitiveType << " primitive");
+    // Save eax to prevent thrashing
+    asma("push eax");
+    // Push integer for constructor parameter
+    asma("push ebx");
+    // Call Constructor of the wrapper type
+    CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang." + wrapperType, 1, primitiveType.c_str()));
+
+    CALL_FUNCTION("java.lang." + wrapperType + ".toString$$");
+    asma("pop ebx ; pop created " << wrapperType);
+    asma("pop ebx ; pop old ebx");
+    asma("mov ebx, eax ; move created String to ebx");
+    asma("pop eax ; pop old eax");
 }
 
 // -------------------------------------------------------------------------------------
@@ -397,14 +408,10 @@ void CodeGenerator::traverseAndGenerate(FieldDecl* field) {
         asmc("Initialize field with it's initializer value");
         if(isStatic) {
             asma("mov [" << field->getFieldTable()->generateFieldLabel() << "], eax");
+            asma("ret ; just return from static initialize");
         } else {
             asma("mov ebx, [ebp + 8] ; get this");
             asma("mov [ebx - " << indexOfField << "], eax");
-        }
-
-        if(isStatic) {
-            asma("ret ; just return from static initializer");
-        } else {
             RETURN_IDIOM();
         }
     }
@@ -435,7 +442,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
     std::string lhs_type = lhs_expr->getExpressionTypeString();
     std::string rhs_type = rhs_expr->getExpressionTypeString();
 
-    // Order based on JLS 15.7.2, except || (azy or) and && (lazy and)
+    // Order based on JLS 15.7.2, except || (lazy or) and && (lazy and)
     traverseAndGenerate(lhs_expr);
     if(!binExpr->isLazyOr() && binExpr->isLazyAnd()) {
         asma("push eax");
@@ -598,7 +605,7 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
             rhs_type != "java.lang.String") {
             asmc("ADD expr");
             asma("add eax, ebx");
-        } else if ((lhs_type == "java.lang.String" && rhs_type != "java.lang.String") &&
+        } else if ((lhs_type == "java.lang.String" && rhs_type != "java.lang.String") ||
                    (lhs_type != "java.lang.String" && rhs_type == "java.lang.String")) {
             // Fake it and swap lhs with rhs
             if (lhs_type != "java.lang.String" && rhs_type == "java.lang.String") {
@@ -606,130 +613,36 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 lhs_expr = rhs_expr;
                 rhs_expr = temp;
 
-                asma("mov edx, eax");
-                asma("mov eax, ebx");
-                asma("mov ebx, edx");
+                asmc("Switch around eax and ebx since ebx has the string");
+                asma("mov edx, eax ; store lhs temporarily");
+                asma("mov eax, ebx ; move rhs value to eax");
+                asma("mov ebx, edx ; move lhs value to ebx");
             }
 
             // Primitive Type
             // - Create object for primitive, then call toString
             if (rhs_expr->isExprTypeInt()) {
-                asmc("CONCAT string with int primitive");
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for constructor parameter
-                asma("push ebx");
-                // Call Constructor for java.lang.Integer
-                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Integer", 1, "int"));
-                asma("pop ebx ; get newly created Integer");
-                asma("pop eax ; get old ebx");
-                asma("pop eax ; get old eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for toString (this)
-                asma("push ebx");
-                // Call toString on java.lang.Integer
-                CALL_FUNCTION("java.lang.Integer.toString$$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                primitiveStringConversion("Integer", "int");
             } else if (rhs_expr->isExprTypeShort()) {
-                asmc("CONCAT string with short primitive");
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for constructor parameter
-                asma("push ebx");
-                // Call Constructor for java.lang.Short
-                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Short", 1, "short"));
-                asma("pop ebx ; get newly created Short");
-                asma("pop eax ; get old ebx");
-                asma("pop eax ; get old eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push short for toString (this)
-                asma("push ebx");
-                // Call toString on java.lang.Short
-                CALL_FUNCTION("java.lang.Short.toString$$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                primitiveStringConversion("Short", "short");
             } else if (rhs_expr->isExprTypeByte()) {
-                asmc("CONCAT string with byte primitive");
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for constructor parameter
-                asma("push ebx");
-                // Call Constructor for java.lang.Byte
-                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Byte", 1, "byte"));
-                asma("pop ebx ; get newly created Byte");
-                asma("pop eax ; get old ebx");
-                asma("pop eax ; get old eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push short for toString (this)
-                asma("push ebx");
-                // Call toString on java.lang.Byte
-                CALL_FUNCTION("java.lang.Byte.toString$$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                primitiveStringConversion("Byte", "byte");
             } else if (rhs_expr->isExprTypeChar()) {
-                asmc("CONCAT string with character primitive");
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for constructor parameter
-                asma("push ebx");
-                // Call Constructor for java.lang.Character
-                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Character", 1, "char"));
-                asma("pop ebx ; get newly created Character");
-                asma("pop eax ; get old ebx");
-                asma("pop eax ; get old eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push short for toString (this)
-                asma("push ebx");
-                // Call toString on java.lang.Character
-                CALL_FUNCTION("java.lang.Character.toString$$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                primitiveStringConversion("Character", "char");
             } else if (rhs_expr->isExprTypeBoolean()) {
-                asmc("CONCAT string with boolean primitive");
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push integer for constructor parameter
-                asma("push ebx");
-                // Call Constructor for java.lang.Boolean
-                CALL_FUNCTION(LabelManager::labelizeForConstructor("java.lang.Boolean", 1, "boolean"));
-                asma("pop ebx ; get newly created Boolean");
-                asma("pop eax ; get old ebx");
-                asma("pop eax ; get old eax");
-
-                // Save eax to prevent thrashing
-                asma("push eax");
-                // Push short for toString (this)
-                asma("push ebx");
-                // Call toString on java.lang.Boolean
-                CALL_FUNCTION("java.lang.Boolean.toString$$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                primitiveStringConversion("Boolean", "boolean");
             } else {
                 // Reference Type and null type
                 asmc("CONCAT string with reference type");
                 // Save eax to prevent thrashing
-                asma("push eax");
+                asma("push eax ; save eax");
                 // Push object for valueOf parameter
-                asma("push ebx");
+                asma("push ebx ; push ebx as parameter");
                 // Call valueOf function in java.lang.String
                 CALL_FUNCTION("java.lang.String.valueOf$java.lang.Object$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; pop old ebx");
+                asma("mov ebx, eax ; move created string to ebx");
+                asma("pop eax ; pop old eax");
 
                 // Check if returned string is null
                 std::string non_null_lbl = LABEL_GEN();
@@ -737,12 +650,12 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 asma("jne " <<  non_null_lbl);
                 
                 asmc("If previous attempt returns null, make the 'null' string");
-                asma("push eax");
-                asma("push ebx");
+                asma("push eax ; save eax");
+                asma("push ebx ; push ebx as parameter");
                 CALL_FUNCTION("java.lang.String.valueOf$java.lang.Object$");
-                asma("pop ebx");
-                asma("mov ebx, eax");
-                asma("pop eax");
+                asma("pop ebx ; pop old ebx");
+                asma("mov ebx, eax ; move created string to ebx");
+                asma("pop eax ; pop old eax");
 
                 asml(non_null_lbl);
             }
@@ -753,15 +666,15 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
                 // Push the real lhs string as (this)
                 asma("push ebx");
             } else {
-                // Push new integer string as a parameter
+                // Push the real rhs string as a parameter
                 asma("push ebx");
                 // Push lhs string as (this)
                 asma("push eax");
             }
             // Call concat
             CALL_FUNCTION("java.lang.Integer.concat$java.lang.String$");
-            asma("pop ebx");
-            asma("pop ebx");
+            asma("pop ebx ; pop this");
+            asma("pop ebx ; pop argument");
         } else {
             asmc("CONCAT two strings");
             // Push new integer string as a parameter
@@ -840,7 +753,6 @@ void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
     asmc("ARRAY ACCESS");
     traverseAndGenerate(access->getAccessExpression());
 
-    asmc("ARRAY ACCESS");
     asma("push eax ; push the result of the index access");
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
@@ -885,6 +797,8 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
 
             FieldTable* field = name->getReferredField();
             if(qualifier->isReferringToType()) {
+                // precautionary check
+                assert(field->getField()->isStatic());
                 std::string staticName = field->generateFieldLabel();
 
                 asmc("Accessing static variable, get global variable");
@@ -897,7 +811,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
 
                 asma("cmp eax, 0");
                 asma("jne " << null_chk_lbl << " ; check if accessed object is null or not");
-                CALL_FUNCTION("__exception");
+                exceptionCall();
                 asml(null_chk_lbl);
                 asma("mov eax, [eax - " << objManager->getLayoutForClass(prevType)->indexOfFieldInObject(field) << "] ; grab field");
             }
@@ -913,7 +827,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
 
             asma("cmp eax, 0");
             asma("jne " << null_chk_lbl << " ; check if accessed array is null or not");
-            CALL_FUNCTION("__exception");
+            exceptionCall();
             asml(null_chk_lbl);
             asma("mov eax, [eax + 4] ; grab array length");
         } // ELSE IS PACKAGE/FIELD DECL/PARAM <- the last two is impossible. We hope.
@@ -921,14 +835,15 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
         if (name->isReferringToField()) {
             FieldTable* field = name->getReferredField();
             asma("mov eax, [ebp + 8] ; get this");
-            asma("mov eax, [eax - " << objManager->getLayoutForClass(processing)->indexOfFieldInObject(field) << "]");
+            asma("mov eax, [eax - " << objManager->getLayoutForClass(processing)->indexOfFieldInObject(field)
+                 << "] ; grab field from this");
 
             Type* fieldType = field->getField()->getFieldType();
             if (fieldType->isReferenceType() && prevTypeForName != NULL) {
                 *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
             } //  ELSE IS PRIMITIVE TYPE
         } else if(name->isReferringToParameter() || name->isReferringToLocalVar()) {
-            SymbolTable* paramOrLocal = getSymbolTableForName(name);
+            SymbolTable* paramOrLocal = getParamOrLocalTableForName(name);
             if (name->isReferringToParameter()) {
                 Type* paramType = name->getReferredParameter()->getParameter()->getParameterType();
 
@@ -943,7 +858,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
                 } //  ELSE IS PRIMITIVE TYPE
             }
 
-            asma("mov eax, [ebp + " << addressTable[paramOrLocal] << "]");
+            asma("mov eax, [ebp + " << addressTable[paramOrLocal] << "] ; grab parameter or local variable");
         } else if (name->isReferringToType() && prevTypeForName != NULL) {
             *prevTypeForName = name->getReferredType();
         } // BETTER BE CORRECT - ELSE IS PACKAGE
@@ -957,7 +872,6 @@ void CodeGenerator::traverseAndGenerate(FieldAccess* access) {
     
     // we assume from here on out that the accessed field cannot be
     // a static field
-    asmc("FIELD ACCESS");
     std::string null_lbl_chk = LABEL_GEN();
     asma("cmp eax, 0 ; check if primary part of field access is 0");
     asma("jne " << null_lbl_chk);
