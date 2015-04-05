@@ -1120,7 +1120,6 @@ void CodeGenerator::traverseAndGenerate(NegationExpression* negExpr) {
 }
 
 void CodeGenerator::traverseAndGenerate(CastExpression* cast) {
-    std::cout << "here" << std::endl;
     // Order based on JLS 15.7
     // Specific: JLS 15.16 and JLS 5.2 (assignment conversion rules for Joos, review A3 type-checking)
     traverseAndGenerate(cast->getExpressionToCast());
