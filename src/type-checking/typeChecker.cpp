@@ -952,6 +952,7 @@ bool TypeChecking::check(CastExpression* castExpression){
             } else { // T IS INTERFACE
                 // JLS 5.5 - If S is not a final class (§8.1.1), then the cast is always correct
                 //           If S is a final class (§8.1.1), then S must implement T
+
                 InterfaceTable* it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
                 if (it->getInterface()->isFinal() &&
                     !inheritsOrExtendsOrImplements(expression_type, cast_type)) {
