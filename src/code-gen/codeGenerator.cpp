@@ -719,31 +719,35 @@ void CodeGenerator::traverseAndGenerate(Primary* prim) {
 void CodeGenerator::traverseAndGenerate(ArrayAccess* access) {
     // Order based on JLS 15.13
     asmc("ARRAY ACCESS");
-    traverseAndGenerate(access->getAccessExpression());
-
-    asma("push eax ; push the result of the index access");
     if(access->isArrayAccessName()) {
         traverseAndGenerate(((ArrayAccessName*) access)->getNameOfAccessedArray());
     } else {
         traverseAndGenerate(((ArrayAccessPrimary*) access)->getAccessedPrimaryArray());
     }
 
-    asma("cmp eax, 0 ; check if value of array is null or not");
-    std::string null_lbl_chk = LABEL_GEN();
-    asma("jne " << null_lbl_chk << " ; if array is not null");
-    exceptionCall();
-    
-    asml(null_lbl_chk);
+    asma("push eax ; push array reference");
+    traverseAndGenerate(access->getAccessExpression());
+
     std::string exceptional_index_access = LABEL_GEN();
-    std::string proper_index_access = LABEL_GEN();
-    asma("pop ebx ; retrieve index access back from stack");
+    
+    asma("mov ebx, eax; save access index");
+    asma("pop eax ; get back pushed array reference");
+    
+    asma("cmp eax, 0 ; check if value of array is null or not");
+    asma("je " << exceptional_index_access << " ; check if array is not null");
+    
     asma("cmp ebx, 0 ; see if index is less than 0 or not");
     asma("jl " << exceptional_index_access);
+
     asma("cmp ebx, [eax + 4] ; see if specified index is greater than or equal to length of the array");
     asma("jge " << exceptional_index_access);
+    
+    std::string proper_index_access = LABEL_GEN();
     asma("jmp " << proper_index_access << " ; everything is fine");
+    
     asml(exceptional_index_access);
     exceptionCall();
+    
     asml(proper_index_access);
     asma("neg ebx ; negate index");
     asma("mov eax, [eax - " << ObjectLayout::transformToFieldIndexInAnObject(0) << " + 4*ebx]"
@@ -785,7 +789,7 @@ void CodeGenerator::traverseAndGenerate(Name* name, CompilationTable** prevTypeF
             }
 
             Type* fieldType = name->getReferredField()->getField()->getFieldType();
-            if (fieldType->isReferenceType()) {
+            if (fieldType->isReferenceType() && prevTypeForName != NULL) {
                 *prevTypeForName = ((ReferenceType*) fieldType)->getReferenceTypeTable();
             } //  ELSE IS PRIMITIVE TYPE, BETTER NOT BE A PREFIX
         } else if(name->isReferringToType()) {
@@ -1196,26 +1200,38 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
     // Order based on JLS 15.7
     // Specific: JLS 15.26
     if(assign->isAssignName()) {
+        asmc("ASSIGNMENT OF NAME");
         traverseAndGenerate(((AssignName*) assign)->getNameToAssign());
     } else if(assign->isAssignField()) {
+        asmc("ASSIGNMENT OF ACCESSED FIELD");
         traverseAndGenerate(((AssignField*) assign)->getAssignedField());
     } else {
+        asmc("ASSIGNMENT OF ARRAY COMPONENT");
         // assigning to an array component
         ArrayAccess* accessed = ((AssignArray*) assign)->getAssignedArray();
-        traverseAndGenerate(accessed->getAccessExpression());
+        if(accessed->isArrayAccessName()) {
+            // accessing an array from a name
+            traverseAndGenerate(((ArrayAccessName*) accessed)->getNameOfAccessedArray());
+        } else {
+            // accessing an array from a primary
+            traverseAndGenerate(((ArrayAccessPrimary*) accessed)->getAccessedPrimaryArray());
+        }
     }
     
-    Expression* assignExpr = assign->getExpressionToAssign();
-    if(assign->isAssignName() || assign->isAssignField()) {
-        asma("push eax ; push gotten lhs reference value");
-    } else {
+    asma("push eax ; push gotten lhs reference value");
+    if(assign->isAssignArray()) {
+        traverseAndGenerate(((AssignArray*) assign)->getAssignedArray()->getAccessExpression());
         asma("push eax ; push access index");
     }
 
+    Expression* assignExpr = assign->getExpressionToAssign();
     traverseAndGenerate(assignExpr);
-    
+
+    asma("mov ebx, eax ; move rhs value to ebx");
     if(assign->isAssignArray()) {
-        asma("push eax ; push rhs value");
+        asma("pop edx ; get back access index");
+        asma("pop eax ; get back referenced array");
+
         ArrayAccess* accessed = ((AssignArray*) assign)->getAssignedArray();
         if(accessed->isArrayAccessName()) {
             traverseAndGenerate(((ArrayAccessName*) accessed)->getNameOfAccessedArray());
@@ -1227,8 +1243,6 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
         asma("cmp eax, 0");
         asma("je " <<  exceptional_access << " ; check if array accessed is null or not");
 
-        asma("pop ebx ; pop rhs value");
-        asma("pop edx ; pop access index");
         asma("cmp edx, 0");
         asma("jl " << exceptional_access << " ; check if access index is less than 0 or not");
         
@@ -1240,31 +1254,32 @@ void CodeGenerator::traverseAndGenerate(Assignment* assign) {
 
         asml(exceptional_access);
         exceptionCall();
+        
         asml(proper_array_access);
         if(accessed->isAccessingObjectArray()) {
             asmc("Accessing an array of reference");
-            asma("mov esi, eax ; temporarily store gotten array reference");
-            asma("mov eax, [eax + 8] ; grab component type number");
+            asma("mov esi, [eax + 8] ; grab component type number");
 
             std::string good_assignment = LABEL_GEN();
             asma("cmp ebx, 0");
             asma("je " << good_assignment << " ; check if rhs value is null or not");
+            
             asma("mov ecx, [ebx - 4] ; grab rhs inheritance table");
-            asma("mov eax, [ecx + eax] ; grab inheritance status from inheritance table");
-            asma("cmp eax, 1");
+            asma("mov esi, [ecx + esi] ; grab inheritance status from inheritance table");
+            
+            asma("cmp esi, 1");
             asma("je " << good_assignment << " ; check if rhs value is a subclass of component type of array");
             exceptionCall();
 
             asml(good_assignment);
             asma("neg edx ; negate index");
-            asma("mov eax, [esi - " << ObjectLayout::transformToFieldIndexInAnObject(0) << " + 4*edx] ; get array component at index");
+            asma("mov eax, [eax - " << ObjectLayout::transformToFieldIndexInAnObject(0) << " + 4*edx] ; get array component at index");
         }
     } else {
-        asma("mov ebx, eax ; move gotten rhs value to ebx");
         asma("pop eax ; get back lhs reference value");
     }
     asma("mov [eax], ebx ; store the rhs value to the memory location referred to in eax");
-    asma("mov eax, ebx ; store the rhs value to eax for as the return value of an assignment");
+    asma("mov eax, ebx ; store the rhs value to eax for the return value of an assignment");
 }
 
 void CodeGenerator::traverseAndGenerate(ClassMethod* method) {
@@ -1328,7 +1343,6 @@ void CodeGenerator::traverseAndGenerate(BlockStmts* stmt) {
 void CodeGenerator::traverseAndGenerate(LocalDecl* local) {
     // Order based on JLS 14.4.4
     std::string id = local->getLocalId()->getIdAsString();
-    std::string type = local->getLocalType()->getTypeAsString();
 
     // Everything primitive/reference type/array will
     // be stored in a DD (32 bits -> 4 bytes) on the stack
@@ -1349,7 +1363,7 @@ void CodeGenerator::traverseAndGenerate(IfStmt* stmt) {
 
     std::string lbl_false = LABEL_GEN();
     std::string lbl_end = LABEL_GEN();
-    // Check if exprssion is true, if not jump to lbl_false
+    // Check if expression is true, if not jump to lbl_false
     asma("cmp eax, 1");
     asma("jne " << lbl_false);
     traverseAndGenerate(stmt->getExecuteTruePart());
