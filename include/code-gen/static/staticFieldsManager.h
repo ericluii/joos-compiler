@@ -2,6 +2,7 @@
 #define __STATICFIELDSMANAGER_H__
 
 #include <map>
+#include <string>
 
 class CompilationTable;
 class StaticFields;
