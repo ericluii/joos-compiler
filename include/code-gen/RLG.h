@@ -38,7 +38,7 @@ class RLG {
 			}
 
 			RLG::counter++;
-			return ss.str();
+			return ss.str() + '$';
 		}
 };
 
