@@ -11,10 +11,8 @@ class RLG {
 		char indexToChar(unsigned int idx) {
 			if (idx <= 25) {
 				return (char)(97 + idx);
-			} else if (idx >= 26 && idx <= 51) {
-				return (char)(65 + (idx % 26));
 			} else {
-				return (char)(48 + (idx % 52));
+				return (char)(65 + (idx % 26));
 			}
 		}
 	public:
@@ -22,7 +20,7 @@ class RLG {
 			std::stringstream ss;
 			unsigned int label_length = 1;
 
-			while (pow(62, label_length) <= counter) {
+			while (pow(52, label_length) <= counter) {
 				label_length++;
 			}
 
@@ -30,8 +28,8 @@ class RLG {
 			unsigned int lol = label_length;
 			label_length--;
 			for (unsigned int i = 0; i < lol; i++) {
-				unsigned int div_result = copy / (unsigned int)(pow(62, label_length));
-				unsigned int mod_result = copy % (unsigned int)(pow(62, label_length));
+				unsigned int div_result = copy / (unsigned int)(pow(52, label_length));
+				unsigned int mod_result = copy % (unsigned int)(pow(52, label_length));
 
 				ss << indexToChar(div_result);
 				copy = mod_result;
