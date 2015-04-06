@@ -402,15 +402,17 @@ void HierarchyChecking::OverrideChecks(CompilationTable* compilation) {
                         std::string signature = im->methodSignatureAsString();
 
                         // Check Protected vs. Public Overriding, by default interface method is public
-                        public_methods.insert(signature);
+                        if(public_methods.count(signature) == 0){
+                            public_methods.insert(signature);
 
-                        if (protected_nonabstract_methods.count(signature)  || (protected_abstract_methods.count(signature) && protected_abstract_methods[signature] == true)) {
-                            std::stringstream ss;
-                            ss << "Interface method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
-                               << "' cannot be overriden as protected.";
+                            if (protected_nonabstract_methods.count(signature)  || (protected_abstract_methods.count(signature) && protected_abstract_methods[signature] == true)) {
+                                std::stringstream ss;
+                                ss << "Interface method '" << signature << "' in interface '" << processing->getClassOrInterfaceName()
+                                   << "' cannot be overriden as protected.";
 
-                            Error(E_HIERARCHY, token, ss.str());
-                            break;
+                                Error(E_HIERARCHY, token, ss.str());
+                                break;
+                            }
                         }
 
                         // Check Abstract vs. Static overriding, by default interface methods are abstract
