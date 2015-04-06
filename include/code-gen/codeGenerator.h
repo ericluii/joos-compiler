@@ -73,7 +73,6 @@ class CodeGenerator {
 
         CompilationTable* processing;
         int scope_offset;
-        bool tmp_storage_used;
         std::map<SymbolTable*, int> addressTable;
 
         // code generation through AST traversal
@@ -89,8 +88,8 @@ class CodeGenerator {
         void traverseAndGenerate(Name* name, CompilationTable** prevTypeForName = NULL);
         void traverseAndGenerate(FieldAccess*);
         void traverseAndGenerate(MethodInvoke*);
-        void traverseAndGenerate(ArgumentsStar*);
-        void traverseAndGenerate(Arguments*);
+        void traverseAndGenerate(ArgumentsStar*, bool targetReferencePushed = false);
+        void traverseAndGenerate(Arguments*, bool);
         void traverseAndGenerate(NewClassCreation*);
         void traverseAndGenerate(PrimaryNewArray*);
         void traverseAndGenerate(QualifiedThis*);

@@ -43,8 +43,6 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     
     // data section
     fs << "section .data\n";
-    fs << "global tmpStorage ; temporary storage when needed\n";
-    fs << "tmpStorage: dd 0\n";
 
     // generate virtual table for arrays
     arrayVTable->outputVTableToFile(fs);
@@ -96,8 +94,10 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << std::endl;
     // call static int test() of the first compilation unit
     // given in the command line to joosc
-    // fs << "call " << firstUnit->getAClassMethod("test()")->generateMethodLabel() << '\n';
-    // fs << "extern __debexit" << '\n';
-    // fs << "call __debexit" << std::endl;
+    std::string testMethod = firstUnit->getAClassMethod("test()")->generateMethodLabel();
+    fs << "extern " << testMethod << '\n';
+    fs << "call " << testMethod << '\n';
+    fs << "extern __debexit" << '\n';
+    fs << "call __debexit" << std::endl;
     fs.close();
 }
