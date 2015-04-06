@@ -301,21 +301,73 @@ bool TypeChecking::check(MethodInvoke* methodInvoke) {
 
         return rv && check(methodInvoke->getArgsForInvokedMethod());
     } else {
-        // TODO: CHECK SOMETHING...
-        //       Theoretically should fall through and be checked correctly...
-
-        if(methodInvoke->isReferringToClassMethod()) {
+        // Assume non-static access
+        if (methodInvoke->isReferringToClassMethod()) {
             if(methodInvoke->getReferredClassMethod()->getClassMethod()->isStatic()) {
                 // method is static, error out
                 std::stringstream ss;
                 ss << "Non-static access of static method '"
                    << methodInvoke->getReferredClassMethod()->getClassMethod()->getMethodHeader()->methodSignatureAsString() << "'.";
                 NOTIFY_ERROR(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldId()->getToken(), ss);
-                return false;
             }
         }
 
-        return check(static_cast<InvokeAccessedMethod*>(methodInvoke)->getAccessedMethod()->getAccessedFieldPrimary()) && check(methodInvoke->getArgsForInvokedMethod());
+        // Check protected access
+        InvokeAccessedMethod* iam = static_cast<InvokeAccessedMethod*>(methodInvoke);
+        Primary* primary = iam->getAccessedMethod()->getAccessedFieldPrimary();
+        CompilationTable* ct = NULL;
+        // Everything must be a reference type
+        if (primary->isReferringToClass()) {
+            ct = primary->getReferredClass();
+        } else if (primary->isReferringToField()) {
+            FieldTable* ft = primary->getReferredField();
+            ReferenceType* type = static_cast<ReferenceType*>(ft->getField()->getFieldType());
+            ct = type->getReferenceTypeTable();
+        } else if (primary->isReferringToClassMethod()) {
+            ClassMethodTable* cmt = primary->getReferredClassMethod();
+            ReferenceType* type = static_cast<ReferenceType*>(cmt->getClassMethod()->getMethodHeader()->getReturnType());
+            ct = type->getReferenceTypeTable();
+        } else if (primary->isReferringToInterfaceMethod()) {
+            InterfaceMethodTable* imt = primary->getReferredInterfaceMethod();
+            ReferenceType* type = static_cast<ReferenceType*>(imt->getInterfaceMethod()->getReturnType());
+            ct = type->getReferenceTypeTable();
+        } else if (primary->isReferringToConstructor()) {
+            ConstructorTable* cot = primary->getReferredConstructor();
+            ct = cot->getDeclaringClass();
+        } else if (primary->resolvedLinkButNoEntity()) {
+            if (primary->isBracketedExpression()) {
+                ct = static_cast<BracketedExpression*>(primary)->getExpressionInside()->getTableTypeOfExpression();
+            } else if (primary->isQualifiedThis()) {
+                ct = static_cast<QualifiedThis*>(primary)->getQualifyingClassTable();
+            } else {
+                ct = static_cast<ArrayAccess*>(primary)->getTableOfArrayObjects();
+            }
+        }
+        // Array doesn't have any protected methos
+        // Neither do primitive literals or null
+
+        std::string methodSignature = iam->methodInvocationMatchToSignature();
+        if (ct && ct->isClassSymbolTable() && ct->getAClassMethod(methodSignature)) {
+            ClassMethod* cm = ct->getAClassMethod(methodSignature)->getClassMethod();
+
+            // Check Protected Access
+            //  - If the class method we believe we are calling is abstract
+            //    we have no way of knowing until runtime, if the method is protected...
+            if (cm->isProtected() && !cm->isAbstract()) {
+                CompilationTable* temp = cm->getClassMethodTable()->getDeclaringClass();
+                
+                // JLS - 6.6.2.1
+                if (!isSubclass(processing->getCanonicalName(), temp->getCanonicalName()) ||
+                    (ct != processing && !isSubclass(ct->getCanonicalName(), processing->getCanonicalName()))) {
+                    std::stringstream ss;
+                    ss << "Cannot access protected method '" << methodSignature << "' because '"
+                       << processing->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
+                    NOTIFY_ERROR(iam->getAccessedMethod()->getAccessedFieldId()->getToken(), ss);
+                }
+            }
+        }
+
+        return check(primary) && check(methodInvoke->getArgsForInvokedMethod());
     }
 }
 
@@ -748,6 +800,21 @@ bool TypeChecking::check(CastExpression* castExpression){
         NOTIFY_ERROR(closest_token, ss);
     }
 
+    if (cast_type == "boolean" && expression_type != "boolean") {
+        std::stringstream ss;
+        if (cur_st_type == CONSTRUCTOR_TABLE) {
+            ss << "Constructor '" << static_cast<ConstructorTable*>(st_stack.top())->getConstructor()->constructorSignatureAsString()
+               <<  "' contains a cast from a non-boolean type '" << expression_type << "' to a boolean type '" << cast_type << ".'";
+        } else if (cur_st_type == CLASSMETHOD_TABLE) {
+            ss << "Method '" << static_cast<ClassMethodTable*>(st_stack.top())->getClassMethod()->getMethodHeader()->methodSignatureAsString()
+               <<  "' contains a cast from a non-boolean type '" << expression_type << "' to a boolean type '" << cast_type << ".'";
+        } else {
+            assert(false);
+        }
+
+        NOTIFY_ERROR(closest_token, ss);
+    }
+
     // JLS 5.5 Breakdown - S is CLASS, INTERFACE, OR ARRAY
     //                   - T is CLASS, INTERFACE, OR ARRAY
     if (!isPrimitive(expression_type) && !isPrimitive(cast_type) &&
@@ -930,7 +997,7 @@ bool TypeChecking::check(CastExpression* castExpression){
                 NOTIFY_ERROR(closest_token, ss);
             // JLS 5.5 - If T is a class type, then S and T must be related classes-that is,
             //           S and T must be the same class, or S a subclass of T, or T a subclass of S
-            } else if (cast_table->isClassSymbolTable()) { // T IS CLASS
+            } else if (!isArray(cast_type) && cast_table->isClassSymbolTable()) { // T IS CLASS
                 if (expression_table != cast_table &&
                     !inheritsOrExtendsOrImplements(expression_type, cast_type) &&
                     !inheritsOrExtendsOrImplements(cast_type, expression_type)) {
@@ -949,7 +1016,7 @@ bool TypeChecking::check(CastExpression* castExpression){
 
                     NOTIFY_ERROR(closest_token, ss);
                 }
-            } else { // T IS INTERFACE
+            } else if (!isArray(cast_type)) { // T IS INTERFACE
                 // JLS 5.5 - If S is not a final class (§8.1.1), then the cast is always correct
                 //           If S is a final class (§8.1.1), then S must implement T
 
@@ -992,7 +1059,7 @@ bool TypeChecking::check(CastExpression* castExpression){
                 }
 
                 NOTIFY_ERROR(closest_token, ss);
-            } else if (cast_table->isClassSymbolTable()) { // T IS CLASS
+            } else if (!isArray(cast_type) && cast_table->isClassSymbolTable()) { // T IS CLASS
                 // JLS 5.5 - If T is a class type that is final, T must implement S
                 ClassTable* ct = static_cast<ClassTable*>(cast_table->getSymbolTable());
                 if (ct->getClass()->isFinal() &&
@@ -1012,7 +1079,7 @@ bool TypeChecking::check(CastExpression* castExpression){
 
                     NOTIFY_ERROR(closest_token, ss);
                 }
-            } else { // T IS INTERFACE
+            } else if (!isArray(cast_type)) { // T IS INTERFACE
                 InterfaceTable* cast_it = static_cast<InterfaceTable*>(cast_table->getSymbolTable());
                 InterfaceTable* expr_it = static_cast<InterfaceTable*>(expression_table->getSymbolTable());
                 InterfaceMethod* cast_im = cast_it->getInterface()->getInterfaceBodyStar()->getInterfaceMethods();
@@ -1179,16 +1246,9 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
                         CompilationTable* temp = cm->getClassMethodTable()->getDeclaringClass();
 
                         // JLS - 6.6.2.1
-                        if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
-                            !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
-                              isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
-                            std::stringstream ss;
-                            ss << "Cannot access protected method '" << name->getFullName() << "' because '"
-                               << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
-                            NOTIFY_ERROR(name->getNameId()->getToken(), ss);
-                        }
-
-                        if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
+                        if ((!static_context && (!isSubclass(processing->getCanonicalName(), temp->getCanonicalName()) ||
+                             (ct != processing && !isSubclass(ct->getCanonicalName(), processing->getCanonicalName())))) ||
+                            (static_context && !isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName()))) {
                             std::stringstream ss;
                             ss << "Cannot access protected method '" << name->getFullName() << "' because '"
                                << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
@@ -1272,18 +1332,11 @@ bool TypeChecking::checkIsNameAccessible(Name* name, std::string methodSignature
                 if (fd->isProtected()) {
                     CompilationTable* temp = fd->getFieldTable()->getDeclaringClass();
 
-                    if (!static_context && last_ct->getPackageName() != temp->getPackageName() &&
-                        !(isSubclass(ct->getCanonicalName(), last_ct->getCanonicalName()) &&
-                          isSubclass(ct->getCanonicalName(), temp->getCanonicalName()))) {
+                    if ((!static_context && (!isSubclass(processing->getCanonicalName(), temp->getCanonicalName()) ||
+                         (ct != processing && !isSubclass(ct->getCanonicalName(), processing->getCanonicalName())))) ||
+                        (static_context && !isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName()))) {
                         std::stringstream ss;
-                        ss << "Cannot access protected field '" << name->getFullName() << "' because '"
-                           << last_ct->getCanonicalName() << "' is not in the same package as '" << temp->getCanonicalName() << "'.";
-                        NOTIFY_ERROR(name->getNameId()->getToken(), ss);
-                    }
-                    
-                    if (!isSubclass(last_ct->getCanonicalName(), temp->getCanonicalName())) {
-                        std::stringstream ss;
-                        ss << "Cannot access protected field '" << name->getFullName() << "' because '"
+                        ss << "Cannot access protected method '" << name->getFullName() << "' because '"
                            << last_ct->getCanonicalName() << "' is not a subclass of '" << temp->getCanonicalName() << "'.";
                         NOTIFY_ERROR(name->getNameId()->getToken(), ss);
                     }
