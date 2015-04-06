@@ -163,27 +163,6 @@ void CodeGenerator::exceptionCall() {
     asma("call __exception");
 }
 
-void CodeGenerator::STORE_EAX_TMP_STORAGE() {
-    // should be called when tmpStorage is
-    // not being used
-    assert(!tmp_storage_used);
-    
-    asmc("Store eax value in temporary storage");
-    asma("extern tmpStorage");
-    asma("mov [tmpStorage], eax ; holy this is bad");
-    tmp_storage_used = true;
-}
-
-void CodeGenerator::LOAD_EAX_TMP_STORAGE() {
-    // no need for extern, should be called
-    // only when STORE_EAX_TMP_STORAGE was previously called
-    assert(tmp_storage_used);
-    
-    asmc("Load back eax value from temporary storage");
-    asma("mov eax, [tmpStorage]");
-    tmp_storage_used = false;
-}
-
 void CodeGenerator::arrayCreationCall(const std::string& size) {
     asma("mov eax, " << size);
     CALL_FUNCTION("makeArrayBanana$");
@@ -217,8 +196,7 @@ CodeGenerator::CodeGenerator(std::map<std::string, CompilationTable*>& compilati
     interManager(new ImplInterfaceMethodTableManager(compilations)),
     staticManager(new StaticFieldsManager(compilations)),
     fs(NULL),
-    scope_offset(0),
-    tmp_storage_used(false)
+    scope_offset(0)
 {}
 
 CodeGenerator::~CodeGenerator() {
@@ -646,14 +624,14 @@ void CodeGenerator::traverseAndGenerate(BinaryExpression* binExpr) {
             asma("pop ebx ; pop argument");
         } else {
             asmc("CONCAT two strings");
-            // Push new integer string as a parameter
+            // Push rhs string as a parameter
             asma("push ebx");
             // Push lhs string as (this)
             asma("push eax");
             // Call concat
             CALL_FUNCTION("java.lang.Integer.concat$java.lang.String$");
-            asma("pop ebx");
-            asma("pop ebx");
+            asma("pop ebx ; pop this");
+            asma("pop ebx ; pop argument");
         }
     } else if(binExpr->isMinus()) {
         // Specific: JLS 15.18
@@ -880,7 +858,7 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
             
             // get the value of the prefix first
             traverseAndGenerate(prefixOfMethod);
-            STORE_EAX_TMP_STORAGE();
+            targetReferencePushed = true;
         }
     } else {
         // method call through a field access
@@ -889,10 +867,10 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
         
         // get the value of the prefix first
         traverseAndGenerate(((InvokeAccessedMethod*) invoke)->getAccessedMethod()->getAccessedFieldPrimary());
-        STORE_EAX_TMP_STORAGE();
+        targetReferencePushed = true;
     }
 
-    if(tmp_storage_used) {
+    if(targetReferencePushed) {
         // if temporary storage was used, then
         // check that the prefix's value is not null
         asma("cmp eax, 0 ; check that prefix's value is not null");
@@ -905,7 +883,7 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
     bool isNativeMethod = invoke->isReferringToClassMethod() && invoke->getReferredClassMethod()->getClassMethod()->isNative();
     if(!isNativeMethod) {
         // not a native method
-        traverseAndGenerate(invoke->getArgsForInvokedMethod());
+        traverseAndGenerate(invoke->getArgsForInvokedMethod(), targetReferencePushed);
     } else {
         // a native method, guaranteed then to have only
         // one argument of type int
@@ -937,16 +915,16 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
             asmc("METHOD INVOCATION THROUGH VIRTUAL TABLE");
         }
 
-        if(tmp_storage_used) {
-            // temporary storage was used
-            // load old eax value back now
-            LOAD_EAX_TMP_STORAGE();
+        if(targetReferencePushed) {
+            // a target reference was computed
+            // push eax, which should have the target reference
             asma("push eax ; push target reference");
-        } else {   
+        } else {
+            // no target reference was computed
+            // then use this instead
             asma("mov eax, [ebp + 8] ; get this");
             asma("push eax ; push this as target reference");
         }
-        targetReferencePushed = true;
 
         if(invoke->isReferringToInterfaceMethod()) {
             asma("mov eax, [eax - 8] ; get interface table");
@@ -984,21 +962,33 @@ void CodeGenerator::traverseAndGenerate(MethodInvoke* invoke) {
     }
 }
 
-void CodeGenerator::traverseAndGenerate(ArgumentsStar* args) {
+void CodeGenerator::traverseAndGenerate(ArgumentsStar* args, bool targetReferencePushed) {
     if(!args->isEpsilon()) {
         asmc("ARRANGE ARGUMENTS LEFT-MOST AT THE BOTTOM, RIGHT-MOST AT THE TOP");
-        traverseAndGenerate(args->getListOfArguments());
+        traverseAndGenerate(args->getListOfArguments(), targetReferencePushed);
     }
 }
 
-void CodeGenerator::traverseAndGenerate(Arguments* arg) {
+void CodeGenerator::traverseAndGenerate(Arguments* arg, bool targetReferencePushed) {
     if(!arg->lastArgument()) {
         // traverse what ever is to the left of me first
-        traverseAndGenerate(arg->getNextArgs());
+        traverseAndGenerate(arg->getNextArgs(), targetReferencePushed);
+    }
+
+    if(targetReferencePushed) {
+        asma("push eax ; push target reference");
     }
 
     traverseAndGenerate(arg->getSelfArgumentExpr());
+    if(targetReferencePushed) {
+        asma("pop ebx ; get back target reference");
+    }
+
     asma("push eax ; now push self");
+
+    if(targetReferencePushed) {
+        asma("mov eax, ebx ; move over target reference back to eax");
+    }
 }
 
 void CodeGenerator::traverseAndGenerate(NewClassCreation* create) {
@@ -1166,12 +1156,12 @@ void CodeGenerator::traverseAndGenerate(CastExpression* cast) {
        if (primType->isTypeShort() && castedExpr->isExprTypeInt()) {
            asmc("Casting type integer to type short");
            asma("shl eax, 16 ; shift left by 16, throwing off last 16 MSB");
-           asma("shr eax, 16 ; shift right by 16, retain last 16 LSB");
+           asma("sar eax, 16 ; shift right by 16, retain last 16 LSB and sign");
        } else if ((primType->isTypeByte() || primType->isTypeChar()) &&
                (castedExpr->isExprTypeShort() || castedExpr->isExprTypeInt())) {
            asmc("Casting type short or integer to byte or char");
            asma("shl eax, 24 ; shift left by 24, throwing off last 24 MSB");
-           asma("shr eax, 24 ; shift right by 24, retain last 8 LSB");
+           asma("sar eax, 24 ; shift right by 24, retain last 8 LSB and sign");
        } // The rest doesn't need anything to be done, since
          // the bits will remain the same way for all primitive types
     }

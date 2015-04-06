@@ -1449,6 +1449,8 @@ void AmbiguousLinker::checkProperArrayAccessInExpression(Expression* expr, Token
         expr->reconfigureExprType(ET_BYTE);
     } else if(expr->isExprTypeCharArray()) {
         expr->reconfigureExprType(ET_CHAR);
+    } else if(expr->isExprTypeBooleanArray()) {
+        expr->reconfigureExprType(ET_BOOLEAN);
     } else {
         // an array of some type
         expr->reconfigureExprType(ET_OBJECT);
