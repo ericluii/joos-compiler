@@ -25,6 +25,8 @@
 
 #include "labelManager.h"
 
+#include "error.h"
+
 class InterfaceMethodTable;
 
 Startup::Startup(std::map<std::string, CompilationTable*>& compilations, CompilationTable* firstUnit) : 
@@ -94,6 +96,12 @@ void Startup::generateStartupFile(VTableLayout* arrayVTable, std::vector<Inherit
     fs << std::endl;
     // call static int test() of the first compilation unit
     // given in the command line to joosc
+    if (!firstUnit->getAClassMethod("test()") ||
+        !firstUnit->getAClassMethod("test()")->getClassMethod()->isStatic() ||
+        firstUnit->getAClassMethod("test()")->getClassMethod()->getMethodHeader()->getReturnType()->getTypeAsString() != "int") {
+        Error(E_DEFAULT, NULL, "The file '" + firstUnit->getCanonicalName() + "' does not contain the method 'static int test()'.");
+        CHECK_ERROR();
+    }
     std::string testMethod = firstUnit->getAClassMethod("test()")->generateMethodLabel();
     fs << "extern " << testMethod << '\n';
     fs << "call " << testMethod << '\n';
