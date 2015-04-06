@@ -4,6 +4,7 @@
 #include "test_a2.h"
 #include "test_a3.h"
 #include "test_a4.h"
+#include "test_a5.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -25,6 +26,7 @@ int main(int argc, char** argv) {
     std::string a2TestPath = "tests/a2";
     std::string a3TestPath = "tests/a3";
     std::string a4TestPath = "tests/a4";
+    std::string a5TestPath = "tests/a5";
 
     // Add tests to this vector if you want
     // to add it to the test sequence
@@ -35,6 +37,7 @@ int main(int argc, char** argv) {
     test_list.push_back(new Test_A2(stdlibPath, a2TestPath));
     test_list.push_back(new Test_A3(stdlibPath, a3TestPath));
     test_list.push_back(new Test_A4(stdlibPath, a4TestPath));
+    test_list.push_back(new Test_A5(stdlibPath, a5TestPath));
 
     for_each(test_list.begin(), test_list.end(), run_test);
     std::cout << base;
