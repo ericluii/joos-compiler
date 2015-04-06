@@ -283,16 +283,16 @@ void CodeGenerator::traverseAndGenerate() {
                 CALL_FUNCTION("__malloc");
                 
                 asmc("In this order fill in: virtual table, inheritance table, interface methods, type number");
-                asma("mov [eax], " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
-                asma("mov [eax-4], " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
-                asma("mov [eax-8], " << interManager->getTableForType(classCanonicalName)->generateTableName());
-                asma("mov [eax-12], " << inhManager->getTypeMapping(classCanonicalName));
+                asma("mov [eax], dword " << virtualManager->getVTableLayoutForType(classCanonicalName)->getVirtualTableName());
+                asma("mov [eax-4], dword " << inhManager->getTableForType(classCanonicalName)->generateInheritanceTableName());
+                asma("mov [eax-8], dword " << interManager->getTableForType(classCanonicalName)->generateTableName());
+                asma("mov [eax-12], dword " << inhManager->getTypeMapping(classCanonicalName));
                 asma("push eax ; push allocated object onto the stack as 'this'");
                 
                 ObjectLayout* layoutOfClass = objManager->getLayoutForClass(processing);
                 asmc("Initialize all fields to their default 0");
                 for(unsigned int i = 0; i < layoutOfClass->numberOfFieldsInObject(); i++) {
-                    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(i) << "], 0");
+                    asma("mov [eax - " << ObjectLayout::transformToFieldIndexInAnObject(i) << "], dword 0");
                 }
                 asma("ret ; get back to whoever called this allocator, with eax pointing to the new object");
             }
@@ -1023,11 +1023,11 @@ void CodeGenerator::traverseAndGenerate(PrimaryNewArray* newArray) {
     std::string labelizedInhTable = LabelManager::getLabelForArrayInheritanceTable(arrayType->getTypeAsString());
 
     if(arrayType->isReferenceType()) {
-        asma("mov [eax + 8], " << inhManager->getTypeMapping(arrayType->getTypeAsString()) << " ; insert component type");
+        asma("mov [eax + 8], dword " << inhManager->getTypeMapping(arrayType->getTypeAsString()) << " ; insert component type");
     }
     asma("extern " << labelizedInhTable);
-    asma("mov [eax - 4], " << labelizedInhTable << " ; insert array inheritance table");
-    asma("mov [eax - 12], " << inhManager->getTypeMapping(arrayType->getTypeAsString() + "[]") << " ; insert type number");
+    asma("mov [eax - 4], dword " << labelizedInhTable << " ; insert array inheritance table");
+    asma("mov [eax - 12], dword " << inhManager->getTypeMapping(arrayType->getTypeAsString() + "[]") << " ; insert type number");
 }
 
 void CodeGenerator::traverseAndGenerate(QualifiedThis* qual) {
@@ -1073,13 +1073,13 @@ void CodeGenerator::traverseAndGenerate(LiteralOrThis* lit) {
         std::string charArrayInheritance = LabelManager::getLabelForArrayInheritanceTable("char");
         asmc("Insert inheritance table of char[]");
         asma("extern " << charArrayInheritance);
-        asma("mov [eax - 4], " << charArrayInheritance);
+        asma("mov [eax - 4], dword " << charArrayInheritance);
         asmc("Insert char[]'s type number");
-        asma("mov [eax - 12], " << inhManager->getTypeMapping("char[]"));
+        asma("mov [eax - 12], dword " << inhManager->getTypeMapping("char[]"));
         // Copy over string into array
         unsigned int offset = ObjectLayout::transformToFieldIndexInAnObject(0);
         for (unsigned int i = 0; i < string_literal.length(); i++) {
-            asma("mov [eax - " << offset << "], " << ((int)string_literal[i]));
+            asma("mov [eax - " << offset << "], dword " << ((int)string_literal[i]));
             offset += 4;
         }
 
